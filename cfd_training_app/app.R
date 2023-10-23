@@ -3,6 +3,7 @@ library(shinyWidgets)
 library(bslib)
 library(pins)
 require(googledrive)
+library(data.table)
 
 # Set options to auth google drive
 options(
@@ -19,8 +20,9 @@ if (getwd() == "C:/Users/jwric/OneDrive/Documents/cfd_training_app/cfd_training_
 }
 
 board <- board_gdrive("CFD Training App")
-board %>% pin_write(1:10, "test_pin", "rds")
-board %>% pin_read("test_pin")
+roster <- board %>% pin_read("roster")
+board %>% pin_versions("roster")
+board %>% pin_version_delete("roster", "20231023T015100Z-9fd0e")
 
 ui <- page_navbar(
     title = "Corinne Fire Department",
@@ -28,11 +30,24 @@ ui <- page_navbar(
                      success = "#375A7F",
                      bootswatch = "darkly"),
     nav_panel(title = "Add Training", 
-              layout_sidebar()),
+        layout_sidebar()
+    ),
+    
     nav_panel(title = "Manage Training", 
-              layout_sidebar()),
+        layout_sidebar()
+    ),
+    
     nav_panel(title = "Manage Roster", 
-              layout_sidebar()),
+        layout_sidebar(
+            sidebar = sidebar(actionButton('add_firefighter', 'Add Firefighter'),
+                              actionButton('remove_firefighter', 'Remove Firefighter'),
+                              actionButton('refresh_roster', 'Refresh Roster')
+                              ),
+            card(dataTableOutput('roster')
+            )
+        ),
+            
+    ),
     nav_panel(title = "Training Summary", 
               layout_sidebar()),
     nav_spacer(),
@@ -64,6 +79,86 @@ server <- function(input, output) {
         } else {
             stopApp()
         }
+    })
+    
+    output$roster <- renderDataTable({
+        data.table(roster)
+    })
+    
+    observeEvent(input$add_firefighter, {
+        showModal(modalDialog(
+            textInput('add_first_name', 'First Name'),
+            textInput('add_last_name', 'Last Name'),
+            title = "Add Firefighter",
+            footer = tagList(
+                actionButton("action_add_firefigher", "Add Firefighter")
+            )
+        ))
+    })
+
+    
+    # Test if duplicate names can be added
+    # Test if white space if successuflly removed
+    observeEvent(input$action_add_firefigher, {
+        removeModal()
+        proposed_full_name <- paste(trimws(input$add_first_name), trimws(input$add_last_name))
+        
+        if (proposed_full_name %in% paste(roster$first_name, roster$last_name)) {
+            showModal(modalDialog("The name you tried to add already exists. Please add a unique name.",
+                                  title = "Add Firefighter Failed"))
+        } else {
+            showModal(modalDialog("Please wait...", title = "Processing Changes"))
+            new_index <- nrow(roster)
+            roster <- dplyr::bind_rows(roster, data.frame(first_name = trimws(input$add_first_name), 
+                                                          last_name = trimws(input$add_last_name)))
+            board %>% pin_write(roster, "roster")
+            removeModal()
+            showModal(modalDialog(paste(proposed_full_name, "has been successfully added."),
+                                        title = "Success!",
+                                  easyClose = TRUE))
+        }
+        
+    })
+    
+    observeEvent(input$remove_firefighter, {
+        showModal(modalDialog("Please wait...", title = "Refreshing Data"))
+        roster <<- board %>% pin_read("roster")
+        removeModal()
+        full_names <- paste(roster$first_name, roster$last_name)
+        showModal(modalDialog(selectInput('remove_full_name', 'Please select firefighter to remove.', full_names),
+                              title = "Remove Firefighter",
+                              footer = tagList(
+                                  actionButton("action_remove_firefigher", "Remove Firefighter")
+                              )
+                              ))
+    })
+    
+    observeEvent(input$action_remove_firefigher, {
+        removeModal()
+        
+        if (input$remove_full_name %in% paste(roster$first_name, roster$last_name)) {
+            showModal(modalDialog("Please wait...", title = "Processing Changes"))
+            local_first_name <- strsplit(input$remove_full_name, " ")[[1]][1]
+            local_last_name <- strsplit(input$remove_full_name, " ")[[1]][2]
+            roster <- roster[!(roster$first_name == local_first_name & roster$last_name == local_last_name),]
+            board %>% pin_write(roster, "roster", 'rds')
+            removeModal()
+            showModal(modalDialog(paste(input$remove_full_name, "has been successfully removed."),
+                                  title = "Success!",
+                                  easyClose = TRUE))
+            
+        } else {
+            showModal(modalDialog("Please contact Joseph Richey.",
+                                  title = "Error Code 1",
+                                  easyClose = TRUE))
+        }
+        
+    })
+    
+    observeEvent(input$refresh_roster, {
+        showModal(modalDialog("Refreshing roster. Please wait.", title = "Processing Changes"))
+        roster <<- board %>% pin_read("roster")
+        removeModal()
     })
  
         
