@@ -1,6 +1,26 @@
 library(shiny)
 library(shinyWidgets)
 library(bslib)
+library(pins)
+require(googledrive)
+
+# Set options to auth google drive
+options(
+    # whenever there is one account token found, use the cached token
+    gargle_oauth_email = "corinne.fire.data@gmail.com",
+    # specify auth tokens should be stored in a hidden directory ".secrets"
+    gargle_oauth_cache = "cfd_training_app/.secrets"
+)
+
+if (getwd() == "C:/Users/jwric/OneDrive/Documents/cfd_training_app/cfd_training_app") {
+    googledrive::drive_auth(token = readRDS(here::here("cfd_training_app/.secrets/c13dc354db9600c8cd9b2bd868d1bf25_corinne.fire.data@gmail.com")))
+} else {
+    googledrive::drive_auth(token = readRDS(here::here(".secrets/c13dc354db9600c8cd9b2bd868d1bf25_corinne.fire.data@gmail.com")))
+}
+
+board <- board_gdrive("CFD Training App")
+board %>% pin_write(1:10, "test_pin", "rds")
+board %>% pin_read("test_pin")
 
 ui <- page_navbar(
     title = "Corinne Fire Department",
