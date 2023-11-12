@@ -4,6 +4,7 @@ library(bslib)
 library(pins)
 require(googledrive)
 library(data.table)
+library(dplyr)
 
 # Set options to auth google drive
 options(
@@ -20,6 +21,15 @@ if (getwd() == "C:/Users/jwric/OneDrive/Documents/cfd_training_app/cfd_training_
 }
 
 board <- board_gdrive("CFD Training App")
+
+FixColNames <- function(Data) {
+    colnames(Data) <- gsub("_", " ", colnames(Data))
+    colnames(Data) <- stringr::str_to_title(colnames(Data))
+    
+    return(Data)
+}
+
+
 
 ui <- page_navbar(
     title = "Corinne Fire Department",
@@ -61,7 +71,8 @@ server <- function(input, output) {
     # Use reactiveValues to maintain a local copy of the roster that is available at all times.
     # Update the local copy whenever the stored copy is updated.
     MyReactives <- reactiveValues()
-    MyReactives$roster <- board %>% pin_read("roster")
+    MyReactives$roster <- board %>% pin_read("roster") %>% 
+        dplyr::mutate(start_date = as.Date(start_date))
     
     # Sing in/out capabilites
     observeEvent(input$sign_out, {
@@ -86,13 +97,21 @@ server <- function(input, output) {
     
     ###### Manage Roster ######
     output$roster <- renderDataTable({
-        data.table(MyReactives$roster)
+        browser()
+        Table_Data <- MyReactives$roster |>
+            filter(active_status == TRUE) |>
+            select(first_name, last_name, start_date)
+        
+        Table_Data <- FixColNames(Table_Data)
+        
+        data.table(Table_Data)
     })
     
     observeEvent(input$add_firefighter, {
         showModal(modalDialog(
             textInput('add_first_name', 'First Name'),
             textInput('add_last_name', 'Last Name'),
+            dateInput('ff_start_date', 'Start Date', value = Sys.Date()),
             title = "Add Firefighter",
             footer = tagList(
                 actionButton("action_add_firefigher", "Add Firefighter")
@@ -104,6 +123,7 @@ server <- function(input, output) {
     # Test if duplicate names can be added
     # Test if white space if successuflly removed
     observeEvent(input$action_add_firefigher, {
+        # browser()
         removeModal()
         proposed_full_name <- paste(trimws(input$add_first_name), trimws(input$add_last_name))
         
@@ -113,9 +133,15 @@ server <- function(input, output) {
                                   title = "Add Firefighter Failed"))
         } else {
             showModal(modalDialog("Please wait...", title = "Processing Changes"))
-            new_index <- nrow(MyReactives$roster)
-            MyReactives$roster <- dplyr::bind_rows(MyReactives$roster, data.frame(first_name = trimws(input$add_first_name), 
-                                                          last_name = trimws(input$add_last_name)))
+            new_index <- nrow(MyReactives$roster) + 1
+            MyReactives$roster <- dplyr::bind_rows(MyReactives$roster, 
+                data.frame(
+                  firefighter_id = new_index,
+                  first_name = trimws(input$add_first_name), 
+                  last_name = trimws(input$add_last_name),
+                  start_date = input$ff_start_date,
+                  active_status = TRUE)
+                )
             board %>% pin_write(MyReactives$roster, "roster")
             removeModal()
             showModal(modalDialog(paste(proposed_full_name, "has been successfully added."),
@@ -127,7 +153,9 @@ server <- function(input, output) {
     
     observeEvent(input$remove_firefighter, {
         roster <- MyReactives$roster
-        full_names <- paste(roster$first_name, roster$last_name)
+        active_roster <- roster |>
+            filter(active_status == TRUE)
+        full_names <- paste(active_roster$first_name, active_roster$last_name)
         showModal(modalDialog(selectInput('remove_full_name', 'Please select firefighter to remove.', full_names),
                               title = "Remove Firefighter",
                               footer = tagList(
@@ -145,7 +173,8 @@ server <- function(input, output) {
             showModal(modalDialog("Please wait...", title = "Processing Changes"))
             local_first_name <- strsplit(input$remove_full_name, " ")[[1]][1]
             local_last_name <- strsplit(input$remove_full_name, " ")[[1]][2]
-            roster <- roster[!(roster$first_name == local_first_name & roster$last_name == local_last_name),]
+            # roster <- roster[!(roster$first_name == local_first_name & roster$last_name == local_last_name),]
+            roster[roster$first_name == local_first_name & roster$last_name == local_last_name,]$active_status <- FALSE
             board %>% pin_write(roster, "roster", 'rds')
             MyReactives$roster <- roster
             removeModal()
