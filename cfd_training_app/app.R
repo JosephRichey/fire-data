@@ -37,7 +37,16 @@ ui <- page_navbar(
                      success = "#375A7F",
                      bootswatch = "darkly"),
     nav_panel(title = "Add Training", 
-        layout_sidebar()
+        layout_sidebar(
+            sidebar = sidebar(
+                actionButton('add_training', "Add Training"),
+                dateRangeInput('training_filter_range',
+                               "Show trainings between:",
+                               start = Sys.Date() - 365,
+                               end = Sys.Date() + 30)
+            ),
+            card(dataTableOutput('view_trainings'))
+        )
     ),
     
     nav_panel(title = "Manage Training", 
@@ -66,13 +75,16 @@ ui <- page_navbar(
 )
 
 
-server <- function(input, output) {
+server <- function(input, output, session) {
     
     # Use reactiveValues to maintain a local copy of the roster that is available at all times.
     # Update the local copy whenever the stored copy is updated.
     MyReactives <- reactiveValues()
     MyReactives$roster <- board %>% pin_read("roster") %>% 
         dplyr::mutate(start_date = as.Date(start_date))
+    MyReactives$trainings <- board %>% pin_read("trainings") %>% 
+        dplyr::mutate(date = as.Date(date))
+    
     
     # Sing in/out capabilites
     observeEvent(input$sign_out, {
@@ -95,9 +107,101 @@ server <- function(input, output) {
         }
     })
     
+    ###### Add Trainings #####
+    # Display current trainings
+    output$view_trainings <- renderDataTable({
+        # browser()
+        Table_Data <- MyReactives$trainings |>
+            filter(date > input$training_filter_range[1] &
+                   date < input$training_filter_range[2]) |>
+            select(-training_id)
+        
+        Table_Data <- FixColNames(Table_Data)
+        
+        data.table(Table_Data)
+        
+    })
+    
+    # Update the training topic based on the training type.
+    observe({
+        # browser()
+        x <- input$add_training_type
+        
+        if(is.null(x)) {
+            # Do nothing
+        }
+        
+        # Can also set the label and select items
+        else if(x == "EMS") {
+        updateSelectInput(session,
+                          "add_training_topic",
+                          choices = c(
+                              "Airway/Respiraroty/Ventilation",
+                              "Cardiovascular",
+                              "Trauma",
+                              "Medical",
+                              "Operations"
+                          ))
+        }
+
+        else if(x == "Fire") {
+            updateSelectInput(session,
+                              "add_training_topic",
+                              choices = c(
+                                  "Fire 1",
+                                  "Fire 2",
+                                  "Hazmat",
+                                  "Ops"
+                              ))
+        }
+    })
+    
+    # Enter information to create the training.
+    observeEvent(input$add_training, {
+        showModal(modalDialog(
+            selectInput('add_training_type', 'Training Type', choices = c("EMS", "Fire", "Wildland"), selected = "EMS"),
+            selectInput('add_training_topic', 'Training Topic', choices = c()), # Update with above observe statement
+            numericInput('add_training_length', "Training Length (Hours)", value = 2),
+            textInput('add_description', 'Training Description'),
+            dateInput('add_training_date', 'Training Date', value = Sys.Date()),
+            title = "Add Training",
+            footer = tagList(
+                actionButton("action_add_training", "Add Training")
+            ),
+            easyClose = TRUE
+        ))
+    })
+    
+    # Create the training
+    observeEvent(input$action_add_training, {
+        # browser()
+        removeModal()
+        
+        trainings <- MyReactives$trainings
+        showModal(modalDialog("Please wait...", title = "Processing Changes"))
+        new_index <- nrow(MyReactives$trainings) + 1
+        MyReactives$trainings <- dplyr::bind_rows(MyReactives$trainings, 
+                                               data.frame(
+                                                   training_id = new_index,
+                                                   training_type = input$add_training_type,
+                                                   topic = input$add_training_topic,
+                                                   training_length = input$add_training_length,
+                                                   description = input$add_description,
+                                                   date = input$add_training_date
+                                                   )
+        )
+        board %>% pin_write(MyReactives$trainings, "trainings", "rds")
+        removeModal()
+        showModal(modalDialog("Your training has been successfully added.",
+                              title = "Success!",
+                              easyClose = TRUE))
+        
+        
+    })
+    
     ###### Manage Roster ######
     output$roster <- renderDataTable({
-        browser()
+        # browser()
         Table_Data <- MyReactives$roster |>
             filter(active_status == TRUE) |>
             select(first_name, last_name, start_date)
