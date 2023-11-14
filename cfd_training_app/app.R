@@ -6,6 +6,7 @@ require(googledrive)
 library(data.table)
 library(DT)
 library(dplyr)
+library(plotly)
 
 # Set options to auth google drive
 options(
@@ -23,6 +24,11 @@ if (getwd() == "C:/Users/jwric/OneDrive/Documents/cfd_training_app") {
 
 board <- board_gdrive("CFD Training App")
 Trainings <- board |> pin_read("trainings")
+Roster <- board |> pin_read("roster") |> 
+  filter(active_status == TRUE) |> 
+  mutate(full_name = paste(first_name, last_name))
+Attendance <- board |> pin_read("attendance") |> 
+  unique()
 
 FixColNames <- function(Data) {
     colnames(Data) <- gsub("_", " ", colnames(Data))
@@ -42,7 +48,7 @@ ui <- page_navbar(
     theme = bs_theme(version = 5,
                      success = "#375A7F",
                      bootswatch = "darkly"),
-    nav_panel(title = "Add Training", 
+    nav_panel(title = "Training", 
         layout_sidebar(
             sidebar = sidebar(
                 width = 400,
@@ -84,11 +90,56 @@ ui <- page_navbar(
                               ),
             card(DTOutput('roster')
             )
-        ),
+        )
             
     ),
     nav_panel(title = "Training Summary", 
-              layout_sidebar()),
+      navset_pill(
+        nav_panel(title = "Individual", 
+          layout_sidebar(
+            sidebar = sidebar(
+              title = "Set Filters",
+              selectInput("summary_firefighter", "Firefighter", Roster$full_name),
+              dateRangeInput('ind_training_filter_range',
+                             "Show trainings between:",
+                             start = as.Date(paste0(year(Sys.Date()), "-01-01")),
+                             end = as.Date(paste0(year(Sys.Date()), "-12-31"))),
+              downloadButton("download_ind", "Download Firefighter Training Summary")
+            ),
+            layout_columns(
+              value_box("EMS Hours", textOutput("ff_ems_hours")),
+              value_box("Fire Hours", textOutput("ff_fire_hours")),
+              value_box("Wildland Hours", textOutput("ff_wildland_hours")),
+            ),
+            card(
+              plotlyOutput("ff_hours_plot")
+            )
+          )
+        ),
+        
+        nav_panel(title = "Department", 
+          layout_sidebar(
+            sidebar = sidebar(
+              title = "Set Filters",
+              dateRangeInput('dep_training_filter_range',
+                             "Show trainings between:",
+                             start = as.Date(paste0(year(Sys.Date()), "-01-01")),
+                             end = as.Date(paste0(year(Sys.Date()), "-12-31"))),
+              downloadButton("download_dep", "Download Department Training Summary")
+            ),
+            value_box("Total Training Hours", textOutput("dep_total_hours")),
+            layout_columns(
+              value_box("EMS Hours", textOutput("dep_ems_hours")),
+              value_box("Fire Hours", textOutput("dep_fire_hours")),
+              value_box("Wildland Hours", textOutput("dep_wildland_hours")),
+            ),
+            card(
+              plotlyOutput("dep_hours_plot")
+            )
+          )          
+        )
+      )
+    ),
     nav_spacer(),
     nav_menu(
         title = "Settings",
@@ -100,8 +151,8 @@ ui <- page_navbar(
 
 
 server <- function(input, output, session) {
-  load_data()
     
+    ##### Global Stuff #####
     # Use reactiveValues to maintain a local copy of the roster that is available at all times.
     # Update the local copy whenever the stored copy is updated.
     MyReactives <- reactiveValues()
@@ -125,14 +176,14 @@ server <- function(input, output, session) {
     
     # Check password and username
     observeEvent(input$sign_in, {
-        if(input$username == "Test" && input$password == "1234") {
+        if(input$username == "CFD" && input$password == "1975") {
             removeModal()
         } else {
             stopApp()
         }
     })
     
-    ###### Add Trainings #####
+    ###### Trainings #####
     # Display current trainings
     output$view_trainings <- renderDT({
         # browser()
@@ -321,7 +372,7 @@ server <- function(input, output, session) {
       if (length(cell_click) != 0) {
         showModal(modalDialog(
           title = "Confirm Deletion",
-          "Are you sure you want to delete this training? If you're sure, please type \"Confirm Deletion\"",
+          "Are you sure you want to delete this training? If you're sure, please type \"Delete\"",
           textInput("confirm_deletion", ""),
           footer = tagList(
             actionButton("action_delete_training", "Delete Training")
@@ -332,20 +383,20 @@ server <- function(input, output, session) {
     })
     
     observeEvent(input$action_delete_training, {
-      browser()
+      # browser()
       removeModal()
       
-      if(input$confirm_deletion == "Confirm Deletion") {
+      if(input$confirm_deletion == "Delete") {
         showModal(modalDialog("Please wait...", title = "Processing Changes"))
         cell_click <- input$view_trainings_cell_clicked
         
-        MyReactives$trainings <- rows_update(x = Trainings, 
+        MyReactives$trainings <- rows_update(x = MyReactives$trainings, 
                                              y = data.frame(training_id = MyReactives$trainings[cell_click$row,]$training_id,
                                                             training_type = MyReactives$trainings[cell_click$row,]$training_type,
                                                             topic = MyReactives$trainings[cell_click$row,]$topic,
                                                             training_length = MyReactives$trainings[cell_click$row,]$training_length,
                                                             description = MyReactives$trainings[cell_click$row,]$description,
-                                                            date = MyReactives$trainings[cell_click$row,]$date,
+                                                            date = as.Date(MyReactives$trainings[cell_click$row,]$date),
                                                             delete = TRUE
                                              ),
                                              by = 'training_id'
@@ -463,7 +514,185 @@ server <- function(input, output, session) {
         
     })
     
+    ##### Ind Training Summary ####
+    R_Training_Data <- reactive({
+      Filtered_Trainings <- MyReactives$trainings |> 
+        filter(delete == FALSE &
+               date > input$ind_training_filter_range[1] &
+               date < input$ind_training_filter_range[2])
+      
+      Filtered_Roster <- MyReactives$roster |> 
+        filter(active_status == TRUE) |> 
+        mutate(full_name = paste(first_name, last_name))
+      
+      Attendance |> 
+        left_join(Filtered_Roster) |> 
+        left_join(Filtered_Trainings) |> 
+        filter(!is.na(delete) & !is.na(active_status))
+      
+    })
     
+    output$ff_ems_hours <- renderText({
+      Data <- R_Training_Data() |> 
+        filter(full_name == input$summary_firefighter) |> 
+        filter(training_type == "EMS")
+      
+      paste(sum(Data$training_length))
+    })
+    
+    output$ff_fire_hours <- renderText({
+      Data <- R_Training_Data() |> 
+        filter(full_name == input$summary_firefighter) |> 
+        filter(training_type == "Fire")
+      
+      paste(sum(Data$training_length))
+    })
+    
+    output$ff_wildland_hours <- renderText({
+      Data <- R_Training_Data() |> 
+        filter(full_name == input$summary_firefighter) |> 
+        filter(training_type == "Wildland")
+      
+      paste(sum(Data$training_length))
+    })
+    
+    output$ff_hours_plot <- renderPlotly({
+      
+      # Assuming your dataframe has a "date" column
+      R_Training_Data <- R_Training_Data() %>%
+        mutate(Month = format(as.Date(date), "%Y-%m")) |> 
+        filter(full_name == input$summary_firefighter)
+      
+      # Generate a complete set of months
+      all_months <- expand.grid(training_type = unique(R_Training_Data$training_type),
+                                Month = unique(R_Training_Data$Month),
+                                stringsAsFactors = FALSE)
+      
+      # Merge with the training data to fill in missing months with zeros
+      plot_data <- merge(all_months, R_Training_Data, by = c("training_type", "Month"), all.x = TRUE) %>%
+        mutate(training_length = ifelse(is.na(training_length), 0, training_length)) |> 
+        group_by(training_type, Month) %>%
+        summarise(Total_Length = sum(training_length))
+      
+      # Create the plot with specified colors, legend, and hover text
+      plot <- plot_ly(plot_data, x = ~Month, y = ~Total_Length, color = ~training_type, 
+                      type = 'scatter', mode = 'lines', colors = c("blue", "red", "green"),
+                      text = ~paste("Total Hours: ", Total_Length, " hours")) %>%
+        layout(title = "Training Summary",
+               xaxis = list(title = "Month"),
+               yaxis = list(title = "Training Length (hours)", zeroline = FALSE),
+               showlegend = TRUE)
+      
+      plot
+    })
+    
+    # Individual Data Download
+    R_Ind_Data_Download <- reactive({
+      R_Training_Data() |> 
+        filter(full_name == input$summary_firefighter) |> 
+        select(full_name, training_type, topic, training_length, description, date)
+    })
+    
+    # Download Handler
+    output$download_ind <- downloadHandler(
+      filename = function() {
+        paste0(input$summary_firefighter, "-training-data-", Sys.Date(), ".csv")
+      },
+      content = function(file) {
+        write.csv(R_Ind_Data_Download(), file)
+      }
+    )
+    
+    ##### Dep Training Summary ####
+    R_Dep_Training_Data <- reactive({
+      Filtered_Trainings <- MyReactives$trainings |> 
+        filter(delete == FALSE &
+                 date > input$dep_training_filter_range[1] &
+                 date < input$dep_training_filter_range[2])
+      
+      Filtered_Roster <- MyReactives$roster |> 
+        filter(active_status == TRUE) |> 
+        mutate(full_name = paste(first_name, last_name))
+      
+      Attendance |> 
+        left_join(Filtered_Roster) |> 
+        left_join(Filtered_Trainings) |> 
+        filter(!is.na(delete) & !is.na(active_status))
+      
+    })
+    
+    
+    output$dep_ems_hours <- renderText({
+      Data <- R_Dep_Training_Data() |> 
+        filter(training_type == "EMS")
+      
+      paste(sum(Data$training_length))
+    })
+    
+    output$dep_fire_hours <- renderText({
+      Data <- R_Dep_Training_Data() |> 
+        filter(training_type == "Fire")
+      
+      paste(sum(Data$training_length))
+    })
+    
+    output$dep_wildland_hours <- renderText({
+      Data <- R_Dep_Training_Data() |> 
+        filter(training_type == "Wildland")
+      
+      paste(sum(Data$training_length))
+    })
+    
+    output$dep_total_hours <- renderText({
+      Data <- R_Dep_Training_Data()
+      
+      paste(sum(Data$training_length))
+    })
+    
+    output$dep_hours_plot <- renderPlotly({
+      
+      # Assuming your dataframe has a "date" column
+      R_Training_Data <- R_Dep_Training_Data() %>%
+        mutate(Month = format(as.Date(date), "%Y-%m"))
+      
+      # Generate a complete set of months
+      all_months <- expand.grid(training_type = unique(R_Training_Data$training_type),
+                                Month = unique(R_Training_Data$Month),
+                                stringsAsFactors = FALSE)
+      
+      # Merge with the training data to fill in missing months with zeros
+      plot_data <- merge(all_months, R_Training_Data, by = c("training_type", "Month"), all.x = TRUE) %>%
+        mutate(training_length = ifelse(is.na(training_length), 0, training_length)) |> 
+        group_by(training_type, Month) %>%
+        summarise(Total_Length = sum(training_length))
+      
+      # Create the plot with specified colors, legend, and hover text
+      plot <- plot_ly(plot_data, x = ~Month, y = ~Total_Length, color = ~training_type, 
+                      type = 'scatter', mode = 'lines', colors = c("blue", "red", "green"),
+                      text = ~paste("Total Hours: ", Total_Length, " hours")) %>%
+        layout(title = "Training Summary",
+               xaxis = list(title = "Month"),
+               yaxis = list(title = "Training Length (hours)", zeroline = FALSE),
+               showlegend = TRUE)
+      
+      plot
+    })
+    
+    # Individual Data Download
+    R_Dep_Data_Download <- reactive({
+      R_Dep_Training_Data() |> 
+        select(full_name, training_type, topic, training_length, description, date)
+    })
+    
+    # Download Handler
+    output$download_dep <- downloadHandler(
+      filename = function() {
+        paste0("cfd-training-data-", Sys.Date(), ".csv")
+      },
+      content = function(file) {
+        write.csv(R_Dep_Data_Download(), file)
+      }
+    )
     
 }
 
