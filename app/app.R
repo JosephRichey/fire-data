@@ -7,20 +7,16 @@ library(data.table)
 library(DT)
 library(dplyr)
 library(plotly)
+library(odbc)
 
-# Set options to auth google drive
-options(
-    # whenever there is one account token found, use the cached token
-    gargle_oauth_email = "corinne.fire.data@gmail.com",
-    # specify auth tokens should be stored in a hidden directory ".secrets"
-    gargle_oauth_cache = "cfd_training_app/.secrets"
-)
+CON = dbConnect(RMySQL::MySQL(),
+                dbname = "cfddb",
+                host = "db1.c5umikw8m5v5.us-east-2.rds.amazonaws.com",
+                port = 3306,
+                user = "admin",
+                password = "7zKEDCKHwtfvhmvLeiPGbRN8XEHGr")
 
-if (getwd() == "C:/Users/jwric/OneDrive/Documents/cfd_training_app") {
-    googledrive::drive_auth(token = readRDS(here::here("cfd_training_app/.secrets/c13dc354db9600c8cd9b2bd868d1bf25_corinne.fire.data@gmail.com")))
-} else {
-    googledrive::drive_auth(token = readRDS(here::here(".secrets/c13dc354db9600c8cd9b2bd868d1bf25_corinne.fire.data@gmail.com")))
-}
+dbListTables(CON)
 
 board <- board_gdrive("CFD Training App")
 Trainings <- board |> pin_read("trainings")
