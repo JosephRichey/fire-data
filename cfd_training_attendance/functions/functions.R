@@ -11,7 +11,7 @@ box::use(
 #' @export
 VerifyTrainingTime <- function(sysTime) {
   # browser()
-  # sysTime <- as.POSIXct("2024-01-03 20:00:13 MST")
+  sysTime <- as.POSIXct("2024-01-03 20:00:13 MST")
   
   today_training <- app_data$Training |> 
     dplyr::filter(training_date == as.Date(sysTime))

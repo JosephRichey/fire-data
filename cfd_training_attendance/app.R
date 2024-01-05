@@ -22,6 +22,11 @@ ui <- page_fillable(
     card(
         selectInput('name', "Name", app_data$Roster$firefighter_full_name, selected = NULL),
         actionButton('check_in_out', "Check In/Check Out")
+    ),
+    
+    card(
+      bslib::card_title("Current Status"),
+      DT::dataTableOutput("current_status")
     )
     
 )
@@ -31,8 +36,14 @@ server <- function(input, output, session) {
   
     rv <- reactiveValues()
     
+    output$current_status <- DT::renderDataTable({
+      rv$All |> 
+        DT::datatable()
+    })
+    
     observeEvent(input$check_in_out, {
       # browser()
+        rv$All <- app_data$Attendance
       
       # Catch all time errors for checking in and display modals.
       # If no errors found, returns true and check in process begins.
@@ -54,6 +65,7 @@ server <- function(input, output, session) {
           dplyr::select(training_id) |>
           unlist() |>
           unname()
+        
         
         Firefighter_Attendance <- app_data$Attendance |> 
           dplyr::filter(firefighter_id == rv$target_ff_id) |> 
@@ -128,7 +140,8 @@ server <- function(input, output, session) {
                        check_in = as.POSIXct(Sys.time()))
     
     Write_Df <- dplyr::bind_rows(app_data$Attendance, Temp)
-    
+    rv$All <- Write_Df
+      
     DBI::dbWriteTable(conn = app_data$CON,
                  name = "attendance",
                  value = Write_Df,
@@ -149,7 +162,7 @@ server <- function(input, output, session) {
     # browser()
     Write_Df <- app_data$Attendance |> 
       dplyr::mutate(check_out = if_else(attendance_id == rv$attendance_id, as.POSIXct(Sys.time()), check_out))
-
+    rv$All <- Write_Df
     
     DBI::dbWriteTable(app_data$CON,
                  "attendance",
