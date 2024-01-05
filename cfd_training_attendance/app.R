@@ -1,11 +1,17 @@
-library(shiny)
-library(shinyWidgets)
-library(bslib)
-library(pins)
-require(googledrive)
-library(data.table)
-library(dplyr)
-library(odbc)
+box::use(
+  shiny[...],
+  shinyWidgets[...],
+  bslib[...],
+  data.table[...],
+  dplyr[...],
+  odbc[...],
+)
+
+box::use(
+  functions/functions,
+  data/app_data,
+  modals/modals,
+)
 
 CON = dbConnect(RMySQL::MySQL(),
                 dbname = "cfddb",
@@ -14,99 +20,158 @@ CON = dbConnect(RMySQL::MySQL(),
                 user = "admin",
                 password = Sys.getenv("CFDDB_PASSWORD"))
 
-Training <- dbGetQuery(CON,
-                       "SELECT * 
-                       FROM cfddb.training
-                       WHERE training_delete IS NULL")
-
-Roster <- dbGetQuery(CON,
-                     "SELECT * FROM cfddb.firefighter")
-
-Attendance <- dbGetQuery(CON,
-                         "SELECT * FROM cfddb.attendance") |> 
-  mutate(check_in = as.POSIXct(check_in),
-         check_out = as.POSIXct(check_out))
-
-FixColNames <- function(Data) {
-    colnames(Data) <- gsub("_", " ", colnames(Data))
-    colnames(Data) <- stringr::str_to_title(colnames(Data))
-    
-    return(Data)
-}
-
 ui <- page_fillable(
     title = "Corinne Fire Department",
     h1("Corinne Fire Department"),
     theme = bs_theme(version = 5,
-                     success = "#375A7F",
+                     success = "#87292b",
                      bootswatch = "darkly"),
     card(
-        selectInput('name', "Name", Roster$firefighter_full_name, selected = NULL),
-        actionButton('check_in', "Check In")
+        selectInput('name', "Name", app_data$Roster$firefighter_full_name, selected = NULL),
+        actionButton('check_in_out', "Check In/Check Out")
     )
     
 )
 
 
 server <- function(input, output, session) {
+  
+    rv <- reactiveValues()
     
-    observeEvent(input$check_in, {
+    observeEvent(input$check_in_out, {
+      # browser()
       
-        if(!any(Training$training_date == Sys.Date(), na.rm = TRUE)) {
-          showModal(modalDialog(paste0("There is currently no scheduled training for ",
-                                       Sys.Date(),
-                                       ". It may not have been added to the system yet. ",
-                                       "For further questions please contact Joseph Richey.", 
-                                       "801-644-6893"),
-                                title = "No Valid Training Found"))
-        } else {
-          showModal(modalDialog("Please wait...", title = "Processing Changes"))
-          
-          target_ff_id <- Roster |> 
-            filter(firefighter_full_name == input$name) |> 
-            dplyr::select(firefighter_id) |> 
-            unlist() |> 
-            unname()
-          
-          target_training_id <- Training |> 
-            filter(training_date == Sys.Date()) |> 
-            dplyr::select(training_id) |> 
-            unlist() |> 
-            unname()
-          
-          Temp <- data.frame(attendance_id = nrow(Attendance) + 1,
-                             firefighter_id = target_ff_id,
-                             training_id = target_training_id,
-                             check_in = Sys.time())
-                      
-          
-          Attendance <- dplyr::bind_rows(Attendance, Temp)
-          
-          Attendance <- Attendance |> mutate(check_in = as.character(check_in),
-                                             check_out = as.character(check_out))
-          
-          Attendance <- Attendance |> mutate(check_in = as.POSIXct(check_in),
-                                             check_out = as.POSIXct(check_out))
-          
-          dbWriteTable(CON,
-                       name = "cfddb.attendance",
-                       value = Attendance,
-                       field.type = c(attendance_id = "int",
-                                      firefighter_id = "int",
-                                      training_id = "int"),
-                       overwrite = TRUE)
-          
-          dbWriteTable(CON,
-                       "test_table",
-                       value = cars,
-                       row.names = FALSE,
-                       overwrite = TRUE)
-          
-          removeModal()
-          showModal(modalDialog("You have been successfully checked in!", title = "Success!"))
-        }
+      # Catch all time errors for checking in and display modals.
+      # If no errors found, returns true and check in process begins.
+      if(functions$VerifyTrainingTime(sysTime = Sys.time()))
+      {
+      
+        # Get ff id and traing id.
         
+        rv$target_ff_id <- app_data$Roster |>
+          filter(firefighter_full_name == input$name) |>
+          dplyr::select(firefighter_id) |>
+          unlist() |>
+          unname()
+        
+        rv$target_ff_full_name <- app_data$Roster[app_data$Roster$firefighter_id == rv$target_ff_id,]$firefighter_full_name
+  
+        rv$target_training_id <- app_data$Training |>
+          filter(training_date == Sys.Date()) |>
+          dplyr::select(training_id) |>
+          unlist() |>
+          unname()
+        
+        Firefighter_Attendance <- app_data$Attendance |> 
+          dplyr::filter(firefighter_id == rv$target_ff_id) |> 
+          dplyr::filter(training_id == rv$target_training_id)
+        
+        rv$attendance_id <- Firefighter_Attendance$attendance_id
+        
+        if(nrow(Firefighter_Attendance) == 0) {
+          showModal(
+            modalDialog(
+              title = "Confirm Check In",
+              paste0(rv$target_ff_full_name, " is not checked in. Would you like to confirm check in?"),
+              footer = tagList(
+                actionButton("confirm_check_in", "Confirm Check In"),
+                actionButton("cancel_check_in", "Cancel")
+              )
+            )
+          )
+        } else if (nrow(Firefighter_Attendance == 1) & !is.na(Firefighter_Attendance$check_out)) {
+          showModal(
+            modals$warningModal(
+              paste0(rv$target_ff_full_name, " is already checked out. No changes will be made.")
+            )
+          )
+        } else if (nrow(Firefighter_Attendance == 1) & is.na(Firefighter_Attendance$check_out)) {
+          # browser()
+          showModal(
+            modalDialog(
+              title = "Confirm Check Out",
+              paste0(rv$target_ff_full_name, " is checked in. Would you like to confirm check out?"),
+              footer = tagList(
+                actionButton("confirm_check_out", "Confirm Check Out"),
+                actionButton("cancel_check_out", "Cancel")
+              )
+            )
+          )
+        } else {
+          showModal(modals$errorModal("While attempting to check in/out, no conditions met. No action taken."))
+        }
+      }
     })
+  
+  observeEvent(input$cancel_check_in, {
+    removeModal()
+    showModal(
+      modalDialog(
+        title = "Action canceled.",
+        "No action is taken. Please close this message to return to the app.",
+        easyClose = TRUE
+      )
+    )
+  })
+  
+  observeEvent(input$cancel_check_out, {
+    removeModal()
+    showModal(
+      modalDialog(
+        title = "Action canceled.",
+        "No action is taken. Please close this message to return to the app.",
+        easyClose = TRUE
+      )
+    )
+  })
+  
+  observeEvent(input$confirm_check_in, {
+    # browser()
+    removeModal()
+    
+    Temp <- data.frame(attendance_id = nrow(app_data$Attendance) + 1,
+                       firefighter_id = rv$target_ff_id,
+                       training_id = rv$target_training_id,
+                       check_in = as.POSIXct(Sys.time()))
+    
+    Write_Df <- dplyr::bind_rows(app_data$Attendance, Temp)
+    
+    DBI::dbWriteTable(conn = CON,
+                 name = "attendance",
+                 value = Write_Df,
+                 row.names = FALSE,
+                 overwrite = TRUE)
+    
+    showModal(
+      modalDialog(
+        title = "Success",
+        paste0(rv$target_ff_full_name, " has successfully checked in. You may now close this window."),
+        easyClose = TRUE
+      )
+    )
+  })
+  
+  observeEvent(input$confirm_check_out, {
+    removeModal()
+    # browser()
+    Write_Df <- app_data$Attendance |> 
+      dplyr::mutate(check_out = if_else(attendance_id == rv$attendance_id, as.POSIXct(Sys.time()), check_out))
+
+    
+    DBI::dbWriteTable(app_data$CON,
+                 "attendance",
+                 value = Write_Df,
+                 row.names = FALSE,
+                 overwrite = TRUE)
+    
+    showModal(
+      modalDialog(
+        title = "Success",
+        paste0(rv$target_ff_full_name, " has successfully checked out. You may now close this window."),
+        easyClose = TRUE
+      )
+    )
+  })
    
 }
 
