@@ -13,13 +13,6 @@ box::use(
   modals/modals,
 )
 
-CON = dbConnect(RMySQL::MySQL(),
-                dbname = "cfddb",
-                host = Sys.getenv("CFDDB_HOST"),
-                port = 3306,
-                user = "admin",
-                password = Sys.getenv("CFDDB_PASSWORD"))
-
 ui <- page_fillable(
     title = "Corinne Fire Department",
     h1("Corinne Fire Department"),
@@ -136,7 +129,7 @@ server <- function(input, output, session) {
     
     Write_Df <- dplyr::bind_rows(app_data$Attendance, Temp)
     
-    DBI::dbWriteTable(conn = CON,
+    DBI::dbWriteTable(conn = app_data$CON,
                  name = "attendance",
                  value = Write_Df,
                  row.names = FALSE,
