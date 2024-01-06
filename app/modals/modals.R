@@ -27,3 +27,12 @@ warningModal <- function(message) {
     message
   )
 }
+
+#' @export
+cancelModal <- function() {
+  modalDialog(
+    title = "Action canceled.",
+    "No action is taken. Please close this message to return to the app.",
+    easyClose = TRUE
+  )
+}
