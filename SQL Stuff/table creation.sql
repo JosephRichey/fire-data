@@ -17,12 +17,12 @@ CREATE TABLE cfddb.firefighter (
     firefighter_term_date boolean
 );
 
--- Creat table using R to match datatype for datetime
--- CREATE TABLE cfddb.attendance (
--- 	attendance_id int PRIMARY KEY,
---     firefighter_id int NOT NULL,
---     training_id int NOT NULL,
---     check_in datetime,
---     check_out datetime
--- );
+
+CREATE TABLE cfddb.attendance (
+	attendance_id int PRIMARY KEY AUTO_INCREMENT,
+    firefighter_id int NOT NULL,
+    training_id int NOT NULL,
+    check_in text,
+    check_out text
+);
 
