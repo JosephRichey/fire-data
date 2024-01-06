@@ -4,7 +4,7 @@ box::use(
 )
 
 box::use(
-  ../data/app_data,
+  ./app_data,
   ../modals/modals,
 )
 

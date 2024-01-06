@@ -26,7 +26,8 @@ ui <- page_fillable(
     
     card(
       bslib::card_title("Current Status"),
-      DT::dataTableOutput("current_status")
+      DT::dataTableOutput("current_status"),
+      actionButton('refresh', 'Refresh')
     )
     
 )
@@ -36,7 +37,17 @@ server <- function(input, output, session) {
   
     rv <- reactiveValues()
     
+    observeEvent(input$refesh, {
+      browser()
+      rv$All <- dbGetQuery(CON,
+                           "SELECT * FROM cfddb.attendance") |> 
+        mutate(check_in = as.POSIXct(check_in),
+               check_out = as.POSIXct(check_out))
+    })
+    
     output$current_status <- DT::renderDataTable({
+      print(input$refresh)
+      
       rv$All |> 
         DT::datatable()
     })
