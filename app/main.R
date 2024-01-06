@@ -22,6 +22,7 @@ ui <- function(id) {
     title = "Corinne Fire Department",
     h1("Corinne Fire Department"),
     theme = bs_theme(version = 5,
+                     secondary = "#87292b",
                      success = "#87292b",
                      bootswatch = "darkly"),
     card(
