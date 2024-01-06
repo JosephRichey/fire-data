@@ -38,7 +38,7 @@ server <- function(input, output, session) {
     rv <- reactiveValues()
     
     observeEvent(input$refesh, {
-      browser()
+      # browser()
       rv$All <- dbGetQuery(CON,
                            "SELECT * FROM cfddb.attendance") |> 
         mutate(check_in = as.POSIXct(check_in),
