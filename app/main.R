@@ -43,11 +43,5 @@ server <- function(id) {
     check_in_out$Server("check_in_out")
     current_status$Server("current_status")
     
-    
-    
-    
-    
-    
-    
   })
 }
