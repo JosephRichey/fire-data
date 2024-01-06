@@ -1,5 +1,5 @@
 box::use(
-  dplyr[...],
+  dplyr[filter, ...],
   shiny[...],
 )
 
@@ -41,14 +41,20 @@ VerifyTrainingTime <- function(sysTime) {
 }
 
 #' @export
-FirefighterStatus <- function() {
-  
-}
-
-#' @export
 FixColNames <- function(Data) {
   colnames(Data) <- gsub("_", " ", colnames(Data))
   colnames(Data) <- stringr::str_to_title(colnames(Data))
   
   return(Data)
+}
+
+#' @export
+CurrentStatusTable <- function(Attendance, Roster) {
+  Attendance |> 
+    left_join(Roster) |> 
+    transmute(firefighter_full_name = firefighter_full_name, 
+              check_in = format(check_in, "%H:%M:%S"), 
+              check_out = format(check_out, "%H:%M:%S")) |> 
+    dplyr::filter(is.na(check_out)) |> 
+    FixColNames()
 }
