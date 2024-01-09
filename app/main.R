@@ -26,16 +26,19 @@ ui <- function(id) {
                      success = "#87292b",
                      bootswatch = "darkly"),
     card(
-      check_in_out$UI(ns('check_in_out')),
+      card_body(
+        min_height = "300px",
+        check_in_out$UI(ns('check_in_out'))
+      )
     ),
     
     card(
+      card_body(
       bslib::card_title("Current Status"),
       current_status$Output(ns('current_status')),
       current_status$UI(ns('current_status'))
+      )
     ),
-    br(),
-    br(),
     br(),
     helpText("v0.1.0")
     
