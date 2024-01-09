@@ -33,7 +33,11 @@ ui <- function(id) {
       bslib::card_title("Current Status"),
       current_status$Output(ns('current_status')),
       current_status$UI(ns('current_status'))
-    )
+    ),
+    br(),
+    br(),
+    br(),
+    helpText("v0.1.0")
     
   )
 }
