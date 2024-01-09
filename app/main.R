@@ -18,7 +18,7 @@ box::use(
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  page_fillable(
+  page_fixed(
     title = "Corinne Fire Department",
     h1("Corinne Fire Department"),
     theme = bs_theme(version = 5,

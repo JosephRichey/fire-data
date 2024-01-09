@@ -2,6 +2,7 @@ box::use(
   shiny[...],
   dplyr[filter, ...],
   DBI[...],
+  lubridate[...],
 )
 
 box::use(
@@ -33,7 +34,7 @@ Server <- function(id) {
         
         # Catch all time errors for checking in and display modals.
         # If no errors found, returns true and check in process begins.
-        if(functions$VerifyTrainingTime(sysTime = Sys.time()))
+        if(functions$VerifyTrainingTime(sysTime = lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))))
         {
           
           # Update Attendance.
@@ -56,12 +57,12 @@ Server <- function(id) {
           rvs$target_ff_full_name <- app_data$Roster[app_data$Roster$firefighter_id == rvs$target_ff_id,]$firefighter_full_name
           
           rvs$target_training_id <- app_data$Training |>
-            filter(training_date == Sys.Date()) |>
+            filter(training_date == as.Date(lubridate::with_tz(Sys.time(), Sys.getenv("TZ")), tz = Sys.getenv("TZ"))) |>
             dplyr::select(training_id) |>
             unlist() |>
             unname()
           
-          
+          # browser()
           Firefighter_Attendance <- rv() |> 
             dplyr::filter(firefighter_id == rvs$target_ff_id) |> 
             dplyr::filter(training_id == rvs$target_training_id)
@@ -131,7 +132,7 @@ Server <- function(id) {
           "INSERT INTO cfddb.attendance (firefighter_id, training_id, check_in, check_out) VALUES (",
            rvs$target_ff_id, ", ",
            rvs$target_training_id, ", '",
-           as.POSIXct(Sys.time()), "', ",
+           as.POSIXct(lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))), "', ",
            "NULL)")
         
         write_result <- DBI::dbExecute(app_data$CON,
@@ -153,10 +154,10 @@ Server <- function(id) {
       
       observeEvent(input$confirm_check_out, {
         removeModal()
-        browser()
+        
         sql_command <- paste0(
           "UPDATE cfddb.attendance SET check_out = ",
-          "'", as.POSIXct(Sys.time()), "'",
+          "'", as.POSIXct(lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))), "'",
           "WHERE attendance_id = ", rvs$attendance_id)
         
         write_result <- DBI::dbExecute(app_data$CON,
