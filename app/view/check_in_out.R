@@ -57,7 +57,7 @@ Server <- function(id) {
           rvs$target_ff_full_name <- app_data$Roster[app_data$Roster$firefighter_id == rvs$target_ff_id,]$firefighter_full_name
           
           rvs$target_training_id <- app_data$Training |>
-            filter(training_date == as.Date(lubridate::with_tz(Sys.time(), Sys.getenv("TZ")), tz = Sys.getenv("TZ"))) |>
+            filter(as.Date(training_start_time, tz = Sys.getenv("TZ")) == as.Date(lubridate::with_tz(Sys.time(), Sys.getenv("TZ")), tz = Sys.getenv("TZ"))) |>
             dplyr::select(training_id) |>
             unlist() |>
             unname()

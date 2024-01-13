@@ -8,9 +8,6 @@ box::use(
 )
 
 box::use(
-  app/logic/functions,
-  app/logic/app_data,
-  app/modals/modals,
   app/view/check_in_out,
   app/view/current_status,
 )
@@ -40,7 +37,7 @@ ui <- function(id) {
       )
     ),
     br(),
-    helpText("v0.1.1")
+    helpText("v0.1.2")
     
   )
 }

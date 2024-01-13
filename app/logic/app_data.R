@@ -4,7 +4,7 @@ box::use(
 )
 
 #' @export
-CON = dbConnect(RMySQL::MySQL(),
+CON <- dbConnect(RMySQL::MySQL(),
                 dbname = "cfddb",
                 host = Sys.getenv("CFDDB_HOST"),
                 port = 3306,
@@ -19,7 +19,8 @@ Training <- dbGetQuery(CON,
 
 #' @export
 Roster <- dbGetQuery(CON,
-                     "SELECT * FROM cfddb.firefighter")
+                     "SELECT * FROM cfddb.firefighter
+                     WHERE firefighter_deactive_date IS NULL")
 
 #' @export
 Attendance <- dbGetQuery(CON,
