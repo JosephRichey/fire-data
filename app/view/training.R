@@ -33,7 +33,7 @@ UI <- function(id) {
   tagList(
     actionButton(ns('add_training'), "Add Training"),
     actionButton(ns('modify_training'), "Modify Training"),
-    # actionButton(ns("delete_training"), "Delete Training"),
+    actionButton(ns("delete_training"), "Delete Training"),
     accordion(
       open = FALSE,
       accordion_panel(
@@ -85,6 +85,13 @@ Server <- function(id) {
       rv <- reactiveVal(app_data$Training)
 
       ns <- session$ns
+
+      updateReactiveValue <- function() {
+        rv(DBI::dbGetQuery(app_data$CON, "SELECT * FROM cfddb.training
+                       WHERE training_delete IS NULL") |>
+             remove_rownames() |>
+             column_to_rownames("training_id"))
+      }
 
       # Display current trainings
       output$view_trainings <- renderDT({
@@ -247,10 +254,7 @@ Server <- function(id) {
           )
         }
 
-        rv(DBI::dbGetQuery(app_data$CON, "SELECT * FROM cfddb.training
-                       WHERE training_delete IS NULL") |>
-             remove_rownames() |>
-             column_to_rownames("training_id"))
+        updateReactiveValue()
 
 
       })
@@ -320,65 +324,71 @@ Server <- function(id) {
           )
         }
 
-        rv(DBI::dbGetQuery(app_data$CON, "SELECT * FROM cfddb.training
-                       WHERE training_delete IS NULL") |>
-             remove_rownames() |>
-             column_to_rownames("training_id"))
+        updateReactiveValue()
 
       })
 
-      # observeEvent(input$delete_training, {
-      #   # browser()
-      #   cell_click <- input$view_trainings_cell_clicked
-      #
-      #   if (length(cell_click) != 0) {
-      #     showModal(modalDialog(
-      #       title = "Confirm Deletion",
-      #       "Are you sure you want to delete this training? If you're sure, please type \"Delete\"",
-      #       textInput("confirm_deletion", ""),
-      #       footer = tagList(
-      #         actionButton("action_delete_training", "Delete Training")
-      #       ),
-      #       easyClose = TRUE
-      #     ))
-      #   }
-      # })
-      #
-      # observeEvent(input$action_delete_training, {
-      #   # browser()
-      #   removeModal()
-      #
-      #   if(input$confirm_deletion == "Delete") {
-      #     showModal(modalDialog("Please wait...", title = "Processing Changes"))
-      #     cell_click <- input$view_trainings_cell_clicked
-      #
-      #     MyReactives$trainings <- rows_update(x = MyReactives$trainings,
-      #                                          y = data.frame(training_id = MyReactives$trainings[cell_click$row,]$training_id,
-      #                                                         training_type = MyReactives$trainings[cell_click$row,]$training_type,
-      #                                                         topic = MyReactives$trainings[cell_click$row,]$topic,
-      #                                                         training_length = MyReactives$trainings[cell_click$row,]$training_length,
-      #                                                         description = MyReactives$trainings[cell_click$row,]$description,
-      #                                                         date = as.Date(MyReactives$trainings[cell_click$row,]$date),
-      #                                                         delete = TRUE
-      #                                          ),
-      #                                          by = 'training_id'
-      #     )
-      #
-      #     board %>% pin_write(MyReactives$trainings, "trainings", "rds")
-      #     removeModal()
-      #     showModal(modalDialog("Your training has been successfully deleted.",
-      #                           title = "Success!",
-      #                           easyClose = TRUE))
-      #
-      #   } else {
-      #     showModal(modalDialog("Records will not be deleted.", title = "Delete Failed"))
-      #   }
-      #   Trainings <- MyReactives$trainings
-      #
-      #
-      #
-      #
-      # })
+      observeEvent(input$delete_training, {
+        # browser()
+        cell_click <- input$view_trainings_cell_clicked
+
+        if (length(cell_click) != 0) {
+          showModal(modalDialog(
+            title = "Confirm Deletion",
+            "Are you sure you want to delete this training? If you're sure, please type \"Delete\"",
+            textInput(ns("confirm_deletion"), ""),
+            footer = tagList(
+              actionButton(ns("action_delete_training"), "Delete Training")
+            ),
+            easyClose = TRUE
+          ))
+        } else {
+          showModal(
+            modals$warningModal("Please select a training to delete.")
+          )
+        }
+      })
+
+      observeEvent(input$action_delete_training, {
+        browser()
+        removeModal()
+
+        if(input$confirm_deletion == "Delete") {
+
+          cell_click <- input$view_trainings_cell_clicked
+          modify_training_id <- row.names(rv()[cell_click$row,])
+
+          sql_command <- paste0(
+            "UPDATE cfddb.training SET training_delete = NOW() WHERE training_id = ", modify_training_id, ";"
+          )
+
+          write_result <- DBI::dbExecute(app_data$CON, sql_command)
+
+          if(write_result == 1) {
+            showModal(
+              modalDialog(
+                title = "Success!",
+                "Your training has been successfully deleted. You may now close this window.",
+                easyClose = TRUE
+              )
+            )
+          } else {
+            showModal(
+              modals$errorModal(paste("Training delete failed with write result equal to", write_result))
+            )
+          }
+
+
+        } else {
+          showModal(modalDialog("Records will not be deleted.", title = "Delete Failed"))
+        }
+
+
+
+        updateReactiveValue()
+
+
+      })
 
     }
   )
