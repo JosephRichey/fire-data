@@ -10,3 +10,11 @@ errorModal <- function(message) {
     message
   )
 }
+
+#' @export
+warningModal <- function(message) {
+  modalDialog(
+    title = "Warning",
+    message
+  )
+}
