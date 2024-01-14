@@ -94,7 +94,7 @@ ui <- function(id) {
     nav_menu(
       title = "Settings",
       align = "right",
-      nav_item(actionButton(ns("sign_out"), "Sign Out"), align = "center"),
+      nav_item(actionButton(ns("sign_out"), "Lock"), align = "center"),
       nav_item(helpText("v0.1.1"), align = "center")
     )
 
