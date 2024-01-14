@@ -120,9 +120,9 @@ server <- function(id) {
       showModal(modalDialog(
         textInput(ns("username"), "Username"),
         passwordInput(ns("password"), "Password"),
-        title = "Sign in",
+        title = "Unlock",
         footer = tagList(
-          actionButton(ns("sign_in"), "Sign In")
+          actionButton(ns("sign_in"), "Unlock")
         )
       ))
     }, ignoreNULL = FALSE)
