@@ -1,5 +1,6 @@
 box::use(
   DBI[...],
+  tibble[...],
 )
 
 CON <- dbConnect(RMySQL::MySQL(),
@@ -10,7 +11,10 @@ CON <- dbConnect(RMySQL::MySQL(),
                 password = Sys.getenv("CFDDB_PASSWORD"))
 
 Training <- dbGetQuery(CON,
-                       "SELECT * FROM cfddb.training")
+                       "SELECT * FROM cfddb.training
+                       WHERE training_delete IS NULL") |>
+  remove_rownames() |>
+  column_to_rownames("training_id")
 
 Roster <- dbGetQuery(CON,
                      "SELECT * FROM cfddb.firefighter")

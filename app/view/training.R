@@ -8,11 +8,13 @@ box::use(
   shinyTime[...],
   stats[setNames],
   DBI[...],
+  tibble[...],
 )
 
 box::use(
   ../logic/app_data,
   ../logic/functions,
+  ../modals/modals,
 )
 
 training_officers <- app_data$Roster |>
@@ -30,7 +32,7 @@ UI <- function(id) {
 
   tagList(
     actionButton(ns('add_training'), "Add Training"),
-    # actionButton(ns('modify_training'), "Modify Training"),
+    actionButton(ns('modify_training'), "Modify Training"),
     # actionButton(ns("delete_training"), "Delete Training"),
     accordion(
       open = FALSE,
@@ -108,10 +110,9 @@ Server <- function(id) {
             lengthMenu = list(c(25, 50, -1), c('25', '50', 'All')),
             pageLength = 25,  # Set the default page length
             columnDefs = list(
-              list(className = 'dt-center', targets = "_all"),
-              list(visible = FALSE, targets = "Training Id")
+              list(className = 'dt-center', targets = "_all")
             ),
-            order = list(list(4, 'desc'))
+            order = list(list(3, 'desc'))
           )
         )
 
@@ -176,8 +177,8 @@ Server <- function(id) {
                               "Trauma",
                               "Medical",
                               "Operations"
-                            ),
-                            selected = MyReactives$trainings[input$view_trainings_cell_clicked$row,]$topic
+                            )
+                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         }
 
@@ -189,13 +190,14 @@ Server <- function(id) {
                               "Fire 2",
                               "Hazmat",
                               "Ops"
-                            ),
-                            selected = MyReactives$trainings[input$view_trainings_cell_clicked$row,]$topic
+                            )
+                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         } else if (x == "Wildland") {
             updateSelectInput(session,
-                              "add_training_topic",
+                              "modify_training_topic",
                               choices = c("Wildland")
+                              # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
             )
         }
       })
@@ -246,60 +248,85 @@ Server <- function(id) {
         }
 
         rv(DBI::dbGetQuery(app_data$CON, "SELECT * FROM cfddb.training
-                                      WHERE training_delete IS NULL;"))
+                       WHERE training_delete IS NULL") |>
+             remove_rownames() |>
+             column_to_rownames("training_id"))
 
 
       })
-      #
-      # # Modify the training
-      # observeEvent(input$modify_training, {
-      #   # browser()
-      #   cell_click <- input$view_trainings_cell_clicked
-      #   # Make sure a row was clicked
-      #   if (length(cell_click) != 0) {
-      #     showModal(modalDialog(
-      #       selectInput('modify_training_type', 'Training Type', choices = c("EMS", "Fire", "Wildland"), selected = MyReactives$trainings[cell_click$row,]$training_type),
-      #       selectInput('modify_training_topic', 'Training Topic', choices = c()),
-      #       numericInput('modify_training_length', "Training Length (Hours)", value = MyReactives$trainings[cell_click$row,]$training_length),
-      #       textAreaInput('modify_description', 'Training Description', value = MyReactives$trainings[cell_click$row,]$description),
-      #       dateInput('modify_training_date', 'Training Date', value = MyReactives$trainings[cell_click$row,]$date),
-      #       title = "Modify Training",
-      #       footer = tagList(
-      #         actionButton("action_modify_training", "Modify Training")
-      #       ),
-      #       easyClose = TRUE
-      #     ))
-      #   }
-      # })
-      #
-      #
-      # observeEvent(input$action_modify_training, {
-      #   # browser()
-      #   removeModal()
-      #
-      #   Trainings <- MyReactives$trainings
-      #   showModal(modalDialog("Please wait...", title = "Processing Changes"))
-      #
-      #   cell_click <- input$view_trainings_cell_clicked
-      #   MyReactives$trainings <- rows_update(x = Trainings,
-      #                                        y = data.frame(training_id = MyReactives$trainings[cell_click$row,]$training_id,
-      #                                                       training_type = input$modify_training_type,
-      #                                                       topic = input$modify_training_topic,
-      #                                                       training_length = input$modify_training_length,
-      #                                                       description = input$modify_description,
-      #                                                       date = input$modify_training_date,
-      #                                                       delete = FALSE
-      #                                        ),
-      #                                        by = 'training_id'
-      #   )
-      #
-      #   board %>% pin_write(MyReactives$trainings, "trainings", "rds")
-      #   removeModal()
-      #   showModal(modalDialog("Your training has been successfully modified.",
-      #                         title = "Success!",
-      #                         easyClose = TRUE))
-      # })
-      #
+
+
+      # Modify the training
+      observeEvent(input$modify_training, {
+        # browser()
+        cell_click <- input$view_trainings_cell_clicked
+        # Make sure a row was clicked
+        if (length(cell_click) != 0) {
+          showModal(modalDialog(
+            title = "Modify Training",
+            strong("Please double check the training type and topic before submitting."),
+            dateInput(ns('modify_training_date'), 'Training Date', value = rv()[cell_click$row,]$training_date),
+            timeInput(ns('modify_start_time'), "Start Time", value = rv()[cell_click$row,]$training_start_time, minute.steps = 5),
+            timeInput(ns('modify_end_time'), "End Time", value = rv()[cell_click$row,]$training_end_time, minute.steps = 5),
+            selectInput(ns('modify_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland"), selected = rv()[cell_click$row,]$training_type),
+            selectInput(ns('modify_training_topic'), 'Training Topic', choices = c(), selected = rv()[cell_click$row,]$training_topic),
+            textAreaInput(ns('modify_description'), 'Training Description', value = rv()[cell_click$row,]$training_description),
+            selectInput(ns('modify_training_officer'), 'Training Officer', choices = training_officers, selected = rv()[cell_click$row,]$training_officer),
+            footer = tagList(
+              actionButton(ns("action_modify_training"), "Modify Training")
+            ),
+            easyClose = TRUE
+          ))
+        } else {
+          showModal(
+            modals$warningModal("Please select a training to modify.")
+          )
+        }
+      })
+
+
+      observeEvent(input$action_modify_training, {
+        # browser()
+        removeModal()
+
+        cell_click <- input$view_trainings_cell_clicked
+        modify_training_id <- row.names(rv()[cell_click$row,])
+
+
+        sql_command <- paste0(
+          "UPDATE cfddb.training SET training_type = '", input$modify_training_type,
+          "', training_topic = '", input$modify_training_topic,
+          "', training_description = '", input$modify_description,
+          "', training_date = '", input$modify_training_date,
+          "', training_start_time = '", input$modify_start_time |> strftime(format = "%T"),
+          "', training_end_time = '", input$modify_end_time |> strftime(format = "%T"),
+          "', training_officer = '", input$modify_training_officer,
+          "' WHERE training_id = ", modify_training_id, ";"
+        )
+
+        write_result <- DBI::dbExecute(app_data$CON, sql_command)
+
+        if(write_result == 1) {
+          showModal(
+            modalDialog(
+              title = "Success",
+              "Your training has been successfully modified. You may now close this window.",
+              easyClose = TRUE
+            )
+          )
+        } else {
+          showModal(
+            modals$errorModal(paste("Training modify failed with write result equal to", write_result))
+          )
+        }
+
+        rv(DBI::dbGetQuery(app_data$CON, "SELECT * FROM cfddb.training
+                       WHERE training_delete IS NULL") |>
+             remove_rownames() |>
+             column_to_rownames("training_id"))
+
+      })
+
       # observeEvent(input$delete_training, {
       #   # browser()
       #   cell_click <- input$view_trainings_cell_clicked
