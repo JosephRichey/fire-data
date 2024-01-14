@@ -5,6 +5,9 @@ box::use(
   DT[...],
   dplyr[filter, ...],
   lubridate[...],
+  shinyTime[...],
+  stats[setNames],
+  DBI[...],
 )
 
 box::use(
@@ -12,12 +15,13 @@ box::use(
   ../logic/functions,
 )
 
-training_officers <- app_data$Training |>
-  left_join(app_data$Roster, by = c("training_officer" = "firefighter_id")) |>
-  select(firefighter_full_name) |>
-  unique() |>
-  unlist() |>
-  unname()
+training_officers <- app_data$Roster |>
+  filter(firefighter_officer == TRUE) |>
+  select(firefighter_full_name, firefighter_id) %>%
+  # https://ivelasq.rbind.io/blog/understanding-the-r-pipe/
+  # See "Getting to the solution" sect
+  (\(.) setNames(.$firefighter_id, .$firefighter_full_name))
+
 
 
 
@@ -26,8 +30,8 @@ UI <- function(id) {
 
   tagList(
     actionButton(ns('add_training'), "Add Training"),
-    actionButton(ns('modify_training'), "Modify Training"),
-    actionButton(ns("delete_training"), "Delete Training"),
+    # actionButton(ns('modify_training'), "Modify Training"),
+    # actionButton(ns("delete_training"), "Delete Training"),
     accordion(
       open = FALSE,
       accordion_panel(
@@ -78,34 +82,39 @@ Server <- function(id) {
 
       rv <- reactiveVal(app_data$Training)
 
+      ns <- session$ns
+
       # Display current trainings
       output$view_trainings <- renderDT({
-
+        # browser()
         Table_Data <- rv() |>
-          left_join(app_data$Roster, by = c("training_officer" = "firefighter_id")) |>
-          filter(functions$as.MT.Date(training_start_time) > input$training_filter_range[1] &
-                   functions$as.MT.Date(training_start_time) < input$training_filter_range[2] &
+          filter(training_date > input$training_filter_range[1] &
+                   training_date < input$training_filter_range[2] &
                    training_type %in% input$filter_training_type &
                    is.na(training_delete) &
-                   firefighter_full_name %in% input$filter_training_officer
+                   training_officer %in% input$filter_training_officer
                    ) |>
-          select(-c(training_delete, firefighter_first_name,
-                    firefighter_last_name, firefighter_start_date, firefighter_officer,
-                    firefighter_deactive_date, training_officer)) |>
-          rename('training_officer' = firefighter_full_name)
+          select(-training_delete) |>
+          # Do fancy magic to replace the training officer key with the name.
+          mutate(training_officer = names(training_officers)[match(training_officer, training_officers)])
 
         Table_Data <- functions$FixColNames(Table_Data)
 
-        DT::datatable(Table_Data,
-                      selection = 'single',
-                      rownames = FALSE,
-                      options = list(
-                        columnDefs = list(
-                          list(className = 'dt-center', targets = "_all"),
-                          list(visible = FALSE, targets = "Training Id")
-                          )
-                      )
+        DT::datatable(
+          Table_Data,
+          selection = 'single',
+          rownames = FALSE,
+          options = list(
+            lengthMenu = list(c(25, 50, -1), c('25', '50', 'All')),
+            pageLength = 25,  # Set the default page length
+            columnDefs = list(
+              list(className = 'dt-center', targets = "_all"),
+              list(visible = FALSE, targets = "Training Id")
+            ),
+            order = list(list(4, 'desc'))
+          )
         )
+
 
       })
 
@@ -140,6 +149,11 @@ Server <- function(id) {
                               "Hazmat",
                               "Ops"
                             ))
+        } else if (x == "Wildland") {
+          updateSelectInput(session,
+                            "add_training_topic",
+                            choices = c( "Wildland")
+          )
         }
       })
 
@@ -178,51 +192,64 @@ Server <- function(id) {
                             ),
                             selected = MyReactives$trainings[input$view_trainings_cell_clicked$row,]$topic
           )
+        } else if (x == "Wildland") {
+            updateSelectInput(session,
+                              "add_training_topic",
+                              choices = c("Wildland")
+            )
         }
       })
 
       # Enter information to create the training.
-      # observeEvent(input$add_training, {
-      #   showModal(modalDialog(
-      #     selectInput('add_training_type', 'Training Type', choices = c("EMS", "Fire", "Wildland"), selected = "EMS"),
-      #     selectInput('add_training_topic', 'Training Topic', choices = c()), # Update with above observe statement
-      #     numericInput('add_training_length', "Training Length (Hours)", value = 2),
-      #     textAreaInput('add_description', 'Training Description'),
-      #     dateInput('add_training_date', 'Training Date', value = Sys.Date()),
-      #     title = "Add Training",
-      #     footer = tagList(
-      #       actionButton("action_add_training", "Add Training")
-      #     ),
-      #     easyClose = TRUE
-      #   ))
-      # })
-      #
+      observeEvent(input$add_training, {
+        showModal(modalDialog(
+          title = "Add Training",
+          dateInput(ns('add_training_date'), 'Training Date', value = Sys.Date()),
+          timeInput(ns('add_start_time'), "Start Time", value = "18:00:00", minute.steps = 5),
+          timeInput(ns('add_end_time'), "End Time", value = "20:00:00", minute.steps = 5),
+          selectInput(ns('add_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland"), selected = "EMS"),
+          selectInput(ns('add_training_topic'), 'Training Topic', choices = c()), # Update with above observe statement
+          textAreaInput(ns('add_description'), 'Training Description'),
+          selectInput(ns('add_training_officer'), 'Training Officer', choices = training_officers),
+          footer = tagList(
+            actionButton(ns("action_add_training"), "Add Training")
+          ),
+          easyClose = TRUE
+        ))
+
+      })
+
       # # Create the training
-      # observeEvent(input$action_add_training, {
-      #   # browser()
-      #   removeModal()
-      #
-      #   trainings <- MyReactives$trainings
-      #   showModal(modalDialog("Please wait...", title = "Processing Changes"))
-      #   new_index <- nrow(MyReactives$trainings) + 1
-      #   MyReactives$trainings <- dplyr::bind_rows(MyReactives$trainings,
-      #                                             data.frame(
-      #                                               training_id = new_index,
-      #                                               training_type = input$add_training_type,
-      #                                               topic = input$add_training_topic,
-      #                                               training_length = input$add_training_length,
-      #                                               description = input$add_description,
-      #                                               date = input$add_training_date
-      #                                             )
-      #   )
-      #   board %>% pin_write(MyReactives$trainings, "trainings", "rds")
-      #   removeModal()
-      #   showModal(modalDialog("Your training has been successfully added.",
-      #                         title = "Success!",
-      #                         easyClose = TRUE))
-      #
-      #
-      # })
+      observeEvent(input$action_add_training, {
+        # browser()
+        removeModal()
+
+        sql_command <- paste0(
+          "INSERT INTO cfddb.training (training_type, training_topic, training_description, training_date, training_start_time, training_end_time, training_officer, training_delete) VALUES ('",
+          input$add_training_type, "', '", input$add_training_topic, "', '", input$add_description, "', '", input$add_training_date, "', '", input$add_start_time |> strftime(format = "%T"), "', '", input$add_end_time |> strftime(format = "%T"), "', '", input$add_training_officer, "', NULL);"
+        )
+
+        write_result <- DBI::dbExecute(app_data$CON, sql_command)
+
+        if(write_result == 1) {
+          showModal(
+            modalDialog(
+              title = "Success",
+              "Your training has been successfully added. You may now close this window.",
+              easyClose = TRUE
+            )
+          )
+        } else {
+          showModal(
+            modals$errorModal(paste("Training add failed with write result equal to", write_result))
+          )
+        }
+
+        rv(DBI::dbGetQuery(app_data$CON, "SELECT * FROM cfddb.training
+                                      WHERE training_delete IS NULL;"))
+
+
+      })
       #
       # # Modify the training
       # observeEvent(input$modify_training, {

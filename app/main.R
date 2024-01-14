@@ -1,6 +1,9 @@
 # An app that allows officers to add, manage, and record training
 # and roster information. This also includes an analysis pane.
 
+
+# 50 Hours
+
 box::use(
   shiny[...],
   bslib[...],
@@ -28,7 +31,7 @@ ui <- function(id) {
                 ),
                 training$Output(ns('training'))
               )
-    )
+    ),
 
   #   nav_panel(title = "Manage Roster",
   #             layout_sidebar(
@@ -87,13 +90,14 @@ ui <- function(id) {
   #               )
   #             )
   #   ),
-  #   nav_spacer(),
-  #   nav_menu(
-  #     title = "Settings",
-  #     align = "right",
-  #     nav_item(actionButton("sign_out", "Sign Out"), align = "center"),
-  #     "Version 0.0.1"
-  #   )
+    nav_spacer(),
+    nav_menu(
+      title = "Settings",
+      align = "right",
+      nav_item(actionButton(ns("sign_out"), "Sign Out"), align = "center"),
+      nav_item(helpText("v0.1.1"), align = "center")
+    )
+
   )
 }
 
