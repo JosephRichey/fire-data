@@ -350,7 +350,7 @@ Server <- function(id) {
       })
 
       observeEvent(input$action_delete_training, {
-        browser()
+        # browser()
         removeModal()
 
         if(input$confirm_deletion == "Delete") {
