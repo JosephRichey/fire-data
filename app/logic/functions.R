@@ -11,6 +11,14 @@ FixColNames <- function(Data) {
 }
 
 #' @export
+ParseUserInput <- function(string) {
+  string <- stringr::str_to_title(string)
+  string <- trimws(string)
+
+  return(string)
+}
+
+#' @export
 as.MT.Date <- function(date_time) {
   as.Date(date_time, tz = Sys.getenv("TZ"))
 }
