@@ -15,6 +15,16 @@ errorModal <- function(message) {
 warningModal <- function(message) {
   modalDialog(
     title = "Warning",
-    message
+    message,
+    easyClose = TRUE
   )
+}
+
+#' @export
+successModal <- function(message) {
+  modalDialog(
+            title = "Success!",
+            message,
+            easyClose = TRUE
+            )
 }
