@@ -87,7 +87,7 @@ Server <- function(id) {
       ns <- session$ns
 
       updateReactiveValue <- function() {
-        rv(DBI::dbGetQuery(app_data$CON, "SELECT * FROM cfddb.training
+        rv(DBI::dbGetQuery(app_data$CON, "SELECT * FROM cfddb.training", Sys.getenv("TESTING"),"
                        WHERE training_delete IS NULL") |>
              remove_rownames() |>
              column_to_rownames("training_id"))
@@ -179,11 +179,12 @@ Server <- function(id) {
           updateSelectInput(session,
                             "modify_training_topic",
                             choices = c(
-                              "Airway/Respiraroty/Ventilation",
+                              "Airway/Respiratory/Ventilation",
                               "Cardiovascular",
                               "Trauma",
                               "Medical",
-                              "Operations"
+                              "Operations",
+                              "General"
                             )
                             # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
@@ -234,7 +235,7 @@ Server <- function(id) {
         removeModal()
 
         sql_command <- paste0(
-          "INSERT INTO cfddb.training (training_type, training_topic, training_description, training_date, training_start_time, training_end_time, training_officer, training_delete) VALUES ('",
+          "INSERT INTO cfddb.training", Sys.getenv("TESTING")," (training_type, training_topic, training_description, training_date, training_start_time, training_end_time, training_officer, training_delete) VALUES ('",
           input$add_training_type, "', '", input$add_training_topic, "', '", input$add_description, "', '", input$add_training_date, "', '", input$add_start_time |> strftime(format = "%T"), "', '", input$add_end_time |> strftime(format = "%T"), "', '", input$add_training_officer, "', NULL);"
         )
 
@@ -298,7 +299,7 @@ Server <- function(id) {
 
 
         sql_command <- paste0(
-          "UPDATE cfddb.training SET training_type = '", input$modify_training_type,
+          "UPDATE cfddb.training", Sys.getenv("TESTING")," SET training_type = '", input$modify_training_type,
           "', training_topic = '", input$modify_training_topic,
           "', training_description = '", input$modify_description,
           "', training_date = '", input$modify_training_date,
@@ -359,7 +360,7 @@ Server <- function(id) {
           modify_training_id <- row.names(rv()[cell_click$row,])
 
           sql_command <- paste0(
-            "UPDATE cfddb.training SET training_delete = NOW() WHERE training_id = ", modify_training_id, ";"
+            "UPDATE cfddb.training", Sys.getenv("TESTING")," SET training_delete = NOW() WHERE training_id = ", modify_training_id, ";"
           )
 
           write_result <- DBI::dbExecute(app_data$CON, sql_command)

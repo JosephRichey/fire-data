@@ -3,6 +3,7 @@ box::use(
   tibble[...],
 )
 
+#' @export
 CON <- dbConnect(RMySQL::MySQL(),
                 dbname = "cfddb",
                 host = Sys.getenv("CFDDB_HOST"),
@@ -10,17 +11,18 @@ CON <- dbConnect(RMySQL::MySQL(),
                 user = "admin",
                 password = Sys.getenv("CFDDB_PASSWORD"))
 
+#' @export
 Training <- dbGetQuery(CON,
-                       "SELECT * FROM cfddb.training
-                       WHERE training_delete IS NULL") |>
+                       paste0("SELECT * FROM cfddb.training", Sys.getenv("TESTING"),
+                              " WHERE training_delete IS NULL")) |>
   remove_rownames() |>
   column_to_rownames("training_id")
 
+#' @export
 Roster <- dbGetQuery(CON,
-                     "SELECT * FROM cfddb.firefighter")
+                     paste0("SELECT * FROM cfddb.firefighter", Sys.getenv("TESTING"),
+                            " WHERE firefighter_deactive_date IS NULL"))
 
+#' @export
 Attendance <- dbGetQuery(CON,
-                         "SELECT * FROM cfddb.attendance")
-
-
-dbListTables(CON)
+                         paste0("SELECT * FROM cfddb.attendance", Sys.getenv("TESTING")))
