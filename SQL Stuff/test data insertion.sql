@@ -8,7 +8,8 @@ INSERT INTO cfddb.firefighter_TEST VALUES
     (7, "Scott", "Pilgram", "Scott Pilgram", "2020-01-01", FALSE, NULL),
     (8, "Tyler", "Durden", "Tyler Durden", "2020-01-01", FALSE, NULL),
     (9, "Thomas", "Anderson", "Thomas Anderson", "2020-01-01", FALSE, NULL),
-    (10, "Marty", "McFly", "Marty McFly", "2020-01-01", FALSE, NULL);
+    (10, "George", "Bailey", "George Bailey", "2020-01-01", FALSE, "2021-01-05"),
+    (11, "Marty", "McFly", "Marty McFly", "2020-01-01", FALSE, NULL);
 
     
 
