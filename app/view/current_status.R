@@ -38,6 +38,7 @@ Server <- function(id) {
         # browser()
         DT::datatable(rv(),
                       options = list(scrollX=TRUE,
+                                     scrollY='800px',
                                      fillContainer = TRUE,
                                      row.names = FALSE))
       })
