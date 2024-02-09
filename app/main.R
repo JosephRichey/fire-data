@@ -22,20 +22,24 @@ ui <- function(id) {
                      secondary = "#87292b",
                      success = "#87292b",
                      bootswatch = "darkly"),
-    card(
-      card_body(
-        min_height = "300px",
-        check_in_out$UI(ns('check_in_out'))
-      )
+    layout_columns(
+      card(
+        card_body(
+          check_in_out$UI(ns('check_in_out'))
+        )
+      ),
+      
+      card(
+        card_body(
+          min_height = "800px",
+          bslib::card_title("Current Status"),
+          current_status$Output(ns('current_status')),
+          current_status$UI(ns('current_status'))
+        )
+      ),
+      col_widths = c(12, 12)
     ),
     
-    card(
-      card_body(
-      bslib::card_title("Current Status"),
-      current_status$Output(ns('current_status')),
-      current_status$UI(ns('current_status'))
-      )
-    ),
     br(),
     helpText("v0.1.1")
     
