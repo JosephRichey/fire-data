@@ -7,7 +7,7 @@ CREATE TABLE cfddb.training (
     training_date text,
     training_start_time text,
     training_end_time text,
-    training_officer int,
+    training_trainer int,
     training_delete text
 );
 
@@ -18,6 +18,7 @@ CREATE TABLE cfddb.firefighter (
     firefighter_last_name varchar(255),
     firefighter_full_name varchar(511),
     firefighter_start_date text,
+    firefighter_trainer boolean,
     firefighter_officer boolean,
     firefighter_deactive_date text
 );
@@ -28,6 +29,8 @@ CREATE TABLE cfddb.attendance (
     firefighter_id int NOT NULL,
     training_id int NOT NULL,
     check_in text,
-    check_out text
+    check_out text,
+    auto_checkout boolean,
+    credit boolean
 );
 

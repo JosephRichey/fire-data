@@ -1,15 +1,15 @@
 INSERT INTO cfddb.firefighter_TEST VALUES
-    (1, "Bill", "Preston", "Bill Preston", "2020-01-01", TRUE, NULL),
-    (2, "Pete", "Mitchell", "Pete Mitchell", "2020-01-01", TRUE, NULL),
-    (3, "Napolean", "Dynamite", "Napolean Dynamite", "2020-01-01", TRUE, NULL),
-    (4, "Lane", "Meyer", "Lane Meyer", "2020-01-01", FALSE	, NULL),
-    (5, "Steve", "Rogers", "Steve Rogers", "2020-01-01", FALSE, NULL),
-    (6, "Samwise", "Gamgee", "Samwise Gamgee", "2020-01-01", FALSE, NULL),
-    (7, "Scott", "Pilgram", "Scott Pilgram", "2020-01-01", FALSE, NULL),
-    (8, "Tyler", "Durden", "Tyler Durden", "2020-01-01", FALSE, NULL),
-    (9, "Thomas", "Anderson", "Thomas Anderson", "2020-01-01", FALSE, NULL),
-    (10, "George", "Bailey", "George Bailey", "2020-01-01", FALSE, "2021-01-05"),
-    (11, "Marty", "McFly", "Marty McFly", "2020-01-01", FALSE, NULL);
+    (1, "Bill", "Preston", "Bill Preston", "2020-01-01", TRUE, TRUE, NULL),
+    (2, "Pete", "Mitchell", "Pete Mitchell", "2020-01-01", TRUE, TRUE, NULL),
+    (3, "Napolean", "Dynamite", "Napolean Dynamite", "2020-01-01", TRUE, TRUE, NULL),
+    (4, "Lane", "Meyer", "Lane Meyer", "2020-01-01", TRUE, FALSE , NULL),
+    (5, "Steve", "Rogers", "Steve Rogers", "2020-01-01", TRUE, FALSE, NULL),
+    (6, "Samwise", "Gamgee", "Samwise Gamgee", "2020-01-01", TRUE, FALSE, NULL),
+    (7, "Scott", "Pilgram", "Scott Pilgram", "2020-01-01", TRUE, FALSE, NULL),
+    (8, "Tyler", "Durden", "Tyler Durden", "2020-01-01", TRUE, FALSE, NULL),
+    (9, "Thomas", "Anderson", "Thomas Anderson", "2020-01-01", TRUE, FALSE, NULL),
+    (10, "George", "Bailey", "George Bailey", "2020-01-01", TRUE, FALSE, "2021-01-05"),
+    (11, "Marty", "McFly", "Marty McFly", "2020-01-01", TRUE, FALSE, NULL);
 
     
 
@@ -2178,23 +2178,26 @@ INSERT INTO cfddb.training_TEST VALUES
 
 
 INSERT INTO cfddb.attendance_TEST VALUES
-(1, 1, 1, '2024-01-02 18:00', '2024-01-02 20:00'),
-(2, 2, 1, '2024-01-02 18:00', '2024-01-02 20:00'),
-(3, 3, 1, '2024-01-02 18:00', '2024-01-02 20:00'),
-(4, 4, 1, '2024-01-02 18:00', '2024-01-02 20:00'),
-(5, 5, 1, '2024-01-02 18:00', '2024-01-02 20:00'),
-(6, 6, 1, '2024-01-02 18:00', '2024-01-02 20:00'),
-(7, 7, 1, '2024-01-02 18:00', '2024-01-02 20:00'),
-(8, 8, 1, '2024-01-02 18:00', '2024-01-02 20:00'),
-(9, 9, 1, '2024-01-02 18:00', '2024-01-02 20:00'),
-(10, 10, 1, '2024-01-02 18:00', '2024-01-02 20:00'),
-(11, 1, 2, '2024-01-09 18:00', '2024-01-09 19:40'),
-(12, 2, 2, '2024-01-09 18:00', '2024-01-09 19:40'),
-(13, 3, 2, '2024-01-09 18:00', '2024-01-09 19:40'),
-(14, 4, 2, '2024-01-09 18:00', '2024-01-09 19:40'),
-(15, 5, 2, '2024-01-09 18:00', '2024-01-09 19:40'),
-(16, 6, 2, '2024-01-09 18:20', '2024-01-09 19:40'),
-(17, 7, 2, '2024-01-09 18:20', '2024-01-09 19:40'),
-(18, 8, 2, '2024-01-09 18:30', '2024-01-09 19:40'),
-(19, 9, 2, '2024-01-09 18:35', '2024-01-09 19:40');
+(1, 1, 1, '2024-01-02 18:00', '2024-01-02 20:00', FALSE, TRUE),
+(2, 2, 1, '2024-01-02 18:00', '2024-01-02 20:00', FALSE, TRUE),
+(3, 3, 1, '2024-01-02 18:00', '2024-01-02 20:00', FALSE, TRUE),
+(4, 4, 1, '2024-01-02 18:00', '2024-01-02 20:00', FALSE, TRUE),
+(5, 5, 1, '2024-01-02 18:00', '2024-01-02 20:00', FALSE, TRUE),
+(6, 6, 1, '2024-01-02 18:00', '2024-01-02 20:00', FALSE, TRUE),
+(7, 7, 1, '2024-01-02 18:00', '2024-01-02 20:00', FALSE, TRUE),
+(8, 8, 1, '2024-01-02 18:00', '2024-01-02 20:00', FALSE, TRUE),
+(9, 9, 1, '2024-01-02 18:00', '2024-01-02 20:00', FALSE, TRUE),
+(10, 10, 1, '2024-01-02 18:00', '2024-01-02 20:00', FALSE, TRUE),
+(11, 1, 2, '2024-01-09 18:00', '2024-01-09 19:40', FALSE, TRUE),
+(12, 2, 2, '2024-01-09 18:00', '2024-01-09 19:40', FALSE, TRUE),
+(13, 3, 2, '2024-01-09 18:00', '2024-01-09 19:40', FALSE, TRUE),
+(14, 4, 2, '2024-01-09 18:00', '2024-01-09 19:40', FALSE, TRUE),
+(15, 5, 2, '2024-01-09 18:00', '2024-01-09 19:40', FALSE, TRUE),
+(16, 6, 2, '2024-01-09 18:20', '2024-01-09 19:40', FALSE, TRUE),
+(17, 7, 2, '2024-01-09 18:20', '2024-01-09 19:40', FALSE, TRUE),
+(18, 8, 2, '2024-01-09 18:30', '2024-01-09 19:40', FALSE, TRUE),
+(19, 9, 2, '2024-01-09 18:35', '2024-01-09 19:40', FALSE, TRUE);
 
+select * from cfddb.firefighter_TEST;
+select * from cfddb.training_TEST;
+select * from cfddb.attendance_TEST;
