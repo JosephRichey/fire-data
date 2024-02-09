@@ -31,6 +31,7 @@ Roster_Sql_Export <- Roster |>
                             "\"", firefighter_last_name, "\",",
                             "\"", firefighter_full_name, "\",",
                             "\"", firefighter_start_date, "\",",
+                            "\"", firefighter_trainer, "\",",
                             "\"", firefighter_officer, "\",",
                             "\"", firefighter_deactive_date, "\"",
                             if_else(firefighter_id == max(Roster$firefighter_id), ");", "),")))
@@ -45,7 +46,7 @@ Training_Sql_Export <- Training |>
                             "\"", training_date, "\",",
                             "\"", training_start_time, "\",",
                             "\"", training_end_time, "\",",
-                            "\"", training_officer, "\"",
+                            "\"", training_officer, "\",",
                             "\"", training_delete, "\"",
                             if_else(training_id == max(Training$training_id), ");", "),")))
 
@@ -56,9 +57,11 @@ Attendance_Sql_Export <- Attendance |>
                             "\"", firefighter_id, "\",",
                             "\"", training_id, "\",",
                             "\"", as.POSIXct(check_in), "\",",
-                            "\"", as.POSIXct(check_out), "\"",
+                            "\"", as.POSIXct(check_out), "\",",
+                            "\"", auto_checkout, "\",",
+                            "\"", credit, "\"",
                             if_else(attendance_id == max(Attendance$attendance_id), ");", "),")))
 
 writeLines(c("INSERT INTO cfddb.firefighter VALUES", Roster_Sql_Export$statement), "sql stuff/Roster_Sql_Export.sql")
-writeLines(c("INSERT INTO cfddb.firefighter VALUES", Training_Sql_Export$statement), "sql stuff/Training_Sql_Export.sql")
-writeLines(c("INSERT INTO cfddb.firefighter VALUES", Attendance_Sql_Export$statement), "sql stuff/Attendance_Sql_Export.sql")
+writeLines(c("INSERT INTO cfddb.training VALUES", Training_Sql_Export$statement), "sql stuff/Training_Sql_Export.sql")
+writeLines(c("INSERT INTO cfddb.attendance VALUES", Attendance_Sql_Export$statement), "sql stuff/Attendance_Sql_Export.sql")
