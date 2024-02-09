@@ -14,9 +14,7 @@ CON <- dbConnect(RMySQL::MySQL(),
 #' @export
 Training <- dbGetQuery(CON,
                        paste0("SELECT * FROM cfddb.training", Sys.getenv("TESTING"),
-                              " WHERE training_delete IS NULL")) |>
-  remove_rownames() |>
-  column_to_rownames("training_id")
+                              " WHERE training_delete IS NULL"))
 
 #' @export
 Roster <- dbGetQuery(CON,

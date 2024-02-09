@@ -17,8 +17,8 @@ box::use(
   ../modals/modals,
 )
 
-training_officers <- app_data$Roster |>
-  filter(firefighter_officer == TRUE) |>
+training_trainers <- app_data$Roster |>
+  filter(firefighter_trainer == TRUE) |>
   select(firefighter_full_name, firefighter_id) %>%
   # https://ivelasq.rbind.io/blog/understanding-the-r-pipe/
   # See "Getting to the solution" sect
@@ -58,8 +58,8 @@ UI <- function(id) {
 
           pickerInput(ns('filter_training_officer'),
                       'Training Officer',
-                      choices = training_officers,
-                      selected = training_officers,
+                      choices = training_trainers,
+                      selected = training_trainers,
                       options = list(`actions-box` = TRUE),
                       multiple = TRUE
           )
@@ -71,9 +71,13 @@ UI <- function(id) {
 
 Output <- function(id) {
   ns <- NS(id)
-  tagList(
-    card(DTOutput(ns('view_trainings')))
-  )
+    card(
+      height = 600,
+      card_body(
+        DTOutput(ns('view_trainings'))
+      )
+    )
+
 }
 
 
@@ -87,8 +91,8 @@ Server <- function(id) {
       ns <- session$ns
 
       updateReactiveValue <- function() {
-        rv(DBI::dbGetQuery(app_data$CON, "SELECT * FROM cfddb.training", Sys.getenv("TESTING"),"
-                       WHERE training_delete IS NULL") |>
+        rv(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM cfddb.training", Sys.getenv("TESTING"),"
+                       WHERE training_delete IS NULL")) |>
              remove_rownames() |>
              column_to_rownames("training_id"))
       }
@@ -101,11 +105,11 @@ Server <- function(id) {
                    training_date < input$training_filter_range[2] &
                    training_type %in% input$filter_training_type &
                    is.na(training_delete) &
-                   training_officer %in% input$filter_training_officer
+                   training_trainer %in% input$filter_training_officer
                    ) |>
           select(-training_delete) |>
           # Do fancy magic to replace the training officer key with the name.
-          mutate(training_officer = names(training_officers)[match(training_officer, training_officers)])
+          mutate(training_trainer = names(training_trainers)[match(training_trainer, training_trainers)])
 
         Table_Data <- functions$FixColNames(Table_Data)
 
@@ -113,13 +117,16 @@ Server <- function(id) {
           Table_Data,
           selection = 'single',
           rownames = FALSE,
+          height = "100%",
           options = list(
             lengthMenu = list(c(25, 50, -1), c('25', '50', 'All')),
             pageLength = 25,  # Set the default page length
             columnDefs = list(
               list(className = 'dt-center', targets = "_all")
             ),
-            order = list(list(3, 'desc'))
+            order = list(list(3, 'desc')),
+            scrollY = "75vh",
+            scrollX = TRUE
           )
         )
 
@@ -144,7 +151,8 @@ Server <- function(id) {
                               "Cardiovascular",
                               "Trauma",
                               "Medical",
-                              "Operations"
+                              "Operations",
+                              "Other"
                             ))
         }
 
@@ -152,15 +160,18 @@ Server <- function(id) {
           updateSelectInput(session,
                             "add_training_topic",
                             choices = c(
-                              "Fire 1",
-                              "Fire 2",
-                              "Hazmat",
-                              "Ops"
+                              "Fire"
                             ))
         } else if (x == "Wildland") {
           updateSelectInput(session,
                             "add_training_topic",
                             choices = c( "Wildland")
+          )
+        } else if (x == "Other") {
+          updateSelectInput(session,
+                            "modify_training_topic",
+                            choices = c("General")
+                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         }
       })
@@ -184,7 +195,8 @@ Server <- function(id) {
                               "Trauma",
                               "Medical",
                               "Operations",
-                              "General"
+                              "General",
+                              "Other"
                             )
                             # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
@@ -194,10 +206,7 @@ Server <- function(id) {
           updateSelectInput(session,
                             "modify_training_topic",
                             choices = c(
-                              "Fire 1",
-                              "Fire 2",
-                              "Hazmat",
-                              "Ops"
+                              "Fire"
                             )
                             # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
@@ -207,6 +216,12 @@ Server <- function(id) {
                               choices = c("Wildland")
                               # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
             )
+        } else if (x == "Other") {
+          updateSelectInput(session,
+                            "modify_training_topic",
+                            choices = c("General")
+                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
+          )
         }
       })
 
@@ -214,13 +229,13 @@ Server <- function(id) {
       observeEvent(input$add_training, {
         showModal(modalDialog(
           title = "Add Training",
-          dateInput(ns('add_training_date'), 'Training Date', value = Sys.Date()),
+          dateInput(ns('add_training_date'), 'Training Date', value = functions$as.MT.Date(Sys.Date())),
           timeInput(ns('add_start_time'), "Start Time", value = "18:00:00", minute.steps = 5),
           timeInput(ns('add_end_time'), "End Time", value = "20:00:00", minute.steps = 5),
-          selectInput(ns('add_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland"), selected = "EMS"),
+          selectInput(ns('add_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland", "Other"), selected = "EMS"),
           selectInput(ns('add_training_topic'), 'Training Topic', choices = c()), # Update with above observe statement
           textAreaInput(ns('add_description'), 'Training Description'),
-          selectInput(ns('add_training_officer'), 'Training Officer', choices = training_officers),
+          selectInput(ns('add_training_trainer'), 'Training Led By', choices = training_trainers),
           footer = tagList(
             actionButton(ns("action_add_training"), "Add Training")
           ),
@@ -235,8 +250,8 @@ Server <- function(id) {
         removeModal()
 
         sql_command <- paste0(
-          "INSERT INTO cfddb.training", Sys.getenv("TESTING")," (training_type, training_topic, training_description, training_date, training_start_time, training_end_time, training_officer, training_delete) VALUES ('",
-          input$add_training_type, "', '", input$add_training_topic, "', '", input$add_description, "', '", input$add_training_date, "', '", input$add_start_time |> strftime(format = "%T"), "', '", input$add_end_time |> strftime(format = "%T"), "', '", input$add_training_officer, "', NULL);"
+          "INSERT INTO cfddb.training", Sys.getenv("TESTING")," (training_type, training_topic, training_description, training_date, training_start_time, training_end_time, training_trainer, training_delete) VALUES ('",
+          input$add_training_type, "', '", input$add_training_topic, "', '", input$add_description, "', '", input$add_training_date, "', '", input$add_start_time |> strftime(format = "%T"), "', '", input$add_end_time |> strftime(format = "%T"), "', '", input$add_training_trainer, "', NULL);"
         )
 
         write_result <- DBI::dbExecute(app_data$CON, sql_command)
@@ -276,7 +291,7 @@ Server <- function(id) {
             selectInput(ns('modify_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland"), selected = rv()[cell_click$row,]$training_type),
             selectInput(ns('modify_training_topic'), 'Training Topic', choices = c(), selected = rv()[cell_click$row,]$training_topic),
             textAreaInput(ns('modify_description'), 'Training Description', value = rv()[cell_click$row,]$training_description),
-            selectInput(ns('modify_training_officer'), 'Training Officer', choices = training_officers, selected = rv()[cell_click$row,]$training_officer),
+            selectInput(ns('modify_training_trainer'), 'Training Led By', choices = training_trainers, selected = rv()[cell_click$row,]$training_officer),
             footer = tagList(
               actionButton(ns("action_modify_training"), "Modify Training")
             ),
@@ -305,7 +320,7 @@ Server <- function(id) {
           "', training_date = '", input$modify_training_date,
           "', training_start_time = '", input$modify_start_time |> strftime(format = "%T"),
           "', training_end_time = '", input$modify_end_time |> strftime(format = "%T"),
-          "', training_officer = '", input$modify_training_officer,
+          "', training_trainer = '", input$modify_training_trainer,
           "' WHERE training_id = ", modify_training_id, ";"
         )
 

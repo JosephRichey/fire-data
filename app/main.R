@@ -2,24 +2,28 @@
 # and roster information. This also includes an analysis pane.
 
 
-# 56.75 Hours
+# 62.5 Hours
 
 box::use(
   shiny[...],
   bslib[...],
   DT[...],
+  thematic[...],
 )
 
 box::use(
   view/training,
   view/roster,
+  view/summary,
 )
+
+thematic_shiny()
 
 #' @export
 ui <- function(id) {
   ns <- NS(id)
   page_navbar(
-    title = "Corinne Fire Department",
+    title = paste0("Corinne Fire Department",Sys.getenv("TESTING"), " - Data Portal"),
     theme = bs_theme(version = 5,
                      success = "#87292b",
                      bootswatch = "darkly"),
@@ -47,53 +51,33 @@ ui <- function(id) {
               )
 
     ),
-  #   nav_panel(title = "Training Summary",
-  #             navset_pill(
-  #               nav_panel(title = "Individual",
-  #                         layout_sidebar(
-  #                           sidebar = sidebar(
-  #                             title = "Set Filters",
-  #                             selectInput("summary_firefighter", "Firefighter", Roster$full_name),
-  #                             dateRangeInput('ind_training_filter_range',
-  #                                            "Show trainings between:",
-  #                                            start = as.Date(paste0(year(Sys.Date()), "-01-01")),
-  #                                            end = as.Date(paste0(year(Sys.Date()), "-12-31"))),
-  #                             downloadButton("download_ind", "Download Firefighter Training Summary")
-  #                           ),
-  #                           layout_columns(
-  #                             value_box("EMS Hours", textOutput("ff_ems_hours")),
-  #                             value_box("Fire Hours", textOutput("ff_fire_hours")),
-  #                             value_box("Wildland Hours", textOutput("ff_wildland_hours")),
-  #                           ),
-  #                           card(
-  #                             plotlyOutput("ff_hours_plot")
-  #                           )
-  #                         )
-  #               ),
-  #
-  #               nav_panel(title = "Department",
-  #                         layout_sidebar(
-  #                           sidebar = sidebar(
-  #                             title = "Set Filters",
-  #                             dateRangeInput('dep_training_filter_range',
-  #                                            "Show trainings between:",
-  #                                            start = as.Date(paste0(year(Sys.Date()), "-01-01")),
-  #                                            end = as.Date(paste0(year(Sys.Date()), "-12-31"))),
-  #                             downloadButton("download_dep", "Download Department Training Summary")
-  #                           ),
-  #                           value_box("Total Training Hours", textOutput("dep_total_hours")),
-  #                           layout_columns(
-  #                             value_box("EMS Hours", textOutput("dep_ems_hours")),
-  #                             value_box("Fire Hours", textOutput("dep_fire_hours")),
-  #                             value_box("Wildland Hours", textOutput("dep_wildland_hours")),
-  #                           ),
-  #                           card(
-  #                             plotlyOutput("dep_hours_plot")
-  #                           )
-  #                         )
-  #               )
-  #             )
-  #   ),
+
+    nav_panel(title = "Training Summary",
+              navset_pill(
+                # bg = "#87292b",
+                nav_panel(title = "Individual",
+                          layout_sidebar(
+                            sidebar = sidebar(
+                              title = "Set Filters",
+                              summary$UI(ns('ind_summary'), "Individual")
+                              ),
+                            summary$Output(ns('ind_summary'), "Individual")
+                            )
+                          ),
+
+                nav_panel(title = "Department",
+                          layout_sidebar(
+                            sidebar = sidebar(
+                              title = "Set Filters",
+                              summary$UI(ns('dep_summary'), "Department")
+                              ),
+                            summary$Output(ns('dep_summary'), "Department")
+                            )
+                          )
+                )
+
+
+    ),
     nav_spacer(),
     nav_menu(
       title = "Settings",
@@ -145,9 +129,9 @@ server <- function(id) {
 
     roster$Server('roster')
 
+    summary$Server('ind_summary', 'Individual')
 
-    # ###### Manage Roster ######
-
+    summary$Server('dep_summary', 'Department')
 
     # ##### Ind Training Summary ####
     # R_Training_Data <- reactive({
