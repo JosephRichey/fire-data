@@ -2,7 +2,7 @@
 # and roster information. This also includes an analysis pane.
 
 
-# 62.5 Hours
+# 70 Hours
 
 box::use(
   shiny[...],
@@ -83,7 +83,7 @@ ui <- function(id) {
       title = "Settings",
       align = "right",
       nav_item(actionButton(ns("sign_out"), "Lock"), align = "center"),
-      nav_item(helpText("v0.1.1"), align = "center")
+      nav_item(helpText("v0.2.0-beta"), align = "center")
     )
 
   )
