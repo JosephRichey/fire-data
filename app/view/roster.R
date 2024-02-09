@@ -92,7 +92,7 @@ Server <- function(id) {
             "'", functions$ParseUserInput(input$add_last_name), "', ",
             "'", proposed_full_name, "', ",
             "'", input$ff_start_date, "', ",
-            "FALSE, ",
+            "TRUE, FALSE, ",
             "NULL",
             ")"
 
