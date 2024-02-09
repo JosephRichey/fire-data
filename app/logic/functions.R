@@ -40,8 +40,14 @@ VerifyTrainingTime <- function(sysTime) {
   if(format(sysTime + 300, format = "%H:%M:%S") < today_training_start_time |
      format(sysTime - 300, format = "%H:%M:%S") > today_training_end_time) {
     
-    showModal(modals$warningModal("You are outside of applicable check in time. Please wait until 17:55 to check in.
-                        If you forgot to check out, you will be automatically checked out at 20:05."))
+    showModal(modals$warningModal(
+      paste0(
+        "You are outside of applicable check in time. You can check in five minutes before the scheduled start time of ", 
+        today_training_start_time,
+        ". If you forgot to check out, you will be automatically checked out at ",  
+        today_training_end_time,
+        ".")))
+      
     return(FALSE)
     
   } else {

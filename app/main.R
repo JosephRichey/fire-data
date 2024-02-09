@@ -16,8 +16,8 @@ box::use(
 ui <- function(id) {
   ns <- NS(id)
   page_fixed(
-    title = paste("Corinne Fire Department", Sys.getenv("TESTING")),
-    h1("Corinne Fire Department"),
+    title = "Corinne Fire Department",
+    h1(paste("Corinne Fire Department", Sys.getenv("TESTING"))),
     theme = bs_theme(version = 5,
                      secondary = "#87292b",
                      success = "#87292b",
