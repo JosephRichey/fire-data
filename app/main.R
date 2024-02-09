@@ -41,7 +41,7 @@ ui <- function(id) {
     ),
     
     br(),
-    helpText("v0.1.2")
+    helpText("v0.2.0")
     
   )
 }
