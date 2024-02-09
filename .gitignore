@@ -5,3 +5,6 @@
 .Renviron
 app/rsconnect
 rsconnect
+sql stuff/Attendance_Sql_Export.sql
+sql stuff/Roster_Sql_Export.sql
+sql stuff/Training_Sql_Export.sql
