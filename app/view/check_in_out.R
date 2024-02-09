@@ -21,13 +21,23 @@ UI <- function(id) {
 }
 
 #' @export
+Output <- function(id) {
+  ns <- NS(id)
+  tagList(
+    DT::dataTableOutput(ns("current_status")),
+    actionButton(ns('refresh'), 'Refresh')
+  )
+}
+
+#' @export
 Server <- function(id) {
   moduleServer(
     id,
     function(input, output, session) {
       
       rvs <- reactiveValues()
-      rv <- reactiveVal(app_data$Attendance)
+      
+      atten <- reactiveVal(app_data$Attendance)
       
       observeEvent(input$check_in_out, {
         # browser()
@@ -37,16 +47,10 @@ Server <- function(id) {
         if(functions$VerifyTrainingTime(sysTime = lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))))
         {
           
-          # Update Attendance.
+          # First thing, update attendance so latest data is being worked with.
+          functions$UpdateAttendance(atten)
           
-          Updated_Attendance <- dbGetQuery(app_data$CON,
-                                           "SELECT * FROM cfddb.attendance") |> 
-            mutate(check_in = as.POSIXct(check_in),
-                   check_out = as.POSIXct(check_out))
-          
-          rv(Updated_Attendance)
-          
-          # Get ff id and traing id.
+          # Get ff id and traing id. Store in rvs to access in other parts of server.
           
           rvs$target_ff_id <- app_data$Roster |>
             filter(firefighter_full_name == input$name) |>
@@ -62,8 +66,8 @@ Server <- function(id) {
             unlist() |>
             unname()
           
-          # browser()
-          Firefighter_Attendance <- rv() |> 
+          # Filter to target firefighter's current status.
+          Firefighter_Attendance <- atten() |> 
             dplyr::filter(firefighter_id == rvs$target_ff_id) |> 
             dplyr::filter(training_id == rvs$target_training_id)
           
@@ -72,6 +76,7 @@ Server <- function(id) {
           # https://stackoverflow.com/questions/48127459/using-modal-window-in-shiny-module
           ns <- session$ns
           
+          # Check series of conditions and call appropriate modals.
           # No check ins today.
           if(nrow(Firefighter_Attendance) == 0) {
             showModal(
@@ -106,7 +111,7 @@ Server <- function(id) {
               )
             )
           } else {
-            showModal(modals$errorModal("While attempting to check in/out, no conditions met. No action taken."))
+            showModal(modals$errorModal("While attempting to check in/out, no conditions met. No action taken. Please contact Joseph Richey."))
           }
         }
       })
@@ -129,7 +134,7 @@ Server <- function(id) {
         # browser()
         removeModal()
         sql_command <- paste0(
-          "INSERT INTO cfddb.attendance (firefighter_id, training_id, check_in, check_out) VALUES (",
+          "INSERT INTO cfddb.attendance", Sys.getenv("TESTING"), "(firefighter_id, training_id, check_in, check_out) VALUES (",
            rvs$target_ff_id, ", ",
            rvs$target_training_id, ", '",
            as.POSIXct(lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))), "', ",
@@ -150,13 +155,16 @@ Server <- function(id) {
             modals$errorModal(paste("Check in write failed with write result equal to", write_result))
           )
         }
+        
+        # Update attendance so latest data is displayed in current status table
+        functions$UpdateAttendance(atten)
       })
       
       observeEvent(input$confirm_check_out, {
         removeModal()
         
         sql_command <- paste0(
-          "UPDATE cfddb.attendance SET check_out = ",
+          "UPDATE cfddb.attendance", Sys.getenv("TESTING"), " SET check_out = ",
           "'", as.POSIXct(lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))), "'",
           "WHERE attendance_id = ", rvs$attendance_id)
         
@@ -176,7 +184,28 @@ Server <- function(id) {
             modals$errorModal(paste("Check out write failed with write result equal to", write_result))
           )
         }
+        
+        # Update attendance so latest data is displayed in current status table
+        functions$UpdateAttendance(atten)
+        
       })
+      
+      
+      output$current_status <- DT::renderDataTable({
+        DT::datatable(functions$CurrentStatusTable(atten(),
+                                                   app_data$Roster),
+                      options = list(scrollX=TRUE,
+                                     scrollY='800px',
+                                     fillContainer = TRUE,
+                                     row.names = FALSE))
+      })
+      
+      observeEvent(input$refresh, {
+        # browser()
+        print("Refresh")
+        functions$UpdateAttendance(atten)
+      })
+      
     }
   )
 }

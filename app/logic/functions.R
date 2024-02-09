@@ -1,6 +1,7 @@
 box::use(
   dplyr[filter, ...],
   shiny[...],
+  DBI[...],
 )
 
 box::use(
@@ -65,3 +66,15 @@ CurrentStatusTable <- function(Attendance, Roster) {
               check_out = format(check_out, "%H:%M:%S")) |> 
     FixColNames()
 }
+
+#' @export
+UpdateAttendance <- function(rv) {
+  Updated_Attendance <- DBI::dbGetQuery(app_data$CON,
+                                   paste0("SELECT * FROM cfddb.attendance", Sys.getenv("TESTING"))) |> 
+    mutate(check_in = as.POSIXct(check_in),
+           check_out = as.POSIXct(check_out))
+  
+  rv(Updated_Attendance)
+}
+
+

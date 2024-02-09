@@ -9,7 +9,7 @@ box::use(
 
 box::use(
   app/view/check_in_out,
-  app/view/current_status,
+  # app/view/current_status,
 )
 
 #' @export
@@ -25,6 +25,7 @@ ui <- function(id) {
     layout_columns(
       card(
         card_body(
+          min_height = "300px",
           check_in_out$UI(ns('check_in_out'))
         )
       ),
@@ -33,8 +34,7 @@ ui <- function(id) {
         card_body(
           min_height = "800px",
           bslib::card_title("Current Status"),
-          current_status$Output(ns('current_status')),
-          current_status$UI(ns('current_status'))
+          check_in_out$Output(ns('check_in_out'))
         )
       ),
       col_widths = c(12, 12)
@@ -50,7 +50,6 @@ ui <- function(id) {
 server <- function(id) {
   moduleServer(id, function(input, output, session) {
     check_in_out$Server("check_in_out")
-    current_status$Server("current_status")
     
   })
 }
