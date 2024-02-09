@@ -15,8 +15,15 @@ VerifyTrainingTime <- function(sysTime) {
   # FIXME For testing purposes only. Remove before production.
   # sysTime <- as.POSIXct("2024-01-03 20:00:13 MST")
   
+  # Extract information from training to validate with.
   today_training <- app_data$Training |> 
     dplyr::filter(training_date == as.Date(sysTime, tz = Sys.getenv("TZ")))
+  
+  today_training_start_time <- today_training |> 
+    pull(training_start_time)
+    
+  today_training_end_time <- today_training |> 
+    pull(training_end_time)
   
   if(nrow(today_training) == 0) {
     
@@ -30,8 +37,8 @@ VerifyTrainingTime <- function(sysTime) {
     
   }
   
-  if(format(sysTime, format = "%H:%M:%S") < "17:55:00" |
-     format(sysTime, format = "%H:%M:%S") > "20:05:00") {
+  if(format(sysTime + 300, format = "%H:%M:%S") < today_training_start_time |
+     format(sysTime - 300, format = "%H:%M:%S") > today_training_end_time) {
     
     showModal(modals$warningModal("You are outside of applicable check in time. Please wait until 17:55 to check in.
                         If you forgot to check out, you will be automatically checked out at 20:05."))
