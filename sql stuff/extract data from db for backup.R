@@ -36,6 +36,8 @@ Roster_Sql_Export <- Roster |>
                             "\"", firefighter_deactive_date, "\"",
                             if_else(firefighter_id == max(Roster$firefighter_id), ");", "),")))
 
+Roster_Sql_Export$statement <- gsub('"NA"', "NULL", Roster_Sql_Export$statement)
+
 
 Training_Sql_Export <- Training |> 
   mutate(statement = paste0("(",
@@ -46,10 +48,11 @@ Training_Sql_Export <- Training |>
                             "\"", training_date, "\",",
                             "\"", training_start_time, "\",",
                             "\"", training_end_time, "\",",
-                            "\"", training_officer, "\",",
+                            "\"", training_trainer, "\",",
                             "\"", training_delete, "\"",
                             if_else(training_id == max(Training$training_id), ");", "),")))
 
+Training_Sql_Export$statement <- gsub('"NA"', "NULL", Training_Sql_Export$statement)
 
 Attendance_Sql_Export <- Attendance |>
   mutate(statement = paste0("(",
@@ -61,6 +64,8 @@ Attendance_Sql_Export <- Attendance |>
                             "\"", auto_checkout, "\",",
                             "\"", credit, "\"",
                             if_else(attendance_id == max(Attendance$attendance_id), ");", "),")))
+
+Attendance_Sql_Export$statement <- gsub('"NA"', "NULL", Attendance_Sql_Export$statement)
 
 writeLines(c("INSERT INTO cfddb.firefighter VALUES", Roster_Sql_Export$statement), "sql stuff/Roster_Sql_Export.sql")
 writeLines(c("INSERT INTO cfddb.training VALUES", Training_Sql_Export$statement), "sql stuff/Training_Sql_Export.sql")
