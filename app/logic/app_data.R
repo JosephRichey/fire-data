@@ -13,18 +13,17 @@ CON <- dbConnect(RMySQL::MySQL(),
 
 #' @export
 Training <- dbGetQuery(CON,
-                       "SELECT * 
-                       FROM cfddb.training
-                       WHERE training_delete IS NULL")
+                       paste0("SELECT * FROM cfddb.training", Sys.getenv("TESTING"),
+                       " WHERE training_delete IS NULL"))
 
 #' @export
 Roster <- dbGetQuery(CON,
-                     "SELECT * FROM cfddb.firefighter
-                     WHERE firefighter_deactive_date IS NULL")
+                     paste0("SELECT * FROM cfddb.firefighter", Sys.getenv("TESTING"),
+                     " WHERE firefighter_deactive_date IS NULL"))
 
 #' @export
 Attendance <- dbGetQuery(CON,
-                         "SELECT * FROM cfddb.attendance") |> 
+                         paste0("SELECT * FROM cfddb.attendance", Sys.getenv("TESTING"))) |> 
   mutate(check_in = as.POSIXct(check_in),
          check_out = as.POSIXct(check_out))
 
