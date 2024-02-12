@@ -40,6 +40,7 @@ UI <- function(id) {
         title = "Filter Trainings",
         open = FALSE,
         card(
+          min_height = '600px',
           helpText("Filter by training date"),
           dateRangeInput(ns('training_filter_range'),
                          "Show trainings between:",
@@ -92,9 +93,7 @@ Server <- function(id) {
 
       updateReactiveValue <- function() {
         rv(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM cfddb.training", Sys.getenv("TESTING"),"
-                       WHERE training_delete IS NULL")) |>
-             remove_rownames() |>
-             column_to_rownames("training_id"))
+                       WHERE training_delete IS NULL")))
       }
 
       # Display current trainings
@@ -116,7 +115,7 @@ Server <- function(id) {
         DT::datatable(
           Table_Data,
           selection = 'single',
-          rownames = FALSE,
+          rownames = Table_Data$training_id,
           height = "100%",
           options = list(
             lengthMenu = list(c(25, 50, -1), c('25', '50', 'All')),
@@ -279,29 +278,36 @@ Server <- function(id) {
       # Modify the training
       observeEvent(input$modify_training, {
         # browser()
+
+        #FIXME - Currently, the modify training button is not working.
+        # The cell_click is not identifying the correct row.
+        #####################################################
         cell_click <- input$view_trainings_cell_clicked
         # Make sure a row was clicked
         if (length(cell_click) != 0) {
-          showModal(modalDialog(
-            title = "Modify Training",
-            strong("Please double check the training type and topic before submitting."),
-            dateInput(ns('modify_training_date'), 'Training Date', value = rv()[cell_click$row,]$training_date),
-            timeInput(ns('modify_start_time'), "Start Time", value = rv()[cell_click$row,]$training_start_time, minute.steps = 5),
-            timeInput(ns('modify_end_time'), "End Time", value = rv()[cell_click$row,]$training_end_time, minute.steps = 5),
-            selectInput(ns('modify_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland"), selected = rv()[cell_click$row,]$training_type),
-            selectInput(ns('modify_training_topic'), 'Training Topic', choices = c(), selected = rv()[cell_click$row,]$training_topic),
-            textAreaInput(ns('modify_description'), 'Training Description', value = rv()[cell_click$row,]$training_description),
-            selectInput(ns('modify_training_trainer'), 'Training Led By', choices = training_trainers, selected = rv()[cell_click$row,]$training_officer),
-            footer = tagList(
-              actionButton(ns("action_modify_training"), "Modify Training")
-            ),
-            easyClose = TRUE
-          ))
+
+          showModal(modals$warningModal("This functionality currently isn't working."))
+          # showModal(modalDialog(
+          #   title = "Modify Training",
+          #   strong("Please double check the training type and topic before submitting."),
+          #   dateInput(ns('modify_training_date'), 'Training Date', value = rv()[cell_click$row,]$training_date),
+          #   timeInput(ns('modify_start_time'), "Start Time", value = rv()[cell_click$row,]$training_start_time, minute.steps = 5),
+          #   timeInput(ns('modify_end_time'), "End Time", value = rv()[cell_click$row,]$training_end_time, minute.steps = 5),
+          #   selectInput(ns('modify_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland"), selected = rv()[cell_click$row,]$training_type),
+          #   selectInput(ns('modify_training_topic'), 'Training Topic', choices = c(), selected = rv()[cell_click$row,]$training_topic),
+          #   textAreaInput(ns('modify_description'), 'Training Description', value = rv()[cell_click$row,]$training_description),
+          #   selectInput(ns('modify_training_trainer'), 'Training Led By', choices = training_trainers, selected = rv()[cell_click$row,]$training_officer),
+          #   footer = tagList(
+          #     actionButton(ns("action_modify_training"), "Modify Training")
+          #   ),
+          #   easyClose = TRUE
+          # ))
         } else {
           showModal(
             modals$warningModal("Please select a training to modify.")
           )
         }
+        ############################################################
       })
 
 
@@ -346,23 +352,29 @@ Server <- function(id) {
 
       observeEvent(input$delete_training, {
         # browser()
+
+        #FIXME - Currently, the delete training button is not working.
+        # The cell_click is not identifying the correct row.
+        ##################
         cell_click <- input$view_trainings_cell_clicked
 
         if (length(cell_click) != 0) {
-          showModal(modalDialog(
-            title = "Confirm Deletion",
-            "Are you sure you want to delete this training? If you're sure, please type \"Delete\"",
-            textInput(ns("confirm_deletion"), ""),
-            footer = tagList(
-              actionButton(ns("action_delete_training"), "Delete Training")
-            ),
-            easyClose = TRUE
-          ))
+          showModal(modals$warningModal("This functionality currently isn't working."))
+          # showModal(modalDialog(
+          #   title = "Confirm Deletion",
+          #   "Are you sure you want to delete this training? If you're sure, please type \"Delete\"",
+          #   textInput(ns("confirm_deletion"), ""),
+          #   footer = tagList(
+          #     actionButton(ns("action_delete_training"), "Delete Training")
+          #   ),
+          #   easyClose = TRUE
+          # ))
         } else {
           showModal(
             modals$warningModal("Please select a training to delete.")
           )
         }
+        ##################
       })
 
       observeEvent(input$action_delete_training, {
