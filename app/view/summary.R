@@ -7,7 +7,7 @@ box::use(
   DBI[...],
   tibble[...],
   lubridate[...],
-  shinycssloaders[...],
+  # shinycssloaders[...],
   hms[...],
   bsicons[...],
   plotly[...],
@@ -41,8 +41,8 @@ UI <- function(id, ag_level) {
                      "Show trainings between:",
                      start = as.Date(paste0(year(Sys.Date()), "-01-01")),
                      end = as.Date(paste0(year(Sys.Date()), "-12-31"))),
-      actionButton(ns("generate_summary"), "Generate Summary"),
-      downloadButton(ns("download"), "Download Firefighter Training Summary")
+      actionButton(ns("generate_summary"), "Generate Summary")
+      # downloadButton(ns("download"), "Download Firefighter Training Summary")
     )
   } else {
     tagList(
@@ -50,8 +50,8 @@ UI <- function(id, ag_level) {
                      "Show trainings between:",
                      start = as.Date(paste0(year(Sys.Date()), "-01-01")),
                      end = as.Date(paste0(year(Sys.Date()), "-12-31"))),
-      actionButton(ns("generate_summary"), "Generate Summary"),
-      downloadButton(ns("download"), "Download Firefighter Training Summary")
+      actionButton(ns("generate_summary"), "Generate Summary")
+      # downloadButton(ns("download"), "Download Firefighter Training Summary")
     )
   }
 
@@ -106,22 +106,20 @@ Server <- function(id, ag_level) {
     id,
     function(input, output, session) {
 
-      thematic_shiny()
-
       R_Data <- eventReactive(input$generate_summary, {
         # browser()
-        showPageSpinner(image = sample(gif_links, 1),
-                        background = '#2D2D2D')
-        Sys.sleep(1)
+        # showPageSpinner(image = sample(gif_links, 1),
+        #                 background = '#2D2D2D')
+        # Sys.sleep(1)
 
         A <- app_data$Attendance |>
           left_join(app_data$Roster |> select(firefighter_id, firefighter_full_name),
                     by = c("firefighter_id" = "firefighter_id")) |>
-          left_join(app_data$Training |> select(training_id, training_date,training_type, training_start_time, training_end_time),
+          left_join(app_data$Training |> select(training_id, training_date,training_type, training_topic, training_description, training_start_time, training_end_time),
                     by = c("training_id" = "training_id")) |>
           select(-c(attendance_id, firefighter_id, training_id)) |>
           filter(training_date >= input$training_filter_range[1] & training_date <= input$training_filter_range[2]) |>
-          mutate(training_length = difftime(hms::as.hms(training_end_time), hms::as.hms(training_start_time), units = 'hours') |> as.numeric())
+          mutate(training_length = difftime(hms::as_hms(training_end_time), hms::as_hms(training_start_time), units = 'hours') |> as.numeric())
 
         # Filter to indiviual if that's the level of aggregation
         if(ag_level == "Individual") {
@@ -131,7 +129,7 @@ Server <- function(id, ag_level) {
           A
         }
 
-        hidePageSpinner()
+        # hidePageSpinner()
 
         return(A)
 
@@ -190,32 +188,56 @@ Server <- function(id, ag_level) {
           summarise(Total_Length = sum(training_length))
 
         # Create the plot with specified colors, legend, and hover text
-        # plot <- plot_ly(plot_data,
-        #                 x = ~Month,
-        #                 y = ~Total_Length,
-        #                 color = ~training_type,
-        #                 type = 'scatter',
-        #                 mode = 'lines',
-        #                 colors = c("blue", "red", "green", 'grey'),
-        #                 text = ~paste("Total Hours: ", Total_Length, " hours")) %>%
-        #   layout(title = "Training Summary",
-        #          xaxis = list(title = "Month"),
-        #          yaxis = list(title = "Training Length (hours)", zeroline = FALSE),
-        #          showlegend = TRUE)
+        plot <- plot_ly(plot_data,
+                        x = ~Month,
+                        y = ~Total_Length,
+                        color = ~training_type,
+                        type = 'scatter',
+                        mode = 'lines',
+                        colors = c("blue", "red", "green", 'grey'),
+                        text = ~paste("Total Hours: ", Total_Length, " hours")) %>%
+          layout(title = "Training Summary",
+                 xaxis = list(title = "Month"),
+                 yaxis = list(title = "Training Length (hours)", zeroline = FALSE),
+                 showlegend = TRUE)
 
-        plot <- ggplot(plot_data, aes(x = Month, y = Total_Length, color = training_type, group = training_type)) +
-          geom_line() +
-          scale_color_manual(values = c("blue", "red", "green", 'grey')) +
-          geom_point() +
-          labs(title = "Training Summary",
-               x = "Month",
-               y = "Training Length (hours)",
-               color = "Training Type",
-               text = paste("Total Hours: ", plot_data$Total_Length, " hours")) +
-          theme_minimal()
+        # plot <- ggplot(plot_data, aes(x = Month, y = Total_Length, color = training_type, group = training_type)) +
+        #   geom_line() +
+        #   scale_color_manual(values = c("blue", "red", "green", 'grey')) +
+        #   geom_point() +
+        #   labs(title = "Training Summary",
+        #        x = "Month",
+        #        y = "Training Length (hours)",
+        #        color = "Training Type",
+        #        text = paste("Total Hours: ", plot_data$Total_Length, " hours")) +
+        #   theme_minimal()
 
         plot
       })
+
+      #FIXME - Download handler not currently working. Namespace error somewhere.
+      # # Data Download
+      # R_Data_Download <- reactive({
+      #   R_Data() |>
+      #     select(firefighter_full_name, training_type, training_topic,
+      #            check_in, check_out, auto_checkout,
+      #            training_length, training_description, date)
+      # })
+      #
+      # # Download Handler
+      # output$download <- downloadHandler(
+      #   filename = function() {
+      #     # paste0(if_else(ag_level == "Individual",
+      #     #                input$firefighter_full_name,
+      #     #                'departmnet'),
+      #     #        "-training-data_", Sys.Date(), ".csv")
+      #     'test.csv'
+      #   },
+      #   content = function(file) {
+      #     write.csv(R_Data_Download(), file)
+      #   }
+      # )
+
 
     }
   )
