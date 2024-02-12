@@ -11,20 +11,19 @@ library(odbc)
 
 CON = dbConnect(RMySQL::MySQL(),
                 dbname = "cfddb",
-                host = "db1.c5umikw8m5v5.us-east-2.rds.amazonaws.com",
+                host = Sys.getenv("CFDDB_HOST"),
                 port = 3306,
                 user = "admin",
-                password = "7zKEDCKHwtfvhmvLeiPGbRN8XEHGr")
+                password = Sys.getenv("CFDDB_PASSWORD"))
 
-dbListTables(CON)
+Training <- dbGetQuery(CON,
+                        "SELECT * FROM cfddb.training")
 
-board <- board_gdrive("CFD Training App")
-Trainings <- board |> pin_read("trainings")
-Roster <- board |> pin_read("roster") |> 
-  filter(active_status == TRUE) |> 
-  mutate(full_name = paste(first_name, last_name))
-Attendance <- board |> pin_read("attendance") |> 
-  unique()
+Roster <- dbGetQuery(CON,
+                     "SELECT * FROM cfddb.firefighter")
+
+Attendance <- dbGetQuery(CON,
+                         "SELECT * FROM cfddb.attendance")
 
 FixColNames <- function(Data) {
     colnames(Data) <- gsub("_", " ", colnames(Data))
@@ -42,7 +41,7 @@ load_data <- function() {
 ui <- page_navbar(
     title = "Corinne Fire Department",
     theme = bs_theme(version = 5,
-                     success = "#375A7F",
+                     success = "#87292b",
                      bootswatch = "darkly"),
     nav_panel(title = "Training", 
         layout_sidebar(
@@ -66,8 +65,8 @@ ui <- page_navbar(
                       helpText("Filter by training type"),
                       pickerInput('filter_training_type',
                                   'Training Type',
-                                  choices = unique(Trainings$training_type),
-                                  selected = unique(Trainings$training_type),
+                                  choices = unique(Training$training_type),
+                                  selected = unique(Training$training_type),
                                   options = list(`actions-box` = TRUE),
                                   multiple = TRUE
                       )
@@ -154,7 +153,7 @@ server <- function(input, output, session) {
     MyReactives <- reactiveValues()
     MyReactives$roster <- board %>% pin_read("roster") %>% 
         dplyr::mutate(start_date = as.Date(start_date))
-    MyReactives$trainings <- board %>% pin_read("trainings") %>% 
+    MyReactives$Training <- board %>% pin_read("trainings") %>% 
         dplyr::mutate(date = as.Date(date))
     
     

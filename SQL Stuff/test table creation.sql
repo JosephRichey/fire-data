@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS cfddb.training;
-CREATE TABLE cfddb.training (
+DROP TABLE IF EXISTS cfddb.training_TEST;
+CREATE TABLE cfddb.training_TEST (
 	training_id int PRIMARY KEY AUTO_INCREMENT,
     training_type varchar(255),
     training_topic varchar(255),
@@ -11,8 +11,8 @@ CREATE TABLE cfddb.training (
     training_delete text
 );
 
-DROP TABLE IF EXISTS cfddb.firefighter;
-CREATE TABLE cfddb.firefighter (
+DROP TABLE IF EXISTS cfddb.firefighter_TEST;
+CREATE TABLE cfddb.firefighter_TEST (
 	firefighter_id int PRIMARY KEY AUTO_INCREMENT,
     firefighter_first_name varchar(255),
     firefighter_last_name varchar(255),
@@ -23,8 +23,8 @@ CREATE TABLE cfddb.firefighter (
     firefighter_deactive_date text
 );
 
-DROP TABLE IF EXISTS cfddb.attendance;
-CREATE TABLE cfddb.attendance (
+DROP TABLE IF EXISTS cfddb.attendance_TEST;
+CREATE TABLE cfddb.attendance_TEST (
 	attendance_id int PRIMARY KEY AUTO_INCREMENT,
     firefighter_id int NOT NULL,
     training_id int NOT NULL,
@@ -33,4 +33,3 @@ CREATE TABLE cfddb.attendance (
     auto_checkout boolean,
     credit boolean
 );
-
