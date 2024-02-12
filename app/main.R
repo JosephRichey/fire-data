@@ -8,7 +8,7 @@ box::use(
   shiny[...],
   bslib[...],
   DT[...],
-  thematic[...],
+  # thematic[...],
 )
 
 box::use(
@@ -17,7 +17,7 @@ box::use(
   view/summary,
 )
 
-thematic_shiny()
+# thematic_shiny()
 
 #' @export
 ui <- function(id) {
@@ -82,7 +82,7 @@ ui <- function(id) {
     nav_menu(
       title = "Settings",
       align = "right",
-      nav_item(actionButton(ns("sign_out"), "Lock"), align = "center"),
+      # nav_item(actionButton(ns("sign_out"), "Lock"), align = "center"),
       nav_item(helpText("v0.2.0-beta"), align = "center")
     )
 
@@ -94,36 +94,29 @@ server <- function(id) {
   moduleServer(id, function(input, output, session) {
 
     ##### Global Stuff #####
-    # Use reactiveValues to maintain a local copy of the roster that is available at all times.
-    # Update the local copy whenever the stored copy is updated.
-    # MyReactives <- reactiveValues()
-    # MyReactives$roster <- board %>% pin_read("roster") %>%
-    #   dplyr::mutate(start_date = as.Date(start_date))
-    # MyReactives$Training <- board %>% pin_read("trainings") %>%
-    #   dplyr::mutate(date = as.Date(date))
-
     ns <- session$ns
     # Sign in/out capabilities
-    observeEvent(input$sign_out, {
-      showModal(modalDialog(
-        textInput(ns("username"), "Username"),
-        passwordInput(ns("password"), "Password"),
-        title = "Unlock",
-        footer = tagList(
-          actionButton(ns("sign_in"), "Unlock")
-        )
-      ))
-    }, ignoreNULL = FALSE)
+    ## NOT MEANT TO BE SECURE
+    # observeEvent(input$sign_out, {
+    #   showModal(modalDialog(
+    #     textInput(ns("username"), "Username"),
+    #     passwordInput(ns("password"), "Password"),
+    #     title = "Unlock",
+    #     footer = tagList(
+    #       actionButton(ns("sign_in"), "Unlock")
+    #     )
+    #   ))
+    # }, ignoreNULL = FALSE)
 
     # Check password and username
-    observeEvent(input$sign_in, {
-      # browser()
-      if(input$username == "CFD" && input$password == "1975") {
-        removeModal()
-      } else {
-        stopApp()
-      }
-    })
+    # observeEvent(input$sign_in, {
+    #   # browser()
+    #   if(input$username == "CFD" && input$password == "1975") {
+    #     removeModal()
+    #   } else {
+    #     stopApp()
+    #   }
+    # })
 
     training$Server('training')
 
