@@ -87,7 +87,7 @@ Server <- function(id) {
           showModal(modals$warningModal("The name you tried to add already exists. Please add a unique name."))
         } else {
           sql_command <- paste0(
-            "INSERT INTO cfddb.firefighter", Sys.getenv("TESTING")," (firefighter_first_name, firefighter_last_name, firefighter_full_name, firefighter_start_date, firefighter_officer, firefighter_deactive_date) VALUES (",
+            "INSERT INTO cfddb.firefighter", Sys.getenv("TESTING")," (firefighter_first_name, firefighter_last_name, firefighter_full_name, firefighter_start_date, firefighter_trainer, firefighter_officer, firefighter_deactive_date) VALUES (",
             "'", functions$ParseUserInput(input$add_first_name), "', ",
             "'", functions$ParseUserInput(input$add_last_name), "', ",
             "'", proposed_full_name, "', ",
