@@ -2,7 +2,7 @@
 # and roster information. This also includes an analysis pane.
 
 
-# 70 Hours
+# 72.5 Hours
 
 box::use(
   shiny[...],
