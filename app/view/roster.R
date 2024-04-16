@@ -44,7 +44,7 @@ Server <- function(id) {
       ns <- session$ns
 
       updateReactiveValue <- function() {
-        rv(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM cfddb.firefighter", Sys.getenv("TESTING")," WHERE firefighter_deactive_date IS NULL")) |>
+        rv(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("FIREFIGHTER_TABLE")," WHERE firefighter_deactive_date IS NULL")) |>
              remove_rownames()
            )
       }
@@ -87,7 +87,7 @@ Server <- function(id) {
           showModal(modals$warningModal("The name you tried to add already exists. Please add a unique name."))
         } else {
           sql_command <- paste0(
-            "INSERT INTO cfddb.firefighter", Sys.getenv("TESTING")," (firefighter_first_name, firefighter_last_name, firefighter_full_name, firefighter_start_date, firefighter_trainer, firefighter_officer, firefighter_deactive_date) VALUES (",
+            "INSERT INTO ", Sys.getenv("FIREFIGHTER_TABLE")," (firefighter_first_name, firefighter_last_name, firefighter_full_name, firefighter_start_date, firefighter_trainer, firefighter_officer, firefighter_deactive_date) VALUES (",
             "'", functions$ParseUserInput(input$add_first_name), "', ",
             "'", functions$ParseUserInput(input$add_last_name), "', ",
             "'", proposed_full_name, "', ",
@@ -130,7 +130,7 @@ Server <- function(id) {
         removeModal()
 
         sql_command <- paste0(
-          'UPDATE cfddb.firefighter', Sys.getenv("TESTING"),' SET firefighter_deactive_date = NOW() WHERE firefighter_full_name = "',
+          'UPDATE ', Sys.getenv("FIREFIGHTER_TABLE"),' SET firefighter_deactive_date = NOW() WHERE firefighter_full_name = "',
           input$remove_full_name, '"', 'AND firefighter_deactive_date IS NULL'
         )
 

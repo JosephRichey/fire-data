@@ -92,7 +92,7 @@ Server <- function(id) {
       ns <- session$ns
 
       updateReactiveValue <- function() {
-        rv(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM cfddb.training", Sys.getenv("TESTING"),"
+        rv(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("TRAINING_TABLE"),"
                        WHERE training_delete IS NULL")))
       }
 
@@ -249,7 +249,7 @@ Server <- function(id) {
         removeModal()
 
         sql_command <- paste0(
-          "INSERT INTO cfddb.training", Sys.getenv("TESTING")," (training_type, training_topic, training_description, training_date, training_start_time, training_end_time, training_trainer, training_delete) VALUES ('",
+          "INSERT INTO ", Sys.getenv("TRAINING_TABLE")," (training_type, training_topic, training_description, training_date, training_start_time, training_end_time, training_trainer, training_delete) VALUES ('",
           input$add_training_type, "', '", input$add_training_topic, "', '", input$add_description, "', '", input$add_training_date, "', '", input$add_start_time |> strftime(format = "%T"), "', '", input$add_end_time |> strftime(format = "%T"), "', '", input$add_training_trainer, "', NULL);"
         )
 
@@ -320,7 +320,7 @@ Server <- function(id) {
 
 
         sql_command <- paste0(
-          "UPDATE cfddb.training", Sys.getenv("TESTING")," SET training_type = '", input$modify_training_type,
+          "UPDATE ", Sys.getenv("TRAINING_TABLE")," SET training_type = '", input$modify_training_type,
           "', training_topic = '", input$modify_training_topic,
           "', training_description = '", input$modify_description,
           "', training_date = '", input$modify_training_date,
@@ -387,7 +387,7 @@ Server <- function(id) {
           modify_training_id <- row.names(rv()[cell_click$row,])
 
           sql_command <- paste0(
-            "UPDATE cfddb.training", Sys.getenv("TESTING")," SET training_delete = NOW() WHERE training_id = ", modify_training_id, ";"
+            "UPDATE ", Sys.getenv("TRAINING_TABLE")," SET training_delete = NOW() WHERE training_id = ", modify_training_id, ";"
           )
 
           write_result <- DBI::dbExecute(app_data$CON, sql_command)
