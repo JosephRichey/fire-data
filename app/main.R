@@ -54,7 +54,7 @@ ui <- function(id) {
                         height = 600,
                         card_body(
                         app_data$Attendance |>
-                          dplyr::left_join(app_data$Roster) |>
+                          dplyr::left_join(app_data$Firefighter) |>
                           dplyr::left_join(app_data$Training) |>
                           dplyr::select(training_type, training_topic, training_date,
                                         firefighter_full_name,

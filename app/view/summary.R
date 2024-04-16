@@ -36,7 +36,7 @@ UI <- function(id, ag_level) {
 
   if(ag_level == "Individual") {
     tagList(
-      selectInput(ns("summary_firefighter"), "Firefighter", app_data$Roster$firefighter_full_name),
+      selectInput(ns("summary_firefighter"), "Firefighter", app_data$Firefighter$firefighter_full_name),
       dateRangeInput(ns('training_filter_range'),
                      "Show trainings between:",
                      start = as.Date(paste0(year(Sys.Date()), "-01-01")),
@@ -113,7 +113,7 @@ Server <- function(id, ag_level) {
         # Sys.sleep(1)
 
         A <- app_data$Attendance |>
-          left_join(app_data$Roster |> select(firefighter_id, firefighter_full_name),
+          left_join(app_data$Firefighter |> select(firefighter_id, firefighter_full_name),
                     by = c("firefighter_id" = "firefighter_id")) |>
           left_join(app_data$Training |> select(training_id, training_date,training_type, training_topic, training_description, training_start_time, training_end_time),
                     by = c("training_id" = "training_id")) |>

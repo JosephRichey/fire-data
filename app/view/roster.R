@@ -39,7 +39,7 @@ Server <- function(id) {
     id,
     function(input, output, session) {
 
-      rv <- reactiveVal(app_data$Roster)
+      rv <- reactiveVal(app_data$Firefighter)
 
       ns <- session$ns
 

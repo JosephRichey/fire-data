@@ -17,7 +17,7 @@ box::use(
   ../modals/modals,
 )
 
-training_trainers <- app_data$Roster |>
+training_trainers <- app_data$Firefighter |>
   filter(firefighter_trainer == TRUE) |>
   select(firefighter_full_name, firefighter_id) %>%
   # https://ivelasq.rbind.io/blog/understanding-the-r-pipe/

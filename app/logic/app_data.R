@@ -17,7 +17,7 @@ Training <- dbGetQuery(CON,
                               " WHERE training_delete IS NULL"))
 
 #' @export
-Roster <- dbGetQuery(CON,
+Firefighter <- dbGetQuery(CON,
                      paste0("SELECT * FROM ", Sys.getenv("FIREFIGHTER_TABLE"),
                             " WHERE firefighter_deactive_date IS NULL"))
 
