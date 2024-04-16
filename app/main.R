@@ -15,6 +15,7 @@ box::use(
   view/training,
   view/roster,
   view/summary,
+  logic/app_data,
 )
 
 # thematic_shiny()
@@ -37,6 +38,41 @@ ui <- function(id) {
                 training$Output(ns('training'))
               )
     ),
+
+    nav_panel(title = "Attendance Management",
+                navset_pill(
+                  nav_panel(title = "Training",
+                    layout_sidebar(
+                      sidebar = sidebar(
+                        width = 400,
+                        open = 'desktop',
+                        actionButton('add_missing_attendance',
+                                     'Add Missing Attendance'),
+                        actionButton('delete_attendance',
+                                     'Delete Attendance'),
+                        actionButton('submit_changes',
+                                     'Submit Changes')
+                      ),
+                      card(
+                        height = 600,
+                        card_body(
+                        app_data$Attendance |>
+                          dplyr::left_join(app_data$Roster) |>
+                          dplyr::left_join(app_data$Training) |>
+                          dplyr::select(training_type, training_topic, training_date,
+                                        firefighter_full_name,
+                                        check_in, check_out) |>
+                          DT::datatable(editable = TRUE)
+                        )
+                      )
+
+                    ),
+                  ),
+                  nav_panel(title = "Calls"
+
+                  )
+                ),
+              ),
 
     nav_panel(title = "Manage Roster",
               layout_sidebar(
