@@ -15,7 +15,7 @@ box::use(
 UI <- function(id) {
   ns <- NS(id)
   tagList(
-    selectInput(ns('name'), "Name", app_data$Roster$firefighter_full_name, selected = NULL),
+    selectInput(ns('name'), "Name", app_data$Firefighter$firefighter_full_name, selected = NULL),
     actionButton(ns('check_in_out'), "Check In/Check Out")
   )
 }
@@ -52,13 +52,13 @@ Server <- function(id) {
           
           # Get ff id and traing id. Store in rvs to access in other parts of server.
           
-          rvs$target_ff_id <- app_data$Roster |>
+          rvs$target_ff_id <- app_data$Firefighter |>
             filter(firefighter_full_name == input$name) |>
             dplyr::select(firefighter_id) |>
             unlist() |>
             unname()
           
-          rvs$target_ff_full_name <- app_data$Roster[app_data$Roster$firefighter_id == rvs$target_ff_id,]$firefighter_full_name
+          rvs$target_ff_full_name <- app_data$Firefighter[app_data$Firefighter$firefighter_id == rvs$target_ff_id,]$firefighter_full_name
           
           rvs$target_training_id <- app_data$Training |>
             filter(training_date == as.Date(lubridate::with_tz(Sys.time(), Sys.getenv("TZ")), tz = Sys.getenv("TZ"))) |>
@@ -193,7 +193,7 @@ Server <- function(id) {
       
       output$current_status <- DT::renderDataTable({
         DT::datatable(functions$CurrentStatusTable(atten(),
-                                                   app_data$Roster),
+                                                   app_data$Firefighter),
                       options = list(scrollX=TRUE,
                                      scrollY='800px',
                                      fillContainer = TRUE,
