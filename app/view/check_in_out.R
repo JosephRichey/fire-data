@@ -134,7 +134,7 @@ Server <- function(id) {
         # browser()
         removeModal()
         sql_command <- paste0(
-          "INSERT INTO cfddb.attendance", Sys.getenv("TESTING"), "(firefighter_id, training_id, check_in, check_out) VALUES (",
+          "INSERT INTO ", Sys.getenv("ATTENDANCE_TABLE"), "(firefighter_id, training_id, check_in, check_out) VALUES (",
            rvs$target_ff_id, ", ",
            rvs$target_training_id, ", '",
            as.POSIXct(lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))), "', ",
@@ -164,7 +164,7 @@ Server <- function(id) {
         removeModal()
         
         sql_command <- paste0(
-          "UPDATE cfddb.attendance", Sys.getenv("TESTING"), " SET check_out = ",
+          "UPDATE ", Sys.getenv("ATTENDANCE_TABLE"), " SET check_out = ",
           "'", as.POSIXct(lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))), "'",
           "WHERE attendance_id = ", rvs$attendance_id)
         

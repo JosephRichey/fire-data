@@ -83,7 +83,7 @@ CurrentStatusTable <- function(Attendance, Roster) {
 #' @export
 UpdateAttendance <- function(rv) {
   Updated_Attendance <- DBI::dbGetQuery(app_data$CON,
-                                   paste0("SELECT * FROM cfddb.attendance", Sys.getenv("TESTING"))) |> 
+                                   paste0("SELECT * FROM ", Sys.getenv("ATTENDANCE_TABLE"))) |> 
     mutate(check_in = as.POSIXct(check_in),
            check_out = as.POSIXct(check_out))
   
