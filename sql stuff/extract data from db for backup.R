@@ -24,6 +24,10 @@ Roster <- dbGetQuery(CON,
 Attendance <- dbGetQuery(CON,
                          "SELECT * FROM cfddb.attendance")
 
+write.csv(Training, file = glue::glue('sql stuff/Backups/Training Backup {Sys.Date()}.csv'))
+write.csv(Roster, file = glue::glue('sql stuff/Backups/Roster Backup {Sys.Date()}.csv'))
+write.csv(Attendance, file = glue::glue('sql stuff/Backups/Attendance Backup {Sys.Date()}.csv'))
+
 Roster_Sql_Export <- Roster |> 
   mutate(statement = paste0("(",
                             firefighter_id, ",",
