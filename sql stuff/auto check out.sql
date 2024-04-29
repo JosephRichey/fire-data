@@ -1,18 +1,20 @@
 USE cfddb;
-DROP PROCEDURE IF EXISTS auto_checkout;
+DROP PROCEDURE IF EXISTS sp_auto_checkout;
 
 DELIMITER //
-CREATE PROCEDURE auto_checkout ()
+CREATE PROCEDURE sp_auto_checkout ()
 BEGIN
 
--- This assumes there will only ever be one training per day, and this sp is ran every day.
+-- Find all records that require auto checkouts.
+
+-- This currently assumes there will only ever be one training per day, and this sp is ran every day.
 SELECT 
     CONCAT(training_date, ' ', training_end_time) AS check_out
 INTO @check_out FROM
     cfddb.training-- _TEST
 WHERE
     training_id = (
-		SELECT training_id
+		SELECT distinct training_id
         FROM
             cfddb.attendance-- _TEST
         WHERE
