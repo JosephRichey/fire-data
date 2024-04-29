@@ -74,3 +74,5 @@ Attendance_Sql_Export$statement <- gsub('"NA"', "NULL", Attendance_Sql_Export$st
 writeLines(c("INSERT INTO cfddb.firefighter VALUES", Roster_Sql_Export$statement), "sql stuff/Roster_Sql_Export.sql")
 writeLines(c("INSERT INTO cfddb.training VALUES", Training_Sql_Export$statement), "sql stuff/Training_Sql_Export.sql")
 writeLines(c("INSERT INTO cfddb.attendance VALUES", Attendance_Sql_Export$statement), "sql stuff/Attendance_Sql_Export.sql")
+
+dbDisconnect(CON)
