@@ -56,7 +56,7 @@ ui <- function(id) {
                         app_data$Attendance |>
                           dplyr::left_join(app_data$Firefighter) |>
                           dplyr::left_join(app_data$Training) |>
-                          dplyr::select(training_type, training_topic, training_date,
+                          dplyr::select(training_type, training_topic,
                                         firefighter_full_name,
                                         check_in, check_out) |>
                           DT::datatable(editable = TRUE)
