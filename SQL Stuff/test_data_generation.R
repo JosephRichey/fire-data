@@ -1,11 +1,11 @@
 # Test data generation
+library(tidyverse)
 
 df <- read.csv(here::here("SQL Stuff/test_data_generation.csv"),
                col.names = c('training_id',
                              'training_type',
                              'training_topic',
                              'training_description',
-                             'training_date',
                              'training_start_time',
                              'training_end_time',
                              'training_officer',
@@ -19,7 +19,6 @@ df |>
                                    training_type, ", ",
                                    training_topic, ", ",
                                    '"', training_description, '", ',
-                                   '"', training_date, '", ',
                                    training_start_time, ", ",
                                    training_end_time, ", ",
                                    training_officer, ", ",

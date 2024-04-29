@@ -4,7 +4,6 @@ CREATE TABLE cfddb.training_TEST (
     training_type varchar(255),
     training_topic varchar(255),
     training_description varchar(1000),
-    training_date text,
     training_start_time text,
     training_end_time text,
     training_trainer int,
