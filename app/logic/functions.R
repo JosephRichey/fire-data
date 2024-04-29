@@ -2,6 +2,7 @@ box::use(
   dplyr[filter, ...],
   shiny[...],
   DBI[...],
+  lubridate[with_tz],
 )
 
 box::use(
@@ -17,7 +18,7 @@ VerifyTrainingTime <- function(sysTime) {
   
   # Extract information from training to validate with.
   today_training <- app_data$Training |> 
-    dplyr::filter(training_date == as.Date(sysTime, tz = Sys.getenv("TZ")))
+    dplyr::filter(training_date == as.Date(sysTime))
   
   today_training_start_time <- today_training |> 
     pull(training_start_time)
@@ -75,8 +76,8 @@ CurrentStatusTable <- function(Attendance, Roster) {
     dplyr::filter(is.na(check_out)) |> 
     dplyr::filter(as.Date(check_in) == as.Date(lubridate::with_tz(Sys.time()))) |>
     transmute(firefighter_full_name = firefighter_full_name, 
-              check_in = format(check_in, "%H:%M:%S"), 
-              check_out = format(check_out, "%H:%M:%S")) |> 
+              check_in = format(with_tz(check_in, tzone = Sys.getenv('LOCAL_TZ')), "%H:%M:%S"), 
+              check_out = format(with_tz(check_out, tzone = Sys.getenv('LOCAL_TZ')), "%H:%M:%S")) |> 
     FixColNames()
 }
 
