@@ -44,7 +44,8 @@ Server <- function(id) {
         
         # Catch all time errors for checking in and display modals.
         # If no errors found, returns true and check in process begins.
-        if(functions$VerifyTrainingTime(sysTime = lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))))
+        # Take current time and convert to UTC.
+        if(functions$VerifyTrainingTime(sysTime = lubridate::with_tz(Sys.time())))
         {
           
           # First thing, update attendance so latest data is being worked with.
@@ -53,18 +54,14 @@ Server <- function(id) {
           # Get ff id and traing id. Store in rvs to access in other parts of server.
           
           rvs$target_ff_id <- app_data$Firefighter |>
-            filter(firefighter_full_name == input$name) |>
-            dplyr::select(firefighter_id) |>
-            unlist() |>
-            unname()
+            dplyr::filter(firefighter_full_name == input$name) |>
+            pull(firefighter_id)
           
-          rvs$target_ff_full_name <- app_data$Firefighter[app_data$Firefighter$firefighter_id == rvs$target_ff_id,]$firefighter_full_name
+          rvs$target_ff_full_name <- input$name
           
           rvs$target_training_id <- app_data$Training |>
-            filter(training_date == as.Date(lubridate::with_tz(Sys.time(), Sys.getenv("TZ")), tz = Sys.getenv("TZ"))) |>
-            dplyr::select(training_id) |>
-            unlist() |>
-            unname()
+            dplyr::filter(training_date == as.Date(lubridate::with_tz(Sys.time(), Sys.getenv("TZ")), tz = Sys.getenv("TZ"))) |>
+            pull(training_id)
           
           # Filter to target firefighter's current status.
           Firefighter_Attendance <- atten() |> 
@@ -77,6 +74,8 @@ Server <- function(id) {
           ns <- session$ns
           
           # Check series of conditions and call appropriate modals.
+          # TODO Rework logic to support mutliple training sessions in a day.
+          
           # No check ins today.
           if(nrow(Firefighter_Attendance) == 0) {
             showModal(
@@ -137,7 +136,7 @@ Server <- function(id) {
           "INSERT INTO ", Sys.getenv("ATTENDANCE_TABLE"), "(firefighter_id, training_id, check_in, check_out) VALUES (",
            rvs$target_ff_id, ", ",
            rvs$target_training_id, ", '",
-           as.POSIXct(lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))), "', ",
+           as.POSIXct(lubridate::with_tz(Sys.time())), "', ",
            "NULL)")
         
         write_result <- DBI::dbExecute(app_data$CON,
@@ -165,7 +164,7 @@ Server <- function(id) {
         
         sql_command <- paste0(
           "UPDATE ", Sys.getenv("ATTENDANCE_TABLE"), " SET check_out = ",
-          "'", as.POSIXct(lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))), "'",
+          "'", as.POSIXct(lubridate::with_tz(Sys.time())), "'",
           "WHERE attendance_id = ", rvs$attendance_id)
         
         write_result <- DBI::dbExecute(app_data$CON,

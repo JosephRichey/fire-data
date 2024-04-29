@@ -73,7 +73,7 @@ CurrentStatusTable <- function(Attendance, Roster) {
   Attendance |> 
     left_join(Roster) |> 
     dplyr::filter(is.na(check_out)) |> 
-    dplyr::filter(as.Date(check_in, tz = Sys.getenv("TZ")) == as.Date(lubridate::with_tz(Sys.time(), Sys.getenv("TZ")), tz = Sys.getenv("TZ"))) |>
+    dplyr::filter(as.Date(check_in) == as.Date(lubridate::with_tz(Sys.time()))) |>
     transmute(firefighter_full_name = firefighter_full_name, 
               check_in = format(check_in, "%H:%M:%S"), 
               check_out = format(check_out, "%H:%M:%S")) |> 
