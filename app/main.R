@@ -17,7 +17,7 @@ ui <- function(id) {
   ns <- NS(id)
   page_fixed(
     title = "Corinne Fire Department",
-    h1(paste("Corinne Fire Department", Sys.getenv("TESTING"))),
+    h1(paste("Corinne Fire Department")),
     h3("Training Attendance"),
     theme = bs_theme(version = 5,
                      secondary = "#87292b",
