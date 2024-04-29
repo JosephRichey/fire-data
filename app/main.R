@@ -21,7 +21,7 @@ box::use(
 ui <- function(id) {
   ns <- NS(id)
   page_navbar(
-    title = paste0("Corinne Fire Department",Sys.getenv("TESTING"), " - Data Portal"),
+    title = paste0("Corinne Fire Department", " - Data Portal"),
     theme = bs_theme(version = 5,
                      success = "#87292b",
                      bootswatch = "darkly"),
