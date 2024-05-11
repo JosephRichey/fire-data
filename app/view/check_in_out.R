@@ -45,13 +45,13 @@ Server <- function(id) {
         # Catch all time errors for checking in and display modals.
         # If no errors found, returns true and check in process begins.
         # Take current time and convert to UTC.
-        if(functions$VerifyTrainingTime(sysTime = lubridate::with_tz(Sys.time())))
+        if(functions$VerifyTrainingTime(sysTime = Sys.time()))
         {
           
           # First thing, update attendance so latest data is being worked with.
           functions$UpdateAttendance(atten)
           
-          # Get ff id and traing id. Store in rvs to access in other parts of server.
+          # Get ff id and training id. Store in rvs to access in other parts of server.
           
           rvs$target_ff_id <- app_data$Firefighter |>
             dplyr::filter(firefighter_full_name == input$name) |>
@@ -60,7 +60,7 @@ Server <- function(id) {
           rvs$target_ff_full_name <- input$name
           
           rvs$target_training_id <- app_data$Training |>
-            dplyr::filter(training_date == as.Date(lubridate::with_tz(Sys.time(), Sys.getenv("TZ")), tz = Sys.getenv("TZ"))) |>
+            dplyr::filter(as.Date(Sys.time()) == as.Date(training_start_time)) |>
             pull(training_id)
           
           # Filter to target firefighter's current status.
@@ -136,7 +136,7 @@ Server <- function(id) {
           "INSERT INTO ", Sys.getenv("ATTENDANCE_TABLE"), "(firefighter_id, training_id, check_in, check_out) VALUES (",
            rvs$target_ff_id, ", ",
            rvs$target_training_id, ", '",
-           as.POSIXct(lubridate::with_tz(Sys.time())), "', ",
+           as.POSIXct(Sys.time()), "', ",
            "NULL)")
         
         write_result <- DBI::dbExecute(app_data$CON,
@@ -164,7 +164,7 @@ Server <- function(id) {
         
         sql_command <- paste0(
           "UPDATE ", Sys.getenv("ATTENDANCE_TABLE"), " SET check_out = ",
-          "'", as.POSIXct(lubridate::with_tz(Sys.time())), "'",
+          "'", as.POSIXct(Sys.time()), "'",
           "WHERE attendance_id = ", rvs$attendance_id)
         
         write_result <- DBI::dbExecute(app_data$CON,

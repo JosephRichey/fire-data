@@ -14,17 +14,19 @@ box::use(
 VerifyTrainingTime <- function(sysTime) {
   # browser()
   # FIXME For testing purposes only. Remove before production.
-  # sysTime <- as.POSIXct("2024-01-03 20:00:13 MST")
+  sysTime <- as.POSIXct("2024-05-11 01:00:13 UTC")
   
   # Extract information from training to validate with.
   today_training <- app_data$Training |> 
-    dplyr::filter(training_date == as.Date(sysTime))
+    dplyr::filter(as.Date(training_start_time) == as.Date(sysTime))
   
   today_training_start_time <- today_training |> 
-    pull(training_start_time)
+    pull(training_start_time) |> 
+    strftime(format = "%H:%M:%S")
     
   today_training_end_time <- today_training |> 
-    pull(training_end_time)
+    pull(training_end_time) |> 
+    strftime(format = "%H:%M:%S")
   
   if(nrow(today_training) == 0) {
     
