@@ -4,7 +4,6 @@ box::use(
   DBI[dbConnect, dbGetQuery],
 )
 box::use(
-  app/main[...],
   app/logic/functions[...],
 )
 
