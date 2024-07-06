@@ -38,11 +38,10 @@ VerifyTrainingTime <- function(sysTime) {
             paste0(
               "The next training is scheduled for ",
               with_tz(Next_Training$training_start_time, tzone = Sys.getenv("LOCAL_TZ")),
-              ".",
-              "You can check in five minutes before the scheduled start time."
+              ". You can check in five minutes before the scheduled start time."
             )
           ),
-          "If you forgot to check out, you will be automatically checked out at the
+          " If you forgot to check out, you will be automatically checked out at the
            scheduled end time of the training."
         ),
         'warning')
