@@ -23,6 +23,13 @@ UI <- function(id) {
 #' @export
 Output <- function(id) {
   ns <- NS(id)
+  
+  # shinybusy::add_loading_state(
+  #   selector = ns("current_status"),
+  #   spinner = "standard",
+  #   timeout = 500
+  # )
+  
   tagList(
     DT::dataTableOutput(ns("current_status")),
     actionButton(ns('refresh'), 'Refresh')
@@ -42,8 +49,12 @@ Server <- function(id) {
       observeEvent(input$check_in_out, {
         # browser()
         
+        # Use variable to help with debugging.
+        # sysTime <- Sys.time()
+        sysTime <- as.POSIXct("2024-07-06 02:00:00")
+        
         # Check if there is a valid training currently.
-        verification <- functions$VerifyTrainingTime(sysTime = Sys.time())
+        verification <- functions$VerifyTrainingTime(sysTime)
         
         # Handle any errors and display appropriate modal.
         if(typeof(verification) == 'list') {
@@ -68,7 +79,6 @@ Server <- function(id) {
           functions$UpdateAttendance(atten)
           
           # Get ff id and training id. Store in rvs to access in other parts of server.
-          
           rvs$target_ff_id <- app_data$Firefighter |>
             dplyr::filter(firefighter_full_name == input$name) |>
             pull(firefighter_id)
@@ -76,7 +86,10 @@ Server <- function(id) {
           rvs$target_ff_full_name <- input$name
           
           rvs$target_training_id <- app_data$Training |>
-            dplyr::filter(as.Date(Sys.time()) == as.Date(training_start_time)) |>
+            dplyr::filter(
+              sysTime + 300 > training_start_time & # Same logic as VerifyTrainingTime
+                sysTime - (60 * 60) < training_end_time # Same logic as VerifyTrainingTime
+            ) |>
             pull(training_id)
           
           # Filter to target firefighter's current status.
@@ -90,9 +103,8 @@ Server <- function(id) {
           ns <- session$ns
           
           # Check series of conditions and call appropriate modals.
-          # TODO Rework logic to support mutliple training sessions in a day.
           
-          # No check ins today.
+          # No check ins for current training.
           if(nrow(Firefighter_Attendance) == 0) {
             showModal(
               modalDialog(
@@ -126,7 +138,8 @@ Server <- function(id) {
               )
             )
           } else {
-            showModal(modals$errorModal("While attempting to check in/out, no conditions met. No action taken. Please contact Joseph Richey."))
+            showModal(modals$errorModal("While attempting to check in/out, no conditions met. 
+                                        No action taken. Please contact application administrator."))
           }
         }
       })
@@ -167,7 +180,8 @@ Server <- function(id) {
           )
         } else {
           showModal(
-            modals$errorModal(paste("Check in write failed with write result equal to", write_result))
+            modals$errorModal(paste("Check in write failed with write result equal to", write_result, 
+                                    ". Please contact application administrator."))
           )
         }
         
@@ -196,7 +210,8 @@ Server <- function(id) {
           )
         } else {
           showModal(
-            modals$errorModal(paste("Check out write failed with write result equal to", write_result))
+            modals$errorModal(paste("Check out write failed with write result equal to", write_result, 
+                                    ". Please contact application administrator."))
           )
         }
         
