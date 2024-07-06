@@ -9,6 +9,7 @@ box::use(
   stats[setNames],
   DBI[...],
   tibble[...],
+  timeDate[timeLastDayInMonth],
 )
 
 box::use(
@@ -44,8 +45,8 @@ UI <- function(id) {
           helpText("Filter by training date"),
           dateRangeInput(ns('training_filter_range'),
                          "Show trainings between:",
-                         start = paste0(year(Sys.Date()), "-01-01"),
-                         end = paste0(year(Sys.Date()), "-12-31")
+                         start = as.Date(app_data$Local_Date - dyears(1) + ddays(1)),
+                         end = app_data$Local_Date
                          ),
           helpText("Filter by training type"),
           pickerInput(ns('filter_training_type'),
@@ -55,7 +56,7 @@ UI <- function(id) {
                       options = list(`actions-box` = TRUE),
                       multiple = TRUE
           ),
-          helpText("Filter by training ffficer"),
+          helpText("Filter by training officer"),
 
           pickerInput(ns('filter_training_officer'),
                       'Training Officer',
@@ -72,12 +73,11 @@ UI <- function(id) {
 
 Output <- function(id) {
   ns <- NS(id)
+  tagList(
     card(
-      height = 600,
-      card_body(
-        DTOutput(ns('view_trainings'))
-      )
+        div(DTOutput(ns('view_trainings')), style = 'background: #FFFFFF')
     )
+  )
 
 }
 
@@ -100,8 +100,8 @@ Server <- function(id) {
       output$view_trainings <- renderDT({
         # browser()
         Table_Data <- rv() |>
-          filter(training_date > input$training_filter_range[1] &
-                   training_date < input$training_filter_range[2] &
+          filter(training_date >= input$training_filter_range[1] &
+                   training_date <= input$training_filter_range[2] &
                    training_type %in% input$filter_training_type &
                    is.na(training_delete) &
                    training_trainer %in% input$filter_training_officer
@@ -111,6 +111,7 @@ Server <- function(id) {
           mutate(training_trainer = names(training_trainers)[match(training_trainer, training_trainers)])
 
         Table_Data <- functions$FixColNames(Table_Data)
+        colnames(Table_Data) <- gsub("Training ", "", colnames(Table_Data))
 
         DT::datatable(
           Table_Data,
@@ -118,13 +119,13 @@ Server <- function(id) {
           rownames = Table_Data$training_id,
           height = "100%",
           options = list(
-            lengthMenu = list(c(25, 50, -1), c('25', '50', 'All')),
-            pageLength = 25,  # Set the default page length
+            lengthMenu = list(c(10, 25, -1), c('10', '25', 'All')),
+            pageLength = 10,
             columnDefs = list(
               list(className = 'dt-center', targets = "_all")
             ),
-            order = list(list(3, 'desc')),
-            scrollY = "75vh",
+            order = list(list(7, 'desc')),
+            #scrollY = "75vh",
             scrollX = TRUE
           )
         )
@@ -170,7 +171,6 @@ Server <- function(id) {
           updateSelectInput(session,
                             "modify_training_topic",
                             choices = c("General")
-                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         }
       })
@@ -197,7 +197,6 @@ Server <- function(id) {
                               "General",
                               "Other"
                             )
-                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         }
 
@@ -207,19 +206,16 @@ Server <- function(id) {
                             choices = c(
                               "Fire"
                             )
-                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         } else if (x == "Wildland") {
             updateSelectInput(session,
                               "modify_training_topic",
                               choices = c("Wildland")
-                              # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
             )
         } else if (x == "Other") {
           updateSelectInput(session,
                             "modify_training_topic",
                             choices = c("General")
-                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         }
       })
