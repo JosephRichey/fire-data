@@ -13,84 +13,83 @@ box::use(
 #' @export
 VerifyTrainingTime <- function(sysTime) {
   # browser()
-  # FIXME For testing purposes only. Remove before production.
-  sysTime <- as.POSIXct("2024-05-11 01:00:13 UTC")
-  
-  # Extract information from training to validate with.
-  today_training <- app_data$Training |> 
-    dplyr::filter(as.Date(training_start_time) == as.Date(sysTime))
-  
-  today_training_start_time <- today_training |> 
-    pull(training_start_time) |> 
-    strftime(format = "%H:%M:%S")
+
+  # Check if there is a training happening currently.
+  Current_Training <- app_data$Training |>
+    dplyr::filter(
+      sysTime + 300 > training_start_time & # Allow clock in 5 minutes early
+        sysTime - (60 * 60) < training_end_time # Allow clock out 60 minutes late
+    )
+
+  Next_Training <- app_data$Training |>
+    dplyr::filter(
+      training_start_time > sysTime
+    ) |>
+    dplyr::slice(1)
+
+  # If there is no training scheduled currently, return text and indicate warning modal.
+  if (nrow(Current_Training) == 0) {
+    return(
+        list(paste0(
+          "There is no training scheduled currently. If you believe there should be,
+          please reach out to the application administrator. ",
+          if_else(nrow(Next_Training) == 0,
+            "There are no future trainings scheduled.",
+            paste0(
+              "The next training is scheduled for ",
+              with_tz(Next_Training$training_start_time, tzone = Sys.getenv("LOCAL_TZ")),
+              ".",
+              "You can check in five minutes before the scheduled start time."
+            )
+          ),
+          "If you forgot to check out, you will be automatically checked out at the
+           scheduled end time of the training."
+        ),
+        'warning')
+    )
     
-  today_training_end_time <- today_training |> 
-    pull(training_end_time) |> 
-    strftime(format = "%H:%M:%S")
-  
-  if(nrow(today_training) == 0) {
-    
-    showModal(modals$noTrainingModal())
-    return(FALSE)
-    
-  } else if (nrow(today_training) != 1) {
-    
-    showModal(modals$errorModal("Error: More than one training scheduled for a day."))
-    return(FALSE)
-    
-  }
-  
-  if(format(sysTime + 300, format = "%H:%M:%S") < today_training_start_time |
-     format(sysTime - 300, format = "%H:%M:%S") > today_training_end_time) {
-    
-    showModal(modals$warningModal(
-      paste0(
-        "You are outside of applicable check in time. You can check in five minutes before the scheduled start time of ", 
-        today_training_start_time,
-        ". If you forgot to check out, you will be automatically checked out at ",  
-        today_training_end_time,
-        ".")))
-      
-    return(FALSE)
-    
+  } else if (nrow(Current_Training) != 1) {
+    return(
+      list("Error: More than one training scheduled currently", 'error')
+    )
   } else {
-    
     return(TRUE)
-    
   }
-  
-  
 }
 
 #' @export
 FixColNames <- function(Data) {
   colnames(Data) <- gsub("_", " ", colnames(Data))
   colnames(Data) <- stringr::str_to_title(colnames(Data))
-  
+
   return(Data)
 }
 
 #' @export
 CurrentStatusTable <- function(Attendance, Roster) {
   # browser()
-  Attendance |> 
-    left_join(Roster) |> 
-    dplyr::filter(is.na(check_out)) |> 
+  Attendance |>
+    left_join(Roster) |>
+    dplyr::filter(is.na(check_out)) |>
     dplyr::filter(as.Date(check_in) == as.Date(lubridate::with_tz(Sys.time()))) |>
-    transmute(firefighter_full_name = firefighter_full_name, 
-              check_in = format(with_tz(check_in, tzone = Sys.getenv('LOCAL_TZ')), "%H:%M:%S"), 
-              check_out = format(with_tz(check_out, tzone = Sys.getenv('LOCAL_TZ')), "%H:%M:%S")) |> 
+    transmute(
+      firefighter_full_name = firefighter_full_name,
+      check_in = format(with_tz(check_in, tzone = Sys.getenv("LOCAL_TZ")), "%H:%M:%S"),
+      check_out = format(with_tz(check_out, tzone = Sys.getenv("LOCAL_TZ")), "%H:%M:%S")
+    ) |>
     FixColNames()
 }
 
 #' @export
 UpdateAttendance <- function(rv) {
-  Updated_Attendance <- DBI::dbGetQuery(app_data$CON,
-                                   paste0("SELECT * FROM ", Sys.getenv("ATTENDANCE_TABLE"))) |> 
-    mutate(check_in = as.POSIXct(check_in),
-           check_out = as.POSIXct(check_out))
-  
+  Updated_Attendance <- DBI::dbGetQuery(
+    app_data$CON,
+    paste0("SELECT * FROM ", Sys.getenv("ATTENDANCE_TABLE"))
+  ) |>
+    mutate(
+      check_in = as.POSIXct(check_in),
+      check_out = as.POSIXct(check_out)
+    )
+
   rv(Updated_Attendance)
 }
-
-

@@ -42,10 +42,26 @@ Server <- function(id) {
       observeEvent(input$check_in_out, {
         # browser()
         
-        # Catch all time errors for checking in and display modals.
-        # If no errors found, returns true and check in process begins.
-        # Take current time and convert to UTC.
-        if(functions$VerifyTrainingTime(sysTime = Sys.time()))
+        # Check if there is a valid training currently.
+        verification <- functions$VerifyTrainingTime(sysTime = Sys.time())
+        
+        # Handle any errors and display appropriate modal.
+        if(typeof(verification) == 'list') {
+          if(verification[[2]] == 'warning') {
+            showModal(
+              modals$warningModal(verification[[1]])
+            )
+            return()
+          } else {
+            showModal(
+              modals$errorModal(verification[[1]])
+            )
+            return()
+          }
+        }
+        
+        # If no errors, continue with check in/out process.
+        if(verification)
         {
           
           # First thing, update attendance so latest data is being worked with.
