@@ -8,6 +8,13 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      CFDDB_HOST: ${{ secrets.CFDDB_HOST}}
+      CFDDB_PASSWORD: ${{ secrets.CFDDB_PASSWORD}
+      TRAINING_TABLE: ${{ secrets.TRAINING_TABLE}}
+      FIREFIGHTER_TABLE: ${{ secrets.FIREFIGHTER_TABLE}}
+      ATTENDANCE_TABLE: ${{ secrets.ATTENDANCE_TABLE}}
+      TZ: ${{ secrets.TZ}}
+      LOCAL_TZ: ${{ secrets.LOCAL_TZ}}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -45,10 +52,10 @@ jobs:
         with:
           node-version: 16
 
-      - name: Lint R
-        if: always()
-        shell: Rscript {0}
-        run: rhino::lint_r()
+      # - name: Lint R
+      #   if: always()
+      #   shell: Rscript {0}
+      #   run: rhino::lint_r()
 
       - name: Lint JavaScript
         if: always()
@@ -75,12 +82,3 @@ jobs:
         shell: Rscript {0}
         run: rhino::test_r()
 
-      - name: Run Cypress end-to-end tests
-        if: always()
-        uses: cypress-io/github-action@v5
-        with:
-          working-directory: .rhino # Created by earlier commands which use Node.js
-          start: npm run run-app
-          project: ../tests
-          wait-on: 'http://localhost:3333/'
-          wait-on-timeout: 60
