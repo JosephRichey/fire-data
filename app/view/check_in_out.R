@@ -24,12 +24,6 @@ UI <- function(id) {
 Output <- function(id) {
   ns <- NS(id)
   
-  # shinybusy::add_loading_state(
-  #   selector = ns("current_status"),
-  #   spinner = "standard",
-  #   timeout = 500
-  # )
-  
   tagList(
     DT::dataTableOutput(ns("current_status")),
     actionButton(ns('refresh'), 'Refresh')
@@ -234,8 +228,9 @@ Server <- function(id) {
       
       observeEvent(input$refresh, {
         # browser()
-        print("Refresh")
+        print("Refreshed attendance data.")
         functions$UpdateAttendance(atten)
+        showNotification("Current status refreshed.", duration = 5)
       })
       
       session$onSessionEnded(function() {
