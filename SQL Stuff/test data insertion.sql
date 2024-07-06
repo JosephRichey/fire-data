@@ -379,7 +379,8 @@ INSERT INTO cfddb.training_TEST VALUES
 (363, "Wildland", "Wildland", "Training description for day 363", "2024-12-29 01:00:00", "2024-12-29 03:00:00", 1, NULL),
 (364, "EMS", "Cardiovascular", "Training description for day 364", "2024-12-30 01:00:00", "2024-12-30 03:00:00", 1, NULL),
 (365, "Fire", "Fire 2", "Training description for day 365", "2024-12-31 01:00:00", "2024-12-31 03:00:00", 3, NULL),
-(366, "Wildland", "Wildland", "Training description for day 366", "2025-01-01 01:00:00", "2025-01-01 03:00:00", 2, NULL);
+(366, "Wildland", "Wildland", "Training description for day 366", "2025-01-01 01:00:00", "2025-01-01 03:00:00", 2, NULL),
+(367, "Fire", "Fire", "Training description for duplicate training", "2024-01-02 01:00:00", "2024-01-02 03:00:00", 1, NULL);
 
 
 
