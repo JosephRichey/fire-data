@@ -113,7 +113,8 @@ Server <- function(id) {
                 footer = tagList(
                   actionButton(ns("confirm_check_in"), "Confirm Check In"),
                   actionButton(ns("cancel_check_in"), "Cancel")
-                )
+                ),
+                easyClose = TRUE
               )
             )
             
@@ -134,7 +135,8 @@ Server <- function(id) {
                 footer = tagList(
                   actionButton(ns("confirm_check_out"), "Confirm Check Out"),
                   actionButton(ns("cancel_check_out"), "Cancel")
-                )
+                ),
+                easyClose = TRUE
               )
             )
           } else {
@@ -234,6 +236,11 @@ Server <- function(id) {
         # browser()
         print("Refresh")
         functions$UpdateAttendance(atten)
+      })
+      
+      session$onSessionEnded(function() {
+        DBI::dbDisconnect(app_data$CON)
+        print('DB disconnected')
       })
       
     }
