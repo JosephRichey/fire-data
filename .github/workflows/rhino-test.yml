@@ -9,7 +9,7 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       CFDDB_HOST: ${{ secrets.CFDDB_HOST}}
-      CFDDB_PASSWORD: ${{ secrets.CFDDB_PASSWORD}
+      CFDDB_PASSWORD: ${{ secrets.CFDDB_PASSWORD}}
       TRAINING_TABLE: ${{ secrets.TRAINING_TABLE}}
       FIREFIGHTER_TABLE: ${{ secrets.FIREFIGHTER_TABLE}}
       ATTENDANCE_TABLE: ${{ secrets.ATTENDANCE_TABLE}}
