@@ -1,13 +1,10 @@
 box::use(
   shiny[testServer],
   testthat[...],
+  DBI[dbConnect, dbGetQuery],
 )
 box::use(
-  app/main[...],
+  ../../app/logic/functions[FixColNames],
 )
 
-test_that("main server works", {
-  testServer(server, {
-    expect_true(grepl(x = output$message$html, pattern = "Check out Rhino docs!"))
-  })
-})
+# TODO Do shinytest2 tests

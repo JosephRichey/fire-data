@@ -17,7 +17,7 @@ ui <- function(id) {
   ns <- NS(id)
   page_fixed(
     title = "Corinne Fire Department",
-    h1(paste("Corinne Fire Department", Sys.getenv("TESTING"))),
+    h1(paste("Corinne Fire Department")),
     h3("Training Attendance"),
     theme = bs_theme(version = 5,
                      secondary = "#87292b",
@@ -33,16 +33,18 @@ ui <- function(id) {
       
       card(
         card_body(
-          min_height = "800px",
+          #min_height = "600px",
           bslib::card_title("Current Status"),
           check_in_out$Output(ns('check_in_out'))
-        )
+        ),
+        min_height = "1200px"
       ),
       col_widths = c(12, 12)
     ),
     
     br(),
-    helpText("v0.2.0")
+    helpText("v0.2.1"),
+    helpText("© CC BY-NC-SA 2024 Joseph Richey")
     
   )
 }

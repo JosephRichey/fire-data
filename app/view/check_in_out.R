@@ -15,7 +15,7 @@ box::use(
 UI <- function(id) {
   ns <- NS(id)
   tagList(
-    selectInput(ns('name'), "Name", app_data$Roster$firefighter_full_name, selected = NULL),
+    selectInput(ns('name'), "Name", app_data$Firefighter$firefighter_full_name, selected = NULL),
     actionButton(ns('check_in_out'), "Check In/Check Out")
   )
 }
@@ -23,6 +23,7 @@ UI <- function(id) {
 #' @export
 Output <- function(id) {
   ns <- NS(id)
+  
   tagList(
     DT::dataTableOutput(ns("current_status")),
     actionButton(ns('refresh'), 'Refresh')
@@ -42,29 +43,48 @@ Server <- function(id) {
       observeEvent(input$check_in_out, {
         # browser()
         
-        # Catch all time errors for checking in and display modals.
-        # If no errors found, returns true and check in process begins.
-        if(functions$VerifyTrainingTime(sysTime = lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))))
+        # Use variable to help with debugging.
+        # sysTime <- Sys.time()
+        sysTime <- as.POSIXct("2024-07-06 02:00:00")
+        
+        # Check if there is a valid training currently.
+        verification <- functions$VerifyTrainingTime(sysTime)
+        
+        # Handle any errors and display appropriate modal.
+        if(typeof(verification) == 'list') {
+          if(verification[[2]] == 'warning') {
+            showModal(
+              modals$warningModal(verification[[1]])
+            )
+            return()
+          } else {
+            showModal(
+              modals$errorModal(verification[[1]])
+            )
+            return()
+          }
+        }
+        
+        # If no errors, continue with check in/out process.
+        if(verification)
         {
           
           # First thing, update attendance so latest data is being worked with.
           functions$UpdateAttendance(atten)
           
-          # Get ff id and traing id. Store in rvs to access in other parts of server.
+          # Get ff id and training id. Store in rvs to access in other parts of server.
+          rvs$target_ff_id <- app_data$Firefighter |>
+            dplyr::filter(firefighter_full_name == input$name) |>
+            pull(firefighter_id)
           
-          rvs$target_ff_id <- app_data$Roster |>
-            filter(firefighter_full_name == input$name) |>
-            dplyr::select(firefighter_id) |>
-            unlist() |>
-            unname()
-          
-          rvs$target_ff_full_name <- app_data$Roster[app_data$Roster$firefighter_id == rvs$target_ff_id,]$firefighter_full_name
+          rvs$target_ff_full_name <- input$name
           
           rvs$target_training_id <- app_data$Training |>
-            filter(training_date == as.Date(lubridate::with_tz(Sys.time(), Sys.getenv("TZ")), tz = Sys.getenv("TZ"))) |>
-            dplyr::select(training_id) |>
-            unlist() |>
-            unname()
+            dplyr::filter(
+              sysTime + 300 > training_start_time & # Same logic as VerifyTrainingTime
+                sysTime - (60 * 60) < training_end_time # Same logic as VerifyTrainingTime
+            ) |>
+            pull(training_id)
           
           # Filter to target firefighter's current status.
           Firefighter_Attendance <- atten() |> 
@@ -77,7 +97,8 @@ Server <- function(id) {
           ns <- session$ns
           
           # Check series of conditions and call appropriate modals.
-          # No check ins today.
+          
+          # No check ins for current training.
           if(nrow(Firefighter_Attendance) == 0) {
             showModal(
               modalDialog(
@@ -86,7 +107,8 @@ Server <- function(id) {
                 footer = tagList(
                   actionButton(ns("confirm_check_in"), "Confirm Check In"),
                   actionButton(ns("cancel_check_in"), "Cancel")
-                )
+                ),
+                easyClose = TRUE
               )
             )
             
@@ -107,11 +129,13 @@ Server <- function(id) {
                 footer = tagList(
                   actionButton(ns("confirm_check_out"), "Confirm Check Out"),
                   actionButton(ns("cancel_check_out"), "Cancel")
-                )
+                ),
+                easyClose = TRUE
               )
             )
           } else {
-            showModal(modals$errorModal("While attempting to check in/out, no conditions met. No action taken. Please contact Joseph Richey."))
+            showModal(modals$errorModal("While attempting to check in/out, no conditions met. 
+                                        No action taken. Please contact application administrator."))
           }
         }
       })
@@ -134,10 +158,10 @@ Server <- function(id) {
         # browser()
         removeModal()
         sql_command <- paste0(
-          "INSERT INTO cfddb.attendance", Sys.getenv("TESTING"), "(firefighter_id, training_id, check_in, check_out) VALUES (",
+          "INSERT INTO ", Sys.getenv("ATTENDANCE_TABLE"), "(firefighter_id, training_id, check_in, check_out) VALUES (",
            rvs$target_ff_id, ", ",
            rvs$target_training_id, ", '",
-           as.POSIXct(lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))), "', ",
+           as.POSIXct(Sys.time()), "', ",
            "NULL)")
         
         write_result <- DBI::dbExecute(app_data$CON,
@@ -152,7 +176,8 @@ Server <- function(id) {
           )
         } else {
           showModal(
-            modals$errorModal(paste("Check in write failed with write result equal to", write_result))
+            modals$errorModal(paste("Check in write failed with write result equal to", write_result, 
+                                    ". Please contact application administrator."))
           )
         }
         
@@ -164,8 +189,8 @@ Server <- function(id) {
         removeModal()
         
         sql_command <- paste0(
-          "UPDATE cfddb.attendance", Sys.getenv("TESTING"), " SET check_out = ",
-          "'", as.POSIXct(lubridate::with_tz(Sys.time(), Sys.getenv("TZ"))), "'",
+          "UPDATE ", Sys.getenv("ATTENDANCE_TABLE"), " SET check_out = ",
+          "'", as.POSIXct(Sys.time()), "'",
           "WHERE attendance_id = ", rvs$attendance_id)
         
         write_result <- DBI::dbExecute(app_data$CON,
@@ -181,7 +206,8 @@ Server <- function(id) {
           )
         } else {
           showModal(
-            modals$errorModal(paste("Check out write failed with write result equal to", write_result))
+            modals$errorModal(paste("Check out write failed with write result equal to", write_result, 
+                                    ". Please contact application administrator."))
           )
         }
         
@@ -193,7 +219,7 @@ Server <- function(id) {
       
       output$current_status <- DT::renderDataTable({
         DT::datatable(functions$CurrentStatusTable(atten(),
-                                                   app_data$Roster),
+                                                   app_data$Firefighter),
                       options = list(scrollX=TRUE,
                                      scrollY='800px',
                                      fillContainer = TRUE,
@@ -202,8 +228,14 @@ Server <- function(id) {
       
       observeEvent(input$refresh, {
         # browser()
-        print("Refresh")
+        print("Refreshed attendance data.")
         functions$UpdateAttendance(atten)
+        showNotification("Current status refreshed.", duration = 5)
+      })
+      
+      session$onSessionEnded(function() {
+        DBI::dbDisconnect(app_data$CON)
+        print('DB disconnected')
       })
       
     }

@@ -1,14 +1,16 @@
 use cfddb;
 
+DROP EVENT IF EXISTS auto_checkout
+
 DELIMITER //
 
-ALTER EVENT weekly_auto_checkout
+CREATE EVENT auto_checkout
 ON SCHEDULE
     EVERY 1 DAY
-    STARTS '2024-02-07 03:05:00'
-    COMMENT 'Weekly auto checkout event on Tuesday at 20:05:00'
+    STARTS '2024-02-07 07:00:00'
+    COMMENT 'Run auto checkout sp.'
 DO
-    CALL auto_checkout();
+    CALL sp_auto_checkout();
 
 //
 

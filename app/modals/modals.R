@@ -7,7 +7,7 @@ noTrainingModal <- function() {
   modalDialog(
     title = "No Training Found",
     "There is no training scheduled currently. If you believe there should be,
-    please reach out to the officer in charge of todays training or to Joseph Richey."
+    please reach out to the officer in charge of todays training."
   )
 }
 
@@ -15,7 +15,7 @@ noTrainingModal <- function() {
 errorModal <- function(message) {
   modalDialog(
     title = "Application Error",
-    "There has been an error. Please call or text Joseph Richey at 801-644-6893. Please include a screenshot or the error message below.",
+    "There has been an error. Please contact the application administrator. Please include a screenshot or the error message below.",
     message
   )
 }
