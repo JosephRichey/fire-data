@@ -33,10 +33,11 @@ ui <- function(id) {
       
       card(
         card_body(
-          min_height = "800px",
+          #min_height = "600px",
           bslib::card_title("Current Status"),
           check_in_out$Output(ns('check_in_out'))
-        )
+        ),
+        min_height = "1200px"
       ),
       col_widths = c(12, 12)
     ),
