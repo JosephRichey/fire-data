@@ -43,7 +43,7 @@ ui <- function(id) {
     ),
     
     br(),
-    helpText("v0.2.0"),
+    helpText("v0.2.1"),
     helpText("© CC BY-NC-SA 2024 Joseph Richey")
     
   )
