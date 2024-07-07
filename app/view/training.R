@@ -10,6 +10,7 @@ box::use(
   DBI[...],
   tibble[...],
   timeDate[timeLastDayInMonth],
+  hms[...],
 )
 
 box::use(
@@ -93,13 +94,18 @@ Server <- function(id) {
 
       updateReactiveValue <- function() {
         rv(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("TRAINING_TABLE"),"
-                       WHERE training_delete IS NULL")))
+                       WHERE training_delete IS NULL")) |>
+             mutate(training_start_time = as.POSIXct(training_start_time),
+                    training_end_time = as.POSIXct(training_end_time)))
       }
 
       # Display current trainings
       output$view_trainings <- renderDT({
         # browser()
         Table_Data <- rv() |>
+          mutate(training_date = training_start_time |> as.Date(Sys.getenv('LOCAL_TZ')),
+                 training_start_time = training_start_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> format("%H:%M"),
+                 training_end_time = training_end_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> format("%H:%M")) |>
           filter(training_date >= input$training_filter_range[1] &
                    training_date <= input$training_filter_range[2] &
                    training_type %in% input$filter_training_type &
@@ -224,7 +230,7 @@ Server <- function(id) {
       observeEvent(input$add_training, {
         showModal(modalDialog(
           title = "Add Training",
-          dateInput(ns('add_training_date'), 'Training Date', value = functions$as.MT.Date(Sys.Date())),
+          dateInput(ns('add_training_date'), 'Training Date', value = app_data$Local_Date),
           timeInput(ns('add_start_time'), "Start Time", value = "18:00:00", minute.steps = 5),
           timeInput(ns('add_end_time'), "End Time", value = "20:00:00", minute.steps = 5),
           selectInput(ns('add_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland", "Other"), selected = "EMS"),
@@ -244,9 +250,21 @@ Server <- function(id) {
         # browser()
         removeModal()
 
+        if(!functions$VerifyNoOverlap(input$add_start_time, input$add_end_time)) {
+          showModal(
+            modals$warningModal("Training times overlap with existing training. Please select a different time.")
+          )
+          return()
+        }
+
         sql_command <- paste0(
-          "INSERT INTO ", Sys.getenv("TRAINING_TABLE")," (training_type, training_topic, training_description, training_date, training_start_time, training_end_time, training_trainer, training_delete) VALUES ('",
-          input$add_training_type, "', '", input$add_training_topic, "', '", input$add_description, "', '", input$add_training_date, "', '", input$add_start_time |> strftime(format = "%T"), "', '", input$add_end_time |> strftime(format = "%T"), "', '", input$add_training_trainer, "', NULL);"
+          "INSERT INTO ", Sys.getenv("TRAINING_TABLE")," (training_type, training_topic, training_description, training_start_time, training_end_time, training_trainer, training_delete) VALUES ('",
+          input$add_training_type, "', '",
+          input$add_training_topic, "', '",
+          input$add_description, "', '",
+          (input$add_start_time |> force_tz(Sys.getenv('LOCAL_TZ')) + .01) |> with_tz(), "', '", # add hundredth of a second to prevent dumping hms, db stores in character
+          (input$add_end_time |> force_tz(Sys.getenv('LOCAL_TZ')) + .01) |> with_tz(), "', '", # add hundredth of a second to prevent dumping hms, db stores in character
+          input$add_training_trainer, "', NULL);"
         )
 
         write_result <- DBI::dbExecute(app_data$CON, sql_command)
