@@ -17,9 +17,8 @@ CON <- dbConnect(RMySQL::MySQL(),
 #' @export
 Training <- dbGetQuery(CON,
                        paste0("SELECT * FROM ", Sys.getenv("TRAINING_TABLE"))) |>
-  mutate(training_date = as.Date(with_tz(training_start_time, Sys.getenv('LOCAL_TZ')),tz = Sys.getenv('LOCAL_TZ')),
-         training_start_time = with_tz(as.POSIXct(training_start_time), tz = Sys.getenv('LOCAL_TZ')) |> as_hms(),
-         training_end_time = with_tz(as.POSIXct(training_end_time), tz = Sys.getenv('LOCAL_TZ'))|> as_hms())
+  mutate(training_start_time = as.POSIXct(training_start_time),
+         training_end_time = as.POSIXct(training_end_time))
 
 #' @export
 Firefighter <- dbGetQuery(CON,
