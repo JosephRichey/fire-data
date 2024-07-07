@@ -1,12 +1,8 @@
 box::use(
-  shiny[testServer],
   testthat[...],
   DBI[...],
 )
 
-box::use(
-  app/main[...],
-)
 
 test_that("Can connect to test database", {
   CON <- dbConnect(RMySQL::MySQL(),
