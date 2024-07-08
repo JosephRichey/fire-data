@@ -1,0 +1,15 @@
+# Ignore renviron files
+.Renviron
+**/.Renviron
+
+# Ignore R history files
+.Rhistory
+**/.Rhistory
+
+# Ignore RStudio project user files
+.Rproj.user
+**/.Rproj.user
+
+# Ignore RStudio data files
+.RData
+**/.RData
