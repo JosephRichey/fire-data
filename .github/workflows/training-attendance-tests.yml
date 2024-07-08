@@ -6,26 +6,29 @@ on:
   pull_request:
     paths:
       - 'training-attendance/**'
+
 permissions:
   contents: read
+
 jobs:
   main:
     name: Run linters and tests
     runs-on: ubuntu-20.04
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      CFDDB_HOST: ${{ secrets.CFDDB_HOST}}
-      CFDDB_PASSWORD: ${{ secrets.CFDDB_PASSWORD}}
-      TRAINING_TABLE: ${{ secrets.TRAINING_TABLE}}
-      FIREFIGHTER_TABLE: ${{ secrets.FIREFIGHTER_TABLE}}
-      ATTENDANCE_TABLE: ${{ secrets.ATTENDANCE_TABLE}}
-      TZ: ${{ secrets.TZ}}
-      LOCAL_TZ: ${{ secrets.LOCAL_TZ}}
+      CFDDB_HOST: ${{ secrets.CFDDB_HOST }}
+      CFDDB_PASSWORD: ${{ secrets.CFDDB_PASSWORD }}
+      TRAINING_TABLE: ${{ secrets.TRAINING_TABLE }}
+      FIREFIGHTER_TABLE: ${{ secrets.FIREFIGHTER_TABLE }}
+      ATTENDANCE_TABLE: ${{ secrets.ATTENDANCE_TABLE }}
+      TZ: ${{ secrets.TZ }}
+      LOCAL_TZ: ${{ secrets.LOCAL_TZ }}
+
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          path: training-attendance # Ensure the repo is checked out into the `training-attendance` directory
+          path: training-attendance  # Ensure the repo is checked out into the `training-attendance` directory
 
       - name: List files in `training-attendance` directory
         run: |
@@ -36,73 +39,96 @@ jobs:
 
       - name: Check for renv.lock file
         run: |
-          if [ -f training-attendance/renv.lock ]; then echo "renv.lock exists"; else echo "renv.lock does not exist"; fi
+          cd training-attendance
+          if [ -f renv.lock ]; then echo "renv.lock exists"; else echo "renv.lock does not exist"; fi
 
       - name: View renv.lock contents
         run: |
-          cat training-attendance/renv.lock
-        continue-on-error: true
+          cd training-attendance
+          cat renv.lock
+        continue-on-error: true  # Continue even if `cat` fails for debugging
 
       - name: Extract R version from lockfile
-        run: printf 'R_VEERSION=%s\n' "$(jq --raw-output .R.Version renv.lock)" >> $GITHUB_ENV
+        run: |
+          cd training-attendance
+          echo "Extracting R version from renv.lock"
+          R_VERSION=$(jq --raw-output .R.Version renv.lock)
+          echo "R_VERSION=${R_VERSION}" >> $GITHUB_ENV
+
+      - name: Print Environment Variables
+        run: |
+          echo "CFDDB_HOST=${{ secrets.CFDDB_HOST }}"
+          echo "CFDDB_PASSWORD=${{ secrets.CFDDB_PASSWORD }}"
+          echo "TRAINING_TABLE=${{ secrets.TRAINING_TABLE }}"
+          echo "FIREFIGHTER_TABLE=${{ secrets.FIREFIGHTER_TABLE }}"
+          echo "ATTENDANCE_TABLE=${{ secrets.ATTENDANCE_TABLE }}"
+          echo "TZ=${{ secrets.TZ }}"
+          echo "LOCAL_TZ=${{ secrets.LOCAL_TZ }}"
+
+      - name: Print R Version
+        run: |
+          R --version
+
+      - name: Print jq Version
+        run: |
+          jq --version
 
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
         with:
-          r-version: '4.4.1'
+          r-version: ${{ env.R_VERSION }}
 
       - name: Setup system dependencies
-        run: >
-          sudo apt-get update && sudo apt-get install --yes
-          libcurl4-openssl-dev
+        run: |
+          sudo apt-get update && sudo apt-get install --yes libcurl4-openssl-dev
 
       - name: Restore renv from cache
-        uses: actions/cache@v2
-        env:
-          CACHE_KEY: renv-${{ runner.arch }}-${{ runner.os }}-${{ env.R_VERSION }}
+        uses: actions/cache@v3
         with:
-          path: renv/library
-          key: ${{ env.CACHE_KEY }}-${{ hashFiles('renv.lock') }}
-          restore-keys: ${{ env.CACHE_KEY }}-
+          path: training-attendance/renv/library
+          key: renv-${{ runner.arch }}-${{ runner.os }}-${{ env.R_VERSION }}-${{ hashFiles('training-attendance/renv.lock') }}
+          restore-keys: |
+            renv-${{ runner.arch }}-${{ runner.os }}-${{ env.R_VERSION }}-
+            renv-${{ runner.arch }}-${{ runner.os }}-
+            renv-${{ runner.arch }}-
+            renv-
 
       - name: Sync renv with lockfile
-        shell: Rscript {0}
         run: |
-          options(renv.config.cache.symlinks = FALSE)
-          renv::restore(clean = TRUE)
+          cd training-attendance
+          Rscript -e 'options(renv.config.cache.symlinks = FALSE); renv::restore(clean = TRUE)'
 
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
           node-version: 16
 
-      # - name: Lint R
-      #   if: always()
-      #   shell: Rscript {0}
-      #   run: rhino::lint_r()
-
       - name: Lint JavaScript
         if: always()
-        shell: Rscript {0}
-        run: rhino::lint_js()
+        run: |
+          cd training-attendance
+          Rscript -e 'rhino::lint_js()'
 
       - name: Lint Sass
         if: always()
-        shell: Rscript {0}
-        run: rhino::lint_sass()
+        run: |
+          cd training-attendance
+          Rscript -e 'rhino::lint_sass()'
 
       - name: Build JavaScript
         if: always()
-        shell: Rscript {0}
-        run: rhino::build_js()
+        run: |
+          cd training-attendance
+          Rscript -e 'rhino::build_js()'
 
       - name: Build Sass
         if: always()
-        shell: Rscript {0}
-        run: rhino::build_sass()
+        run: |
+          cd training-attendance
+          Rscript -e 'rhino::build_sass()'
 
       - name: Run R unit tests
         if: always()
-        shell: Rscript {0}
-        run: rhino::test_r()
-
+        run: |
+          cd training-attendance
+          Rscript -e 'rhino::test_r()'
