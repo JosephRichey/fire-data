@@ -1,0 +1,6 @@
+.github
+.lintr
+.renvignore
+.rhino
+.rscignore
+tests
