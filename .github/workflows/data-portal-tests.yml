@@ -9,6 +9,9 @@ jobs:
   main:
     name: Run linters and tests
     runs-on: ubuntu-20.04
+    defaults: 
+      run:
+        working-directory: ./data-portal
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       CFDDB_HOST: ${{ secrets.CFDDB_HOST}}

@@ -119,7 +119,7 @@ ui <- function(id) {
       # nav_item(actionButton(ns("sign_out"), "Lock"), align = "center"),
       # nav_item(helpText("v0.2.0-beta"), align = "center")
     ),
-    helpText("v0.2.1 © CC BY-NC-SA 2024 Joseph Richey")
+    helpText("v0.2.2_dev © CC BY-NC-SA 2024 Joseph Richey")
 
   )
 }
