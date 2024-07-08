@@ -49,7 +49,6 @@ Training_Sql_Export <- Training |>
                             "\"", training_type, "\",",
                             "\"", training_topic, "\",",
                             "\"", training_description, "\",",
-                            "\"", training_date, "\",",
                             "\"", training_start_time, "\",",
                             "\"", training_end_time, "\",",
                             "\"", training_trainer, "\",",
