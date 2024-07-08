@@ -21,6 +21,7 @@ jobs:
       ATTENDANCE_TABLE: ${{ secrets.ATTENDANCE_TABLE}}
       TZ: ${{ secrets.TZ}}
       LOCAL_TZ: ${{ secrets.LOCAL_TZ}}
+      R_VERSION: '4.4.1'
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
