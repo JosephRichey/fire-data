@@ -13,7 +13,7 @@ jobs:
   main:
     name: Run linters and tests
     runs-on: ubuntu-20.04
-    defatuls: 
+    defaults: 
       run:
         working-directory: ./training-attendance
     env:
