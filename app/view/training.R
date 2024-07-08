@@ -9,6 +9,7 @@ box::use(
   stats[setNames],
   DBI[...],
   tibble[...],
+  hms[...],
 )
 
 box::use(
@@ -17,7 +18,7 @@ box::use(
   ../modals/modals,
 )
 
-training_trainers <- app_data$Roster |>
+training_trainers <- app_data$Firefighter |>
   filter(firefighter_trainer == TRUE) |>
   select(firefighter_full_name, firefighter_id) %>%
   # https://ivelasq.rbind.io/blog/understanding-the-r-pipe/
@@ -44,8 +45,8 @@ UI <- function(id) {
           helpText("Filter by training date"),
           dateRangeInput(ns('training_filter_range'),
                          "Show trainings between:",
-                         start = paste0(year(Sys.Date()), "-01-01"),
-                         end = paste0(year(Sys.Date()), "-12-31")
+                         start = as.Date(app_data$Local_Date - dyears(1) + ddays(1)),
+                         end = app_data$Local_Date
                          ),
           helpText("Filter by training type"),
           pickerInput(ns('filter_training_type'),
@@ -55,7 +56,7 @@ UI <- function(id) {
                       options = list(`actions-box` = TRUE),
                       multiple = TRUE
           ),
-          helpText("Filter by training ffficer"),
+          helpText("Filter by training officer"),
 
           pickerInput(ns('filter_training_officer'),
                       'Training Officer',
@@ -72,12 +73,11 @@ UI <- function(id) {
 
 Output <- function(id) {
   ns <- NS(id)
+  tagList(
     card(
-      height = 600,
-      card_body(
-        DTOutput(ns('view_trainings'))
-      )
+        div(DTOutput(ns('view_trainings')), style = 'background: #000000')
     )
+  )
 
 }
 
@@ -92,16 +92,21 @@ Server <- function(id) {
       ns <- session$ns
 
       updateReactiveValue <- function() {
-        rv(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM cfddb.training", Sys.getenv("TESTING"),"
-                       WHERE training_delete IS NULL")))
+        rv(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("TRAINING_TABLE"),"
+                       WHERE training_delete IS NULL")) |>
+             mutate(training_start_time = as.POSIXct(training_start_time),
+                    training_end_time = as.POSIXct(training_end_time)))
       }
 
       # Display current trainings
       output$view_trainings <- renderDT({
         # browser()
         Table_Data <- rv() |>
-          filter(training_date > input$training_filter_range[1] &
-                   training_date < input$training_filter_range[2] &
+          mutate(training_date = training_start_time |> as.Date(Sys.getenv('LOCAL_TZ')),
+                 training_start_time = training_start_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> format("%H:%M"),
+                 training_end_time = training_end_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> format("%H:%M")) |>
+          filter(training_date >= input$training_filter_range[1] &
+                   training_date <= input$training_filter_range[2] &
                    training_type %in% input$filter_training_type &
                    is.na(training_delete) &
                    training_trainer %in% input$filter_training_officer
@@ -111,6 +116,7 @@ Server <- function(id) {
           mutate(training_trainer = names(training_trainers)[match(training_trainer, training_trainers)])
 
         Table_Data <- functions$FixColNames(Table_Data)
+        colnames(Table_Data) <- gsub("Training ", "", colnames(Table_Data))
 
         DT::datatable(
           Table_Data,
@@ -118,13 +124,13 @@ Server <- function(id) {
           rownames = Table_Data$training_id,
           height = "100%",
           options = list(
-            lengthMenu = list(c(25, 50, -1), c('25', '50', 'All')),
-            pageLength = 25,  # Set the default page length
+            lengthMenu = list(c(10, 25, -1), c('10', '25', 'All')),
+            pageLength = 10,
             columnDefs = list(
               list(className = 'dt-center', targets = "_all")
             ),
-            order = list(list(3, 'desc')),
-            scrollY = "75vh",
+            order = list(list(7, 'desc')),
+            #scrollY = "75vh",
             scrollX = TRUE
           )
         )
@@ -170,7 +176,6 @@ Server <- function(id) {
           updateSelectInput(session,
                             "modify_training_topic",
                             choices = c("General")
-                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         }
       })
@@ -197,7 +202,6 @@ Server <- function(id) {
                               "General",
                               "Other"
                             )
-                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         }
 
@@ -207,19 +211,16 @@ Server <- function(id) {
                             choices = c(
                               "Fire"
                             )
-                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         } else if (x == "Wildland") {
             updateSelectInput(session,
                               "modify_training_topic",
                               choices = c("Wildland")
-                              # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
             )
         } else if (x == "Other") {
           updateSelectInput(session,
                             "modify_training_topic",
                             choices = c("General")
-                            # selected = rv()[input$view_trainings_cell_clicked$row,]$training_topic
           )
         }
       })
@@ -228,7 +229,7 @@ Server <- function(id) {
       observeEvent(input$add_training, {
         showModal(modalDialog(
           title = "Add Training",
-          dateInput(ns('add_training_date'), 'Training Date', value = functions$as.MT.Date(Sys.Date())),
+          dateInput(ns('add_training_date'), 'Training Date', value = app_data$Local_Date),
           timeInput(ns('add_start_time'), "Start Time", value = "18:00:00", minute.steps = 5),
           timeInput(ns('add_end_time'), "End Time", value = "20:00:00", minute.steps = 5),
           selectInput(ns('add_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland", "Other"), selected = "EMS"),
@@ -248,9 +249,21 @@ Server <- function(id) {
         # browser()
         removeModal()
 
+        if(!functions$VerifyNoOverlap(input$add_start_time, input$add_end_time)) {
+          showModal(
+            modals$warningModal("Training times overlap with existing training. Please select a different time.")
+          )
+          return()
+        }
+
         sql_command <- paste0(
-          "INSERT INTO cfddb.training", Sys.getenv("TESTING")," (training_type, training_topic, training_description, training_date, training_start_time, training_end_time, training_trainer, training_delete) VALUES ('",
-          input$add_training_type, "', '", input$add_training_topic, "', '", input$add_description, "', '", input$add_training_date, "', '", input$add_start_time |> strftime(format = "%T"), "', '", input$add_end_time |> strftime(format = "%T"), "', '", input$add_training_trainer, "', NULL);"
+          "INSERT INTO ", Sys.getenv("TRAINING_TABLE")," (training_type, training_topic, training_description, training_start_time, training_end_time, training_trainer, training_delete) VALUES ('",
+          input$add_training_type, "', '",
+          input$add_training_topic, "', '",
+          input$add_description, "', '",
+          (input$add_start_time |> force_tz(Sys.getenv('LOCAL_TZ')) + .01) |> with_tz(), "', '", # add hundredth of a second to prevent dumping hms, db stores in character
+          (input$add_end_time |> force_tz(Sys.getenv('LOCAL_TZ')) + .01) |> with_tz(), "', '", # add hundredth of a second to prevent dumping hms, db stores in character
+          input$add_training_trainer, "', NULL);"
         )
 
         write_result <- DBI::dbExecute(app_data$CON, sql_command)
@@ -320,7 +333,7 @@ Server <- function(id) {
 
 
         sql_command <- paste0(
-          "UPDATE cfddb.training", Sys.getenv("TESTING")," SET training_type = '", input$modify_training_type,
+          "UPDATE ", Sys.getenv("TRAINING_TABLE")," SET training_type = '", input$modify_training_type,
           "', training_topic = '", input$modify_training_topic,
           "', training_description = '", input$modify_description,
           "', training_date = '", input$modify_training_date,
@@ -387,7 +400,7 @@ Server <- function(id) {
           modify_training_id <- row.names(rv()[cell_click$row,])
 
           sql_command <- paste0(
-            "UPDATE cfddb.training", Sys.getenv("TESTING")," SET training_delete = NOW() WHERE training_id = ", modify_training_id, ";"
+            "UPDATE ", Sys.getenv("TRAINING_TABLE")," SET training_delete = NOW() WHERE training_id = ", modify_training_id, ";"
           )
 
           write_result <- DBI::dbExecute(app_data$CON, sql_command)

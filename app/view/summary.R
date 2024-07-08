@@ -11,7 +11,7 @@ box::use(
   hms[...],
   bsicons[...],
   plotly[...],
-  ggplot2[...]
+  ggplot2[...],
 )
 
 
@@ -36,11 +36,11 @@ UI <- function(id, ag_level) {
 
   if(ag_level == "Individual") {
     tagList(
-      selectInput(ns("summary_firefighter"), "Firefighter", app_data$Roster$firefighter_full_name),
+      selectInput(ns("summary_firefighter"), "Firefighter", app_data$Firefighter$firefighter_full_name),
       dateRangeInput(ns('training_filter_range'),
                      "Show trainings between:",
-                     start = as.Date(paste0(year(Sys.Date()), "-01-01")),
-                     end = as.Date(paste0(year(Sys.Date()), "-12-31"))),
+                     start = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')) - years(1),
+                     end = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ'))),
       actionButton(ns("generate_summary"), "Generate Summary")
       # downloadButton(ns("download"), "Download Firefighter Training Summary")
     )
@@ -48,8 +48,8 @@ UI <- function(id, ag_level) {
     tagList(
       dateRangeInput(ns('training_filter_range'),
                      "Show trainings between:",
-                     start = as.Date(paste0(year(Sys.Date()), "-01-01")),
-                     end = as.Date(paste0(year(Sys.Date()), "-12-31"))),
+                     start = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')) - years(1),
+                     end = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ'))),
       actionButton(ns("generate_summary"), "Generate Summary")
       # downloadButton(ns("download"), "Download Firefighter Training Summary")
     )
@@ -113,11 +113,13 @@ Server <- function(id, ag_level) {
         # Sys.sleep(1)
 
         A <- app_data$Attendance |>
-          left_join(app_data$Roster |> select(firefighter_id, firefighter_full_name),
+          left_join(app_data$Firefighter |> select(firefighter_id, firefighter_full_name),
                     by = c("firefighter_id" = "firefighter_id")) |>
-          left_join(app_data$Training |> select(training_id, training_date,training_type, training_topic, training_description, training_start_time, training_end_time),
+          left_join(app_data$Training |> select(training_id, training_type, training_topic, training_description, training_start_time, training_end_time),
                     by = c("training_id" = "training_id")) |>
           select(-c(attendance_id, firefighter_id, training_id)) |>
+          mutate(training_date = with_tz(training_start_time, tzone = Sys.getenv('LOCAL_TZ'))) |>
+          # Note, all three dates are in the local time zone
           filter(training_date >= input$training_filter_range[1] & training_date <= input$training_filter_range[2]) |>
           mutate(training_length = difftime(hms::as_hms(training_end_time), hms::as_hms(training_start_time), units = 'hours') |> as.numeric())
 
@@ -137,6 +139,8 @@ Server <- function(id, ag_level) {
 
 
       output$total_hours <- renderText({
+        # browser()
+
         R_Data() |>
           select(training_length) |>
           sum()
