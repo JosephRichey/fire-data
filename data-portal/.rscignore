@@ -4,3 +4,4 @@
 .rhino
 .rscignore
 tests
+.Renviron
