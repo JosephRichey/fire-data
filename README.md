@@ -1,5 +1,7 @@
 # Fire Data
-This is the main repository for all apps developed to be used together to track and report on administrative data in volunteer fire departments. Check out the presentation for this project at [PositConf 2024](https://reg.conf.posit.co/flow/posit/positconf24/publiccatalog/page/publiccatalog/session/1711986858836001vnVj).
+This is the main repository for all apps developed to be used together to track and report on administrative data in volunteer fire departments. Check out the presentation for this project at <a href = "https://reg.conf.posit.co/flow/posit/positconf24/publiccatalog/page/publiccatalog/session/1711986858836001vnVj" target="_blank">PositConf 2024</a>.
+
+This was developed originally in two different repos. The history of both repositories have been included in this one. If you want to see them, they are linked <a href = "https://github.com/JosephRichey/cfd_data_portal" target="_blank">here</a> and <a href = "https://github.com/JosephRichey/cfd_training_attendance" target="_blank">here</a>.
 
 ## Data Portal
 This is the admin level app that allows for reporting, training and personal management, and soon managing and editing calls. Currently, the functionality is minimal. More coming soon.
