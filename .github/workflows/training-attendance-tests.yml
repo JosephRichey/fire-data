@@ -3,6 +3,9 @@ on:
   push:
     paths:
       - 'training-attendance/**'
+  pull_request:
+    paths:
+      - 'training-attendance/**'
 permissions:
   contents: read
 jobs:
@@ -21,6 +24,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
+        with:
+          path: training-attendance # Ensure the repo is checked out into the `training-attendance` directory
 
       - name: Extract R version from lockfile
         run: printf 'R_VERSION=%s\n' "$(jq --raw-output .R.Version renv.lock)" >> $GITHUB_ENV
