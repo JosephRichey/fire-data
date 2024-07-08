@@ -76,7 +76,7 @@ Output <- function(id) {
   ns <- NS(id)
   tagList(
     card(
-        div(DTOutput(ns('view_trainings')), style = 'background: #FFFFFF')
+        div(DTOutput(ns('view_trainings')), style = 'background: #000000')
     )
   )
 

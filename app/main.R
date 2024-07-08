@@ -36,40 +36,40 @@ ui <- function(id) {
               )
     ),
 
-    nav_panel(title = "Attendance Management",
-                navset_pill(
-                  nav_panel(title = "Training",
-                    layout_sidebar(
-                      sidebar = sidebar(
-                        width = 400,
-                        open = 'desktop',
-                        actionButton('add_missing_attendance',
-                                     'Add Missing Attendance'),
-                        actionButton('delete_attendance',
-                                     'Delete Attendance'),
-                        actionButton('submit_changes',
-                                     'Submit Changes')
-                      ),
-                      card(
-                        height = 600,
-                        card_body(
-                        app_data$Attendance |>
-                          dplyr::left_join(app_data$Firefighter) |>
-                          dplyr::left_join(app_data$Training) |>
-                          dplyr::select(training_type, training_topic,
-                                        firefighter_full_name,
-                                        check_in, check_out) |>
-                          DT::datatable(editable = TRUE)
-                        )
-                      )
-
-                    ),
-                  ),
-                  nav_panel(title = "Calls"
-
-                  )
-                ),
-              ),
+    # nav_panel(title = "Attendance Management",
+    #             navset_pill(
+    #               nav_panel(title = "Training",
+    #                 layout_sidebar(
+    #                   sidebar = sidebar(
+    #                     width = 400,
+    #                     open = 'desktop',
+    #                     actionButton('add_missing_attendance',
+    #                                  'Add Missing Attendance'),
+    #                     actionButton('delete_attendance',
+    #                                  'Delete Attendance'),
+    #                     actionButton('submit_changes',
+    #                                  'Submit Changes')
+    #                   ),
+    #                   card(
+    #                     height = 600,
+    #                     card_body(
+    #                     app_data$Attendance |>
+    #                       dplyr::left_join(app_data$Firefighter) |>
+    #                       dplyr::left_join(app_data$Training) |>
+    #                       dplyr::select(training_type, training_topic,
+    #                                     firefighter_full_name,
+    #                                     check_in, check_out) |>
+    #                       DT::datatable(editable = TRUE)
+    #                     )
+    #                   )
+    #
+    #                 ),
+    #               ),
+    #               nav_panel(title = "Calls"
+    #
+    #               )
+    #             ),
+    #           ),
 
     nav_panel(title = "Manage Roster",
               layout_sidebar(
@@ -85,40 +85,40 @@ ui <- function(id) {
 
     ),
 
-    nav_panel(title = "Training Summary",
-              navset_pill(
-                # bg = "#87292b",
-                nav_panel(title = "Individual",
-                          layout_sidebar(
-                            sidebar = sidebar(
-                              title = "Set Filters",
-                              summary$UI(ns('ind_summary'), "Individual")
-                              ),
-                            summary$Output(ns('ind_summary'), "Individual")
-                            )
-                          ),
-
-                nav_panel(title = "Department",
-                          layout_sidebar(
-                            sidebar = sidebar(
-                              title = "Set Filters",
-                              summary$UI(ns('dep_summary'), "Department")
-                              ),
-                            summary$Output(ns('dep_summary'), "Department")
-                            )
-                          )
-                )
-
-
-    ),
+    # nav_panel(title = "Training Summary",
+    #           navset_pill(
+    #             # bg = "#87292b",
+    #             nav_panel(title = "Individual",
+    #                       layout_sidebar(
+    #                         sidebar = sidebar(
+    #                           title = "Set Filters",
+    #                           summary$UI(ns('ind_summary'), "Individual")
+    #                           ),
+    #                         summary$Output(ns('ind_summary'), "Individual")
+    #                         )
+    #                       ),
+    #
+    #             nav_panel(title = "Department",
+    #                       layout_sidebar(
+    #                         sidebar = sidebar(
+    #                           title = "Set Filters",
+    #                           summary$UI(ns('dep_summary'), "Department")
+    #                           ),
+    #                         summary$Output(ns('dep_summary'), "Department")
+    #                         )
+    #                       )
+    #             )
+    #
+    #
+    # ),
     nav_spacer(),
     nav_menu(
       title = "Settings",
-      align = "right",
+      align = "right"#,
       # nav_item(actionButton(ns("sign_out"), "Lock"), align = "center"),
-      nav_item(helpText("v0.2.0-beta"), align = "center")
+      # nav_item(helpText("v0.2.0-beta"), align = "center")
     ),
-    helpText("© CC BY-NC-SA 2024 Joseph Richey")
+    helpText("v0.2.1 © CC BY-NC-SA 2024 Joseph Richey")
 
   )
 }

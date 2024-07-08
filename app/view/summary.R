@@ -139,7 +139,7 @@ Server <- function(id, ag_level) {
 
 
       output$total_hours <- renderText({
-        browser()
+        # browser()
 
         R_Data() |>
           select(training_length) |>
