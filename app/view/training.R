@@ -9,7 +9,6 @@ box::use(
   stats[setNames],
   DBI[...],
   tibble[...],
-  timeDate[timeLastDayInMonth],
   hms[...],
 )
 
