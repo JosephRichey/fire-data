@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Renviron
+SQL Stuff/data_insertion.sql
+SQL Stuff/test_data_generation.csv
+app/.Renviron
+rsconnect
