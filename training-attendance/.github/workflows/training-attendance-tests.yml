@@ -1,5 +1,8 @@
-name: Rhino Test
-on: push
+name: Training Attendance Test
+on: 
+  push:
+    paths:
+      - 'training-attendance/**'
 permissions:
   contents: read
 jobs:

@@ -1,5 +1,8 @@
-name: Rhino Test
-on: push
+name: Data Portal Test
+on: 
+  push:
+    paths:
+      - 'data-portal/**'
 permissions:
   contents: read
 jobs:
