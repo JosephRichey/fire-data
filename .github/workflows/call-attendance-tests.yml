@@ -1,5 +1,8 @@
-name: Rhino Test
-on: push
+name: Call Attendance Tests
+on: 
+  push:
+    paths:
+      - 'call-attendance-prototype/**'
 permissions:
   contents: read
 jobs:
