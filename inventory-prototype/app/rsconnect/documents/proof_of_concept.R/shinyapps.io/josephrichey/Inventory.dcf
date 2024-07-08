@@ -1,0 +1,13 @@
+name: Inventory
+title: Inventory
+username: josephrichey
+account: josephrichey
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11640482
+bundleId: 8444106
+url: https://josephrichey.shinyapps.io/Inventory/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: js/index.js|logic/__init__.R|main.R|static/favicon.ico|styles/main.scss|view/__init__.R
