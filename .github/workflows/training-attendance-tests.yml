@@ -21,7 +21,6 @@ jobs:
       ATTENDANCE_TABLE: ${{ secrets.ATTENDANCE_TABLE}}
       TZ: ${{ secrets.TZ}}
       LOCAL_TZ: ${{ secrets.LOCAL_TZ}}
-      R_VERSION: '4.4.1'
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -45,7 +44,7 @@ jobs:
         continue-on-error: true
 
       - name: Extract R version from lockfile
-        run: printf 'R_VERSION=%s\n' "$(jq --raw-output .R.Version renv.lock)" >> $GITHUB_ENV
+        run: printf 'R_VEERSION=%s\n' "$(jq --raw-output .R.Version renv.lock)" >> $GITHUB_ENV
 
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
