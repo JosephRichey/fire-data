@@ -28,6 +28,22 @@ jobs:
         with:
           path: training-attendance # Ensure the repo is checked out into the `training-attendance` directory
 
+      - name: List files in `training-attendance` directory
+        run: |
+          echo "Listing `training-attendance` directory contents:"
+          ls -l training-attendance
+          echo "Listing `training-attendance` directory contents recursively:"
+          ls -lR training-attendance
+
+      - name: Check for renv.lock file
+        run: |
+          if [ -f training-attendance/renv.lock ]; then echo "renv.lock exists"; else echo "renv.lock does not exist"; fi
+
+      - name: View renv.lock contents
+        run: |
+          cat training-attendance/renv.lock
+        continue-on-error: true
+
       - name: Extract R version from lockfile
         run: printf 'R_VERSION=%s\n' "$(jq --raw-output .R.Version renv.lock)" >> $GITHUB_ENV
 
