@@ -249,6 +249,9 @@ Server <- function(id) {
         # browser()
         removeModal()
 
+        local_start_time <- as.POSIXct(paste0(input$add_training_date, " ", data.table::as.ITime(input$add_start_time))) |> force_tz(Sys.getenv('LOCAL_TZ')) + .01 # add hundredth of a second to prevent dumping hms, db stores in character
+        local_end_time <- as.POSIXct(paste0(input$add_training_date, " ", data.table::as.ITime(input$add_end_time))) |> force_tz(Sys.getenv('LOCAL_TZ')) + .01 # add hundredth of a second to prevent dumping hms, db stores in character
+
         if(!functions$VerifyNoOverlap(input$add_start_time, input$add_end_time)) {
           showModal(
             modals$warningModal("Training times overlap with existing training. Please select a different time.")
@@ -261,8 +264,8 @@ Server <- function(id) {
           input$add_training_type, "', '",
           input$add_training_topic, "', '",
           input$add_description, "', '",
-          (input$add_start_time |> force_tz(Sys.getenv('LOCAL_TZ')) + .01) |> with_tz(), "', '", # add hundredth of a second to prevent dumping hms, db stores in character
-          (input$add_end_time |> force_tz(Sys.getenv('LOCAL_TZ')) + .01) |> with_tz(), "', '", # add hundredth of a second to prevent dumping hms, db stores in character
+          local_start_time |> with_tz(), "', '",
+          local_end_time |> with_tz(), "', '",
           input$add_training_trainer, "', NULL);"
         )
 
