@@ -16,8 +16,8 @@ box::use(
 ui <- function(id) {
   ns <- NS(id)
   page_fixed(
-    title = "Corinne Fire Department",
-    h1(paste("Corinne Fire Department")),
+    title = Sys.getenv('FD'),
+    h1(Sys.getenv('FD')),
     h3("Training Attendance"),
     theme = bs_theme(version = 5,
                      secondary = "#87292b",
@@ -43,7 +43,7 @@ ui <- function(id) {
     ),
     
     br(),
-    helpText("v0.2.2"),
+    helpText("v0.2.3"),
     helpText("© CC BY-NC-SA 2024 Joseph Richey")
     
   )

@@ -22,7 +22,7 @@ box::use(
 ui <- function(id) {
   ns <- NS(id)
   page_navbar(
-    title = paste0("Corinne Fire Department", " - Data Portal"),
+    title = paste0(Sys.getenv('FD'), " - Data Portal"),
     theme = bs_theme(version = 5,
                      success = "#87292b",
                      bootswatch = "darkly"),
@@ -119,7 +119,7 @@ ui <- function(id) {
       # nav_item(actionButton(ns("sign_out"), "Lock"), align = "center"),
       # nav_item(helpText("v0.2.0-beta"), align = "center")
     ),
-    helpText("v0.2.2 © CC BY-NC-SA 2024 Joseph Richey")
+    helpText("v0.2.3 © CC BY-NC-SA 2024 Joseph Richey")
 
   )
 }
