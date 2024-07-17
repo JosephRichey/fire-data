@@ -44,8 +44,8 @@ Server <- function(id) {
         # browser()
         
         # Use variable to help with debugging.
-        # sysTime <- Sys.time()
-        sysTime <- as.POSIXct("2024-07-06 02:00:00")
+        sysTime <- Sys.time()
+        # sysTime <- as.POSIXct("2024-07-06 02:00:00")
         
         # Check if there is a valid training currently.
         verification <- functions$VerifyTrainingTime(sysTime)
