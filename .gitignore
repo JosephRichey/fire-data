@@ -13,3 +13,7 @@
 # Ignore RStudio data files
 .RData
 **/.RData
+
+# Ignore database backups and exports
+database/Backups/
+database/Exports/
