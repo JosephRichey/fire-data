@@ -33,6 +33,37 @@ CREATE TABLE cfddb.attendance (
     credit boolean
 );
 
+DROP TABLE IF EXISTS cfddb.incident;
+CREATE TABLE cfddb.incident (
+	incident_id int PRIMARY KEY,
+    incident_dispatch_time varchar(255),
+    incident_end_time varchar(255),
+    incident_address varchar(255),
+    incident_dispatch_reason varchar(255),
+    incident_ems_units bool,
+    incident_fire_units bool,
+    incident_wildland_units bool,
+    incident_area varchar(255),
+    incident_notes varchar(1000)
+);
+
+DROP TABLE IF EXISTS cfddb.apparatus;
+CREATE TABLE cfddb.apparatus (
+	apparatus_id INT PRIMARY KEY AUTO_INCREMENT,
+    apparatus_name varchar(255)
+);
+
+DROP TABLE IF EXISTS cfddb.apparatus_firefighter_incident;
+CREATE TABLE cfddb.apparatus_incident (
+	id INT PRIMARY KEY AUTO_INCREMENT,
+	incident_id INT,
+    apparatus_id INT,
+    firefighter_id INT,
+    FOREIGN KEY (incident_id) REFERENCES cfddb.incident(incident_id) ON UPDATE CASCADE,
+    FOREIGN KEY (apparatus_id) REFERENCES cfddb.apparatus(apparatus_id),
+    foreign key (firefighter_id) REFERENCES cfddb.firefighter
+);
+
 DROP TABLE IF EXISTS cfddb.inventory_item;
 CREATE TABLE cfddb.inventory_item (
 	item_id int PRIMARY KEY,
