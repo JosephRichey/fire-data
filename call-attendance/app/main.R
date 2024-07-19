@@ -1,25 +1,44 @@
 box::use(
-  shiny[bootstrapPage, div, moduleServer, NS, renderUI, tags, uiOutput],
+  shiny[...],
+  bslib[...],
+)
+
+box::use(
+  view/incident_response,
 )
 
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  bootstrapPage(
-    uiOutput(ns("message"))
+  
+  page_fixed(
+    title = Sys.getenv('FD'),
+    h1(Sys.getenv('FD')),
+    h3("Incident Response"),
+    theme = bs_theme(version = 5,
+                     secondary = "#87292b",
+                     success = "#87292b",
+                     bootswatch = "darkly"),
+    layout_columns(
+      card(
+        card_body(
+          incident_response$UI(ns('incident_response'))
+        )
+      ),
+      
+      col_widths = c(12, 12)
+    ),
+    
+    br(),
+    helpText("v0.3.0 dev"),
+    helpText("© CC BY-NC-SA 2024 Joseph Richey")
   )
 }
 
 #' @export
 server <- function(id) {
   moduleServer(id, function(input, output, session) {
-    output$message <- renderUI({
-      div(
-        style = "display: flex; justify-content: center; align-items: center; height: 100vh;",
-        tags$h1(
-          tags$a("Check out Rhino docs!", href = "https://appsilon.github.io/rhino/")
-        )
-      )
-    })
+    incident_response$Server('incident_response')
+    
   })
 }
