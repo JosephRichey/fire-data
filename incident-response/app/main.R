@@ -38,7 +38,8 @@ ui <- function(id) {
 #' @export
 server <- function(id) {
   moduleServer(id, function(input, output, session) {
-    incident_response$Server('incident_response')
+    incident_response$ModalsServer('incident_response')
+    incident_response$DBWriteServer('incident_response')
     
     options(shiny.error = function() { cat(geterrmessage(), "\n") })
     

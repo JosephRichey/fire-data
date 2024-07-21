@@ -35,17 +35,12 @@ Output <- function(id) {
   )
 }
 
-Server <- function(id) {
+ModalsServer <- function(id) {
   moduleServer(
     id,
     function(input, output, session) {
-      # Track the number of calls
+      
       ns <- session$ns
-      
-      call_count <- reactiveValues(count = 0)
-      
-      # Store call details
-      call_details <- reactiveValues()
       
       # First modal of info gathering
       observe({
@@ -86,8 +81,6 @@ Server <- function(id) {
       }) |> 
         bindEvent(input$mod_1_next, ignoreNULL = T)
       
-      
-      
       # Third modal of info gathering
       observe({
         removeModal()
@@ -113,7 +106,6 @@ Server <- function(id) {
         # browser()
         
         apparatus <- input$apparatus
-        apparatus <- gsub(' ', '_', apparatus)
         
         select_inputs <- lapply(apparatus, function(i) {
           div(class = 'apparatus_div',
@@ -149,18 +141,6 @@ Server <- function(id) {
       
         
       })
-      
-      
-      # FIXME Temporarily just close the module
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Success",
-          text = "Incident Saved",
-          type = "success"
-        )
-      }) |> 
-        bindEvent(input$mod_4_submit, ignoreNULL = T)
       
       
       ###### Close Modals on cancel, display warning #####
@@ -209,3 +189,104 @@ Server <- function(id) {
     }
   )
 }
+
+
+DBWriteServer <- function(id) {
+  moduleServer(
+    id,
+    function(input, output, session) {
+      
+      ns <- session$ns
+      
+      observe({
+        removeModal()
+        
+        UTC_dispatch_time_date <- (input$dispatch_time +.01) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
+        UTC_end_time_date <- (input$end_time +.01) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
+        
+        
+        incident_statment <- paste0("INSERT INTO ", 
+               Sys.getenv("INCIDENT_TABLE"),
+               " VALUES ('",
+               input$incident_id, "','",
+               UTC_dispatch_time_date, "','",
+               UTC_end_time_date, "','",
+               input$address, "','",
+               input$dispatch_reason, "',",
+               if_else("EMS" %in% input$units, 1, 0), ",",
+               if_else("Fire" %in% input$units, 1, 0), ",",
+               if_else("Wildland" %in% input$units, 1, 0), ",'",
+               input$area, "','",
+               input$call_notes, "')"
+               )
+        
+        apparatus_firefighter_incident_statement <- paste0("INSERT INTO ", 
+                   Sys.getenv("APP_FF_INC_TABLE"), 
+                   " (incident_id, apparatus_id, firefighter_id) VALUES "
+            )
+        
+        # Creating mapping vectors to get Ids
+        apparatus_mapping <- stats::setNames(app_data$Apparatus$apparatus_id, app_data$Apparatus$apparatus_name)
+        firefighter_mapping <- stats::setNames(app_data$Firefighter$firefighter_id, app_data$Firefighter$firefighter_full_name)
+        
+        for(app in input$apparatus) {
+          for(ff in input[[app]]) {
+            apparatus_firefighter_incident_statement <- paste0(apparatus_firefighter_incident_statement, "('",
+                                                               input$incident_id, "',",
+                                                               apparatus_mapping[[app]], ",",
+                                                               firefighter_mapping[[ff]], "),"
+                                                               )
+          }
+        }
+        
+        # Replace the last comma with a semi-colon
+        apparatus_firefighter_incident_statement <- sub(",([^,]*)$", ";\\1", apparatus_firefighter_incident_statement)
+        
+        # Print the statements
+        print('Incident statement to be printed.')
+        print(incident_statment)
+        print('Apparatus Firefighter Incident statement to be printed.')
+        print(apparatus_firefighter_incident_statement)
+        
+        # Execute the statements
+        incident_write_result <- DBI::dbExecute(app_data$CON,
+                                       incident_statment)
+        app_ff_inc_write_result <- DBI::dbExecute(app_data$CON,
+                                       apparatus_firefighter_incident_statement)
+        
+        # Check if the write was successful
+        if(incident_write_result == 1 & app_ff_inc_write_result == 1) {
+          shinyalert(
+            title = "Success",
+            text = "Incident saved",
+            type = "success"
+          )
+        } else if(incident_write_result == 1 & app_ff_inc_write_result == 0) {
+          shinyalert(
+            title = "Error",
+            text = "Apparatus Firefighter Incident not saved",
+            type = "error"
+          )
+        } else if(incident_write_result == 0 & app_ff_inc_write_result == 1) {
+          shinyalert(
+            title = "Error",
+            text = "Incident not saved",
+            type = "error"
+          )
+        } else {
+          shinyalert(
+            title = "Error",
+            text = "Incident and Apparatus Firefighter Incident not saved",
+            type = "error"
+          )
+        }
+        
+        
+      }) |> 
+        bindEvent(input$mod_4_submit, ignoreNULL = T)
+    }
+  )
+}
+
+
+
