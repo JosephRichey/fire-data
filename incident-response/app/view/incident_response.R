@@ -15,8 +15,17 @@ box::use(
 UI <- function(id) {
   ns <- NS(id)
   tagList(
-    actionButton(ns("add_incident"), "Add Incident")
+    actionButton(ns("add_incident"), "Add Incident"),
+    
+    #https://stackoverflow.com/questions/40631788/shiny-observe-triggered-by-dynamicaly-generated-inputs
+    # Create a variable using js to track the last changed input in the apparatus_div class.
+    tags$script(HTML(
+      sprintf("$(document).on('change', '.apparatus_div select', function () {
+                Shiny.onInputChange('%s', this.id);
+              });", ns("lastSelectId"))
+    ))
   )
+  
 }
 
 Output <- function(id) {
@@ -79,7 +88,7 @@ Server <- function(id) {
       
       
       
-      # Second modal of info gathering
+      # Third modal of info gathering
       observe({
         removeModal()
         modal <- modalDialog(
@@ -98,18 +107,21 @@ Server <- function(id) {
       }) |> 
         bindEvent(input$mod_2_next, ignoreNULL = T)
       
-      # Third modal to assign personal to rigs
+      # Fourth modal to assign personal to rigs
       observe({
         removeModal()
         # browser()
         
         apparatus <- input$apparatus
+        apparatus <- gsub(' ', '_', apparatus)
         
         select_inputs <- lapply(apparatus, function(i) {
-          selectInput(ns(i), 
+          div(class = 'apparatus_div',
+              selectInput(ns(i), 
                       paste0(i, ':'), 
                       choices = app_data$Firefighter |> pull(firefighter_full_name),
                       multiple = TRUE
+              )
           )
         })
         
@@ -121,10 +133,22 @@ Server <- function(id) {
           )
         )
         
-        
         showModal(modal)
       }) |> 
         bindEvent(input$mod_3_next, ignoreNULL = T)
+      
+      # Observe the last select input to update the selectInput choices
+      observe({
+        input$lastSelectId
+        # FIXME Currently can't get the selectInputs to update for some reason.
+        # current_input <- stringr::str_extract(input$lastSelectId, '[^-]*$')
+        # all_inputs <- lapply(input$apparatus, function(i) ns(i))
+        # 
+        # input$battalion_1
+        # updateSelectInput(session, "Battalion_1", selected = NULL)
+      
+        
+      })
       
       
       # FIXME Temporarily just close the module
@@ -138,23 +162,6 @@ Server <- function(id) {
       }) |> 
         bindEvent(input$mod_4_submit, ignoreNULL = T)
       
-      # Reactive value to keep track of selected firefighters
-      # selected_firefighters <- reactiveValues()
-      
-      
-      # Remove firefighters as they're added to apparatus from the selectInput choices
-      # observeEvent(lapply(input$apparatus, function(app) input[[ns(app)]]), {
-      #   # Combine selected firefighters from all inputs
-      #   all_selected <- unlist(lapply(apparatus, function(app) input[[ns(app)]]))
-      #   
-      #   # Update selectInput choices to exclude already selected firefighters
-      #   for (app in apparatus) {
-      #     current_selection <- input[[ns(app)]]
-      #     available_choices <- setdiff(app_data$Firefighter$firefighter_full_name, all_selected)
-      #     available_choices <- union(current_selection, available_choices) # Keep the current selection available
-      #     updateSelectInput(session, ns(app), choices = available_choices, selected = current_selection)
-      #   }
-      # }, ignoreNULL = FALSE, ignoreInit = TRUE)
       
       ###### Close Modals on cancel, display warning #####
       # FIXME Can't get this to work on all three, so I've got it seperated out for now
