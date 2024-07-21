@@ -1,2 +1,13 @@
 # This file allows packrat (used by rsconnect during deployment) to pick up dependencies.
 library(rhino)
+library(shinyTime)
+library(dplyr)
+library(shiny)
+library(shinyWidgets)
+library(odbc)
+library(DBI)
+library(data.table)
+library(lubridate)
+library(shinyalert)
+library(bslib)
+library(RMySQL)

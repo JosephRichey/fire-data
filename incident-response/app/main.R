@@ -40,5 +40,7 @@ server <- function(id) {
   moduleServer(id, function(input, output, session) {
     incident_response$Server('incident_response')
     
+    options(shiny.error = function() { cat(geterrmessage(), "\n") })
+    
   })
 }
