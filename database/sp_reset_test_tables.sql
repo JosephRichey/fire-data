@@ -5,7 +5,7 @@ DELIMITER //
 CREATE PROCEDURE sp_reset_test_tables ()
 BEGIN
 
--- Every 15 minutes, reset the test data
+-- Every 60 minutes, reset the test data
 DELETE FROM cfddb.attendance_TEST;
 DELETE FROM cfddb.firefighter_TEST;
 DELETE FROM cfddb.training_TEST;
@@ -412,6 +412,92 @@ INSERT INTO cfddb.attendance_TEST VALUES
 (17, 7, 2, '2024-01-09 18:20', '2024-01-09 19:40', FALSE, TRUE),
 (18, 8, 2, '2024-01-09 18:30', '2024-01-09 19:40', FALSE, TRUE),
 (19, 9, 2, '2024-01-09 18:35', '2024-01-09 19:40', FALSE, TRUE);
+
+DELETE FROM cfddb.apparatus_TEST;
+DELETE FROM cfddb.incident_TEST;
+DELETE FROM cfddb.apparatus_firefighter_incident_TEST;
+
+INSERT INTO cfddb.apparatus_TEST values
+(1, 'Battalion 1'),
+(2, 'Ambulance 1'),
+(3, 'Ambulance 2'),
+(4, 'Engine 1'),
+(5, 'Engine 2'),
+(6, 'Ladder 1'),
+(7, 'Rescue 1'),
+(8, 'Brush 1');
+
+INSERT INTO cfddb.incident_TEST VALUES 
+('1', '2024-07-21 08:15:00.01', '2024-07-21 09:30:00.01', '123 Maple Avenue', 'Head Injury', 0, 1, 0, 'Municipality', ''),
+('2', '2024-07-21 10:00:00.01', '2024-07-21 11:15:00.01', '456 Oak Street', 'Fractured Bone', 1, 0, 0, 'Primary Area', ''),
+('3', '2024-07-21 12:30:00.01', '2024-07-21 13:45:00.01', '789 Pine Road', 'Burn Injury', 0, 1, 1, 'Mutual Aid', ''),
+('4', '2024-07-21 14:00:00.01', '2024-07-21 15:15:00.01', '101 Birch Lane', 'Respiratory Issue', 1, 0, 0, 'Outside Aid', ''),
+('5', '2024-07-21 16:00:00.01', '2024-07-21 17:15:00.01', '202 Cedar Court', 'Cardiac Arrest', 0, 1, 0, 'Municipality', ''),
+('6', '2024-07-21 18:30:00.01', '2024-07-21 19:45:00.01', '303 Elm Street', 'Stroke', 1, 0, 1, 'Primary Area', ''),
+('7', '2024-07-21 20:00:00.01', '2024-07-21 21:15:00.01', '404 Maple Drive', 'Seizure', 0, 1, 0, 'Mutual Aid', ''),
+('8', '2024-07-21 22:00:00.01', '2024-07-21 23:15:00.01', '505 Oak Avenue', 'Drowning', 1, 0, 1, 'Outside Aid', ''),
+('9', '2024-07-22 00:30:00.01', '2024-07-22 01:45:00.01', '606 Pine Lane', 'Drug Overdose', 0, 1, 0, 'Municipality', ''),
+('10', '2024-07-22 02:00:00.01', '2024-07-22 03:15:00.01', '707 Birch Road', 'Trauma Injury', 1, 0, 0, 'Primary Area', '');
+
+INSERT INTO cfddb.apparatus_firefighter_incident_TEST (incident_id, apparatus_id, firefighter_id) VALUES
+('1', 1, 5),
+('1', 2, 7),
+('1', 4, 6),
+('1', 5, 2),
+('1', 8, 11),
+('2', 1, 4),
+('2', 3, 8),
+('2', 6, 7),
+('2', 7, 3),
+('2', 8, 9),
+('3', 2, 5),
+('3', 3, 6),
+('3', 4, 7),
+('3', 5, 8),
+('3', 6, 9),
+('3', 7, 11),
+('4', 1, 2),
+('4', 2, 5),
+('4', 3, 7),
+('4', 4, 8),
+('4', 5, 10),
+('5', 1, 4),
+('5', 2, 6),
+('5', 3, 7),
+('5', 5, 8),
+('5', 6, 9),
+('5', 7, 11),
+('6', 1, 3),
+('6', 2, 5),
+('6', 3, 6),
+('6', 4, 7),
+('6', 5, 8),
+('6', 6, 10),
+('7', 1, 2),
+('7', 2, 4),
+('7', 3, 6),
+('7', 4, 7),
+('7', 5, 9),
+('7', 6, 10),
+('8', 1, 5),
+('8', 2, 7),
+('8', 3, 8),
+('8', 4, 6),
+('8', 5, 9),
+('8', 6, 11),
+('8', 7, 3),
+('9', 1, 4),
+('9', 2, 6),
+('9', 3, 8),
+('9', 4, 7),
+('9', 5, 10),
+('10', 1, 3),
+('10', 2, 5),
+('10', 3, 6),
+('10', 4, 8),
+('10', 5, 7),
+('10', 6, 11),
+('10', 7, 9);
 
 END//
 DELIMITER ;

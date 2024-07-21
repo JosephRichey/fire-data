@@ -35,7 +35,7 @@ CREATE TABLE cfddb.attendance (
 
 DROP TABLE IF EXISTS cfddb.incident;
 CREATE TABLE cfddb.incident (
-	incident_id int PRIMARY KEY,
+	incident_id varchar(255) PRIMARY KEY,
     incident_dispatch_time varchar(255),
     incident_end_time varchar(255),
     incident_address varchar(255),
@@ -54,7 +54,7 @@ CREATE TABLE cfddb.apparatus (
 );
 
 DROP TABLE IF EXISTS cfddb.apparatus_firefighter_incident;
-CREATE TABLE cfddb.apparatus_incident (
+CREATE TABLE cfddb.apparatus_firefighter_incident (
 	id INT PRIMARY KEY AUTO_INCREMENT,
 	incident_id INT,
     apparatus_id INT,

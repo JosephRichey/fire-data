@@ -6,7 +6,7 @@ DELIMITER //
 
 CREATE EVENT reset_test_tables
 ON SCHEDULE
-    EVERY 15 MINUTE
+    EVERY 60 MINUTE
     STARTS '2024-07-07 07:00:00'
     COMMENT 'Reset test tables.'
 DO
