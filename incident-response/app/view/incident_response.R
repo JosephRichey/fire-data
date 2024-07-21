@@ -47,11 +47,6 @@ Server <- function(id) {
           timeInput(ns("dispatch_time"), "Dispatch Time:", value = as.ITime(Sys.time() |> with_tz(Sys.getenv('LOCAL_TZ'))-3600), seconds = F),
           dateInput(ns("end_date"), "End Date:"),
           timeInput(ns("end_time"), "End Time:", value = as.ITime(Sys.time() |> with_tz(Sys.getenv('LOCAL_TZ'))), seconds = F),
-          textInput(ns('address'), 'Address:', ""),
-          # FIXME Need to add area of response
-          selectInput(ns("dispatch_reason"), "Dispatch Reason:", app_data$Dispatch_Codes),
-          checkboxGroupInput(ns('units'), 'Units', c('EMS', 'Fire', 'Wildland')),
-          textInput(ns("call_notes"), "Notes:", ""),
           footer = tagList(
             actionButton(ns('cancel_mod_1'), 'Cancel'),
             actionButton(ns("mod_1_next"), "Next")
@@ -67,11 +62,11 @@ Server <- function(id) {
       observe({
         removeModal()
         modal <- modalDialog(
-          selectInput(ns('apparatus'), 
-                      'Apparatus:', 
-                      choices = c(app_data$Apparatus |> pull(apparatus_name)),
-                      multiple = TRUE
-                      ),
+          textInput(ns('address'), 'Address:', ""),
+          selectInput(ns('area'), 'Response Area', c('Municipality', 'Primary Area', 'Mutual Aid', 'Outside Aid')),
+          selectInput(ns("dispatch_reason"), "Dispatch Reason:", app_data$Dispatch_Codes),
+          checkboxGroupInput(ns('units'), 'Units', c('EMS', 'Fire', 'Wildland')),
+          textInput(ns("call_notes"), "Notes:", ""),
           footer = tagList(
             actionButton(ns('cancel_mod_2'), 'Cancel'),
             actionButton(ns("mod_2_next"), "Next")
@@ -81,6 +76,27 @@ Server <- function(id) {
         showModal(modal)
       }) |> 
         bindEvent(input$mod_1_next, ignoreNULL = T)
+      
+      
+      
+      # Second modal of info gathering
+      observe({
+        removeModal()
+        modal <- modalDialog(
+          selectInput(ns('apparatus'), 
+                      'Apparatus:', 
+                      choices = c(app_data$Apparatus |> pull(apparatus_name)),
+                      multiple = TRUE
+                      ),
+          footer = tagList(
+            actionButton(ns('cancel_mod_3'), 'Cancel'),
+            actionButton(ns("mod_3_next"), "Next")
+          )
+        )
+        
+        showModal(modal)
+      }) |> 
+        bindEvent(input$mod_2_next, ignoreNULL = T)
       
       # Third modal to assign personal to rigs
       observe({
@@ -100,15 +116,27 @@ Server <- function(id) {
         modal <- modalDialog(
           tagList(select_inputs),  # Use tagList to include all selectInput elements
           footer = tagList(
-            actionButton(ns("cancel_mod_3"), "Cancel"),
-            actionButton(ns("mod_3_next"), "Next")
+            actionButton(ns("cancel_mod_4"), "Cancel"),
+            actionButton(ns("mod_4_submit"), "Submit Incident")
           )
         )
         
         
         showModal(modal)
       }) |> 
-        bindEvent(input$mod_2_next, ignoreNULL = T)
+        bindEvent(input$mod_3_next, ignoreNULL = T)
+      
+      
+      # FIXME Temporarily just close the module
+      observe({
+        removeModal()
+        shinyalert(
+          title = "Success",
+          text = "Incident Saved",
+          type = "success"
+        )
+      }) |> 
+        bindEvent(input$mod_4_submit, ignoreNULL = T)
       
       # Reactive value to keep track of selected firefighters
       # selected_firefighters <- reactiveValues()
@@ -159,6 +187,16 @@ Server <- function(id) {
         )
       }) |> 
         bindEvent(input$cancel_mod_3, ignoreNULL = T, ignoreInit = T)
+      
+      observe({
+        removeModal()
+        shinyalert(
+          title = "Warning",
+          text = "Incident not saved",
+          type = "warning"
+        )
+      }) |> 
+        bindEvent(input$cancel_mod_4, ignoreNULL = T, ignoreInit = T)
       ####################################################
       
     }
