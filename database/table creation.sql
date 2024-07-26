@@ -1,15 +1,4 @@
-DROP TABLE IF EXISTS cfddb.training;
-CREATE TABLE cfddb.training (
-	training_id int PRIMARY KEY AUTO_INCREMENT,
-    training_type varchar(255),
-    training_topic varchar(255),
-    training_description varchar(1000),
-    training_start_time text,
-    training_end_time text,
-    training_trainer int,
-    training_delete text
-);
-
+# Main tables
 DROP TABLE IF EXISTS cfddb.firefighter;
 CREATE TABLE cfddb.firefighter (
 	firefighter_id int PRIMARY KEY AUTO_INCREMENT,
@@ -20,6 +9,25 @@ CREATE TABLE cfddb.firefighter (
     firefighter_trainer boolean,
     firefighter_officer boolean,
     firefighter_deactive_date text
+);
+
+DROP TABLE IF EXISTS cfddb.apparatus;
+CREATE TABLE cfddb.apparatus (
+	apparatus_id INT PRIMARY KEY AUTO_INCREMENT,
+    apparatus_name varchar(255)
+);
+
+# Training Tables
+DROP TABLE IF EXISTS cfddb.training;
+CREATE TABLE cfddb.training (
+	training_id int PRIMARY KEY AUTO_INCREMENT,
+    training_type varchar(255),
+    training_topic varchar(255),
+    training_description varchar(1000),
+    training_start_time text,
+    training_end_time text,
+    training_trainer int,
+    training_delete text
 );
 
 DROP TABLE IF EXISTS cfddb.attendance;
@@ -33,6 +41,7 @@ CREATE TABLE cfddb.attendance (
     credit boolean
 );
 
+# Incident tables
 DROP TABLE IF EXISTS cfddb.incident;
 CREATE TABLE cfddb.incident (
 	incident_id varchar(255) PRIMARY KEY,
@@ -44,26 +53,43 @@ CREATE TABLE cfddb.incident (
     incident_fire_units bool,
     incident_wildland_units bool,
     incident_area varchar(255),
-    incident_notes varchar(1000)
+    incident_notes varchar(1000),
+    incident_finalized bool
 );
 
-DROP TABLE IF EXISTS cfddb.apparatus;
-CREATE TABLE cfddb.apparatus (
-	apparatus_id INT PRIMARY KEY AUTO_INCREMENT,
-    apparatus_name varchar(255)
-);
-
-DROP TABLE IF EXISTS cfddb.apparatus_firefighter_incident;
-CREATE TABLE cfddb.apparatus_firefighter_incident (
+DROP TABLE IF EXISTS cfddb.firefighter_incident;
+CREATE TABLE cfddb.firefighter_incident (
 	id INT PRIMARY KEY AUTO_INCREMENT,
-	incident_id INT,
-    apparatus_id INT,
+	incident_id VARCHAR(255),
     firefighter_id INT,
+    time_adjustment float,
     FOREIGN KEY (incident_id) REFERENCES cfddb.incident(incident_id) ON UPDATE CASCADE,
-    FOREIGN KEY (apparatus_id) REFERENCES cfddb.apparatus(apparatus_id),
-    foreign key (firefighter_id) REFERENCES cfddb.firefighter
+    foreign key (firefighter_id) REFERENCES cfddb.firefighter(firefighter_id)
 );
 
+DROP TABLE IF EXISTS cfddb.apparatus_incident;
+CREATE TABLE cfddb.apparatus_incident (
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    incident_id VARCHAR(255),
+    apparatus_id INT,
+    time_adjustment float,
+    foreign key (incident_id) REFERENCES cfddb.incident(incident_id) ON UPDATE CASCADE,
+    FOREIGN KEY (apparatus_id) REFERENCES cfddb.apparatus(apparatus_id)
+);
+
+DROP TABLE IF EXISTS cfddb.firefighter_apparatus;
+CREATE TABLE cfddb.firefighter_apparatus (
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    incident_id VARCHAR(255),
+    firefighter_id INT,
+    apparatus_id INT,
+    foreign key (incident_id) REFERENCES cfddb.incident(incident_id) ON UPDATE CASCADE,
+    FOREIGN KEY (apparatus_id) REFERENCES cfddb.apparatus(apparatus_id),
+    foreign key (firefighter_id) references cfddb.firefighter(firefighter_id)
+);
+
+
+# Inventory tables
 DROP TABLE IF EXISTS cfddb.inventory_item;
 CREATE TABLE cfddb.inventory_item (
 	item_id int PRIMARY KEY,
