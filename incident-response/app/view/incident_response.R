@@ -244,7 +244,7 @@ DBWriteServer <- function(id) {
         UTC_dispatch_time_date <- (input$dispatch_time +.01) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
         UTC_end_time_date <- (input$end_time +.01) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
         
-        
+        ###### Incident Statement Prepration
         incident_statment <- paste0("INSERT INTO ", 
                Sys.getenv("INCIDENT_TABLE"),
                " VALUES ('",
@@ -257,71 +257,101 @@ DBWriteServer <- function(id) {
                if_else("Fire" %in% input$units, 1, 0), ",",
                if_else("Wildland" %in% input$units, 1, 0), ",'",
                input$area, "','",
-               input$call_notes, "')"
+               input$call_notes, "',0)"
                )
         
-        apparatus_firefighter_incident_statement <- paste0("INSERT INTO ", 
-                   Sys.getenv("APP_FF_INC_TABLE"), 
-                   " (incident_id, apparatus_id, firefighter_id) VALUES "
+        ###### Firefighter incident statement preparation ######
+        firefighter_incident_statement <- paste0("INSERT INTO ", 
+                   Sys.getenv("FF_INC_TABLE"), 
+                   " (incident_id, firefighter_id) VALUES "
             )
         
-        # Creating mapping vectors to get Ids
-        apparatus_mapping <- stats::setNames(app_data$Apparatus$apparatus_id, app_data$Apparatus$apparatus_name)
-        firefighter_mapping <- stats::setNames(app_data$Firefighter$firefighter_id, app_data$Firefighter$firefighter_full_name)
+        
+        for(ff in input$firefighter) {
+          firefighter_incident_statement <- paste0(firefighter_incident_statement, "('",
+                                                             input$incident_id, "',",
+                                                             app_data$firefighter_mapping[[ff]], "),"
+                                                             )
+        }
+      
+        
+        # Replace the last comma with a semi-colon
+        firefighter_incident_statement <- sub(",([^,]*)$", ";\\1", firefighter_incident_statement)
+        
+        
+        ###### Apparatus incident statement preparation ######
+        apparatus_incident_statement <- paste0("INSERT INTO ", 
+                                                 Sys.getenv("APP_INC_TABLE"), 
+                                                 " (incident_id, apparatus_id) VALUES "
+        )
         
         for(app in input$apparatus) {
-          for(ff in input[[app]]) {
-            apparatus_firefighter_incident_statement <- paste0(apparatus_firefighter_incident_statement, "('",
-                                                               input$incident_id, "',",
-                                                               apparatus_mapping[[app]], ",",
-                                                               firefighter_mapping[[ff]], "),"
-                                                               )
-          }
+          apparatus_incident_statement <- paste0(apparatus_incident_statement, "('",
+                                                             input$incident_id, "',",
+                                                             app_data$apparatus_mapping[[app]], "),"
+          )
         }
         
         # Replace the last comma with a semi-colon
-        apparatus_firefighter_incident_statement <- sub(",([^,]*)$", ";\\1", apparatus_firefighter_incident_statement)
+        apparatus_incident_statement <- sub(",([^,]*)$", ";\\1", apparatus_incident_statement)
+        
+        ###### Firefighter Apparatus statement preparation ######
+        firefighter_apparatus_statement <- paste0("INSERT INTO ", 
+                                                 Sys.getenv("FF_APP_TABLE"), 
+                                                 " (incident_id, firefighter_id, apparatus_id) VALUES "
+        )
+        
+        for(ff in input$firefighter) {
+          app <- input[[paste0(ff, "_apparatus")]]
+          
+          
+          firefighter_apparatus_statement <- paste0(firefighter_apparatus_statement, "('",
+                                                             input$incident_id, "',",
+                                                             app_data$firefighter_mapping[[ff]], ",",
+                                                             app_data$apparatus_mapping[[app]], "),"
+          )
+          
+        }
+        
+        # Replace the last comma with a semi-colon
+        firefighter_apparatus_statement <- sub(",([^,]*)$", ";\\1", firefighter_apparatus_statement)
+        
+        #####
         
         # Print the statements
-        print('Incident statement to be printed.')
+        print('Incident statement to be exectuted.')
         print(incident_statment)
-        print('Apparatus Firefighter Incident statement to be printed.')
-        print(apparatus_firefighter_incident_statement)
+        print('Firefighter Incident statement to be exectuted.')
+        print(firefighter_incident_statement)
+        print('Apparatus Incident statement to be exectuted.')
+        print(apparatus_incident_statement)
+        print('Firefighter Apparatus statement to be exectuted.')
+        print(firefighter_apparatus_statement)
         
         # Execute the statements
         incident_write_result <- DBI::dbExecute(app_data$CON,
                                        incident_statment)
-        app_ff_inc_write_result <- DBI::dbExecute(app_data$CON,
-                                       apparatus_firefighter_incident_statement)
+        ff_inc_write_result <- DBI::dbExecute(app_data$CON,
+                                       firefighter_incident_statement)
+        app_inc_write_result <- DBI::dbExecute(app_data$CON,
+                                       apparatus_incident_statement)
+        ff_app_write_result <- DBI::dbExecute(app_data$CON,
+                                       firefighter_apparatus_statement)
         
         # Check if the write was successful
-        if(incident_write_result == 1 & app_ff_inc_write_result == 1) {
+        if(all(exists('incident_write_result'), exists('ff_inc_write_result'), exists('app_inc_write_result'), exists('ff_app_write_result'))) {
           shinyalert(
             title = "Success",
             text = "Incident saved",
             type = "success"
           )
-        } else if(incident_write_result == 1 & app_ff_inc_write_result == 0) {
-          shinyalert(
-            title = "Error",
-            text = "Apparatus Firefighter Incident not saved",
-            type = "error"
-          )
-        } else if(incident_write_result == 0 & app_ff_inc_write_result == 1) {
-          shinyalert(
-            title = "Error",
-            text = "Incident not saved",
-            type = "error"
-          )
         } else {
           shinyalert(
             title = "Error",
-            text = "Incident and Apparatus Firefighter Incident not saved",
+            text = glue::glue("Tables not saved properly. Please contact your application administrator."),
             type = "error"
           )
         }
-        
-        
       }) |> 
         bindEvent(input$mod_5_submit, ignoreNULL = T)
     }

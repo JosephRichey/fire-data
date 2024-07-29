@@ -85,3 +85,10 @@ Dispatch_Codes <- list(
     "Vehicle Fire"
   )
 )
+
+# Creating mapping vectors to get Ids
+#' @export
+apparatus_mapping <- stats::setNames(Apparatus$apparatus_id, Apparatus$apparatus_name)
+
+#' @export
+firefighter_mapping <- stats::setNames(Firefighter$firefighter_id, Firefighter$firefighter_full_name)
