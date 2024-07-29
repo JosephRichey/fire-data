@@ -362,19 +362,34 @@ CardServer <- function(id) {
     id,
     function(input, output, session) {
       
+      R_Incident <- reactiveVal(app_data$Incident)
+      
+      R_Firefighter_Incident <- reactiveVal(app_data$Firefighter_Incident)
+      
+      ns <- session$ns
+      
+      updateReactiveValue <- function() {
+        R_Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE"))))
+        R_Firefighter_Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("FF_INC_TABLE"))))
+      }
+      
+      
       ns <- session$ns
       
       output$incident_cards <- renderUI({
-        incidents <- app_data$Incident()
+        updateReactiveValue()
         
-        Firefighter_Incident <- app_data$Firefighter_Incident
+        Incidents <- R_Incident()
+        
+        Firefighter_Incident <- R_Firefighter_Incident()
         
         # browser()
         
-        incidents <- incidents[incidents$incident_end_time >= Sys.time() - 48*3600, ]
+        Incidents <- Incidents[Incidents$incident_end_time >= Sys.time() - 48*3600, ] |> 
+          arrange(desc(incident_end_time))
         
-        lapply(seq_len(nrow(incidents)), function(i) {
-          incident <- incidents[i, ]
+        lapply(seq_len(nrow(Incidents)), function(i) {
+          incident <- Incidents[i, ]
           
           firefighters <- Firefighter_Incident[Firefighter_Incident$incident_id == incident$incident_id, ] |> 
             pull(firefighter_id) 
@@ -387,7 +402,8 @@ CardServer <- function(id) {
             p(paste(names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters], collapse = ", "))
           )
         })
-      })
+      }) |> 
+        bindEvent(input$mod_5_submit, ignoreNULL = F, ignoreInit = F)
       
       
     }

@@ -22,8 +22,8 @@ Apparatus <- dbGetQuery(CON,
                         paste0("SELECT * FROM ", Sys.getenv("APPARATUS_TABLE")))
 
 #' @export
-Incident <- reactive(dbGetQuery(CON,
-                       paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE"))))
+Incident <- dbGetQuery(CON,
+                       paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE")))
 
 #' @export
 Firefighter_Incident <- dbGetQuery(CON,
