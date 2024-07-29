@@ -1,6 +1,7 @@
 box::use(
   dplyr[filter, ...],
   odbc[...],
+  shiny[...],
 )
 
 #' @export
@@ -12,24 +13,21 @@ CON <- dbConnect(RMySQL::MySQL(),
                  password = Sys.getenv("CFDDB_PASSWORD"))
 
 #' @export
-Training <- dbGetQuery(CON,
-                       paste0("SELECT * FROM ", Sys.getenv("TRAINING_TABLE"),
-                              " WHERE training_delete IS NULL"))
-
-#' @export
 Firefighter <- dbGetQuery(CON,
                           paste0("SELECT * FROM ", Sys.getenv("FIREFIGHTER_TABLE"),
                                  " WHERE firefighter_deactive_date IS NULL"))
 
 #' @export
-Attendance <- dbGetQuery(CON,
-                         paste0("SELECT * FROM ", Sys.getenv("ATTENDANCE_TABLE"))) |> 
-  mutate(check_in = as.POSIXct(check_in),
-         check_out = as.POSIXct(check_out))
-
-#' @export
 Apparatus <- dbGetQuery(CON,
                         paste0("SELECT * FROM ", Sys.getenv("APPARATUS_TABLE")))
+
+#' @export
+Incident <- reactive(dbGetQuery(CON,
+                       paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE"))))
+
+#' @export
+Firefighter_Incident <- dbGetQuery(CON,
+                                paste0("SELECT * FROM ", Sys.getenv("FF_INC_TABLE")))
 
 
 #' @export

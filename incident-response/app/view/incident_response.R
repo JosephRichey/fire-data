@@ -31,7 +31,7 @@ UI <- function(id) {
 Output <- function(id) {
   ns <- NS(id)
   tagList(
-  
+    uiOutput(ns('incident_cards'))
   )
 }
 
@@ -230,7 +230,6 @@ ModalsServer <- function(id) {
   )
 }
 
-
 DBWriteServer <- function(id) {
   moduleServer(
     id,
@@ -348,7 +347,7 @@ DBWriteServer <- function(id) {
         } else {
           shinyalert(
             title = "Error",
-            text = glue::glue("Tables not saved properly. Please contact your application administrator."),
+            text = "Tables not saved properly. Please contact your application administrator.",
             type = "error"
           )
         }
@@ -356,6 +355,44 @@ DBWriteServer <- function(id) {
         bindEvent(input$mod_5_submit, ignoreNULL = T)
     }
   )
+}
+
+CardServer <- function(id) {
+  moduleServer(
+    id,
+    function(input, output, session) {
+      
+      ns <- session$ns
+      
+      output$incident_cards <- renderUI({
+        incidents <- app_data$Incident()
+        
+        Firefighter_Incident <- app_data$Firefighter_Incident
+        
+        # browser()
+        
+        incidents <- incidents[incidents$incident_end_time >= Sys.time() - 48*3600, ]
+        
+        lapply(seq_len(nrow(incidents)), function(i) {
+          incident <- incidents[i, ]
+          
+          firefighters <- Firefighter_Incident[Firefighter_Incident$incident_id == incident$incident_id, ] |> 
+            pull(firefighter_id) 
+          
+          names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters]
+          
+          card(
+            card_header(paste(incident$incident_dispatch_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(), 
+                              incident$incident_dispatch_reason)),
+            p(paste(names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters], collapse = ", "))
+          )
+        })
+      })
+      
+      
+    }
+  )
+  
 }
 
 
