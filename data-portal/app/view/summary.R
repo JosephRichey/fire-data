@@ -71,19 +71,19 @@ Output <- function(id, ag_level) {
         value_box("EMS Hours",
                   textOutput(ns("ems_hours")),
                   showcase = bs_icon('activity',
-                                     class = 'text-success')),
+                                     class = 'text-info')),
         value_box("Fire Hours",
                   textOutput(ns("fire_hours")),
                   showcase = bs_icon('fire',
-                                     class = 'text-success')),
+                                     class = 'text-danger')),
         value_box("Wildland Hours",
                   textOutput(ns("wildland_hours")),
                   showcase = bs_icon('tree-fill',
-                                     class = 'text-success')),
+                                     color = '#00BC8C')),
         value_box("Other Hours",
                   textOutput(ns("other_hours")),
                   showcase = bs_icon('question-circle-fill',
-                                     class = 'text-success')),
+                                     class = 'text-light')),
 
         col_widths = c(6,6),
         row_widths = c(1,1)
@@ -142,34 +142,35 @@ Server <- function(id, ag_level) {
         # browser()
 
         R_Data() |>
+          filter(credit == 1) |>
           select(training_length) |>
           sum()
       })
 
       output$ems_hours <- renderText({
         R_Data() |>
-          filter(training_type == "EMS") |>
+          filter(training_type == "EMS" & credit == 1) |>
           select(training_length) |>
           sum()
       })
 
       output$fire_hours <- renderText({
         R_Data() |>
-          filter(training_type == "Fire") |>
+          filter(training_type == "Fire" & credit == 1) |>
           select(training_length) |>
           sum()
       })
 
       output$wildland_hours <- renderText({
         R_Data() |>
-          filter(training_type == "Wildland") |>
+          filter(training_type == "Wildland" & credit == 1) |>
           select(training_length) |>
           sum()
       })
 
       output$other_hours <- renderText({
         R_Data() |>
-          filter(training_type == "Other") |>
+          filter(training_type == "Other" & credit == 1) |>
           select(training_length) |>
           sum()
       })
@@ -178,7 +179,8 @@ Server <- function(id, ag_level) {
         # browser()
         # Assuming your dataframe has a "date" column
         Training_Data <- R_Data() %>%
-          mutate(Month = format(as.Date(training_date), "%Y-%m"))
+          mutate(Month = format(as.Date(training_date), "%Y-%m")) |>
+          filter(credit == 1)
 
         # Generate a complete set of months
         all_months <- expand.grid(training_type = unique(Training_Data$training_type),
@@ -198,11 +200,21 @@ Server <- function(id, ag_level) {
                         color = ~training_type,
                         type = 'scatter',
                         mode = 'lines',
-                        colors = c("blue", "red", "green", 'grey'),
+                        colors = c("EMS" = "#3498DB", "Fire" = "#E74C3C", "Wildland" = "#00BC8C", "Other" = '#ADB5BD'),
                         text = ~paste("Total Hours: ", Total_Length, " hours")) %>%
           layout(title = "Training Summary",
-                 xaxis = list(title = "Month"),
-                 yaxis = list(title = "Training Length (hours)", zeroline = FALSE),
+                 xaxis = list(title = "Month",
+                              titlefont = list(color = '#FFFFFF'),
+                              tickfont = list(color = '#FFFFFF'),
+                              gridcolor = '#2d2d2d'),
+                 yaxis = list(title = "Training Length (hours)",
+                              titlefont = list(color = '#FFFFFF'),
+                              tickfont = list(color = '#FFFFFF'),
+                              gridcolor = '#2d2d2d',
+                              zeroline = FALSE),
+                 plot_bgcolor = '#222222',
+                 paper_bgcolor = '#222222',
+                 font = list(color = '#FFFFFF'),
                  showlegend = TRUE)
 
         # plot <- ggplot(plot_data, aes(x = Month, y = Total_Length, color = training_type, group = training_type)) +
