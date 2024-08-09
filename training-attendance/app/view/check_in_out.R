@@ -31,10 +31,19 @@ Output <- function(id) {
 }
 
 #' @export
+Button <- function(id) {
+  ns <- NS(id)
+  actionButton(ns('all_checkout'), 'Check Everyone Out')
+}
+
+#' @export
 Server <- function(id) {
   moduleServer(
     id,
     function(input, output, session) {
+      
+      # https://stackoverflow.com/questions/48127459/using-modal-window-in-shiny-module
+      ns <- session$ns
       
       rvs <- reactiveValues()
       
@@ -93,8 +102,7 @@ Server <- function(id) {
           
           rvs$attendance_id <- Firefighter_Attendance$attendance_id
           
-          # https://stackoverflow.com/questions/48127459/using-modal-window-in-shiny-module
-          ns <- session$ns
+          
           
           # Check series of conditions and call appropriate modals.
           
@@ -228,6 +236,60 @@ Server <- function(id) {
                                      fillContainer = TRUE,
                                      row.names = FALSE))
       })
+      
+      observeEvent(input$all_checkout, {
+        showModal(
+          modalDialog(
+            title = "Confirm Check Out",
+            "Please enter an admin password",
+            passwordInput(ns("admin_password"), "Admin Password"),
+            footer = tagList(
+              actionButton(ns("confirm_all_checkout"), "Confirm Check Out"),
+              actionButton(ns("cancel_all_checkout"), "Cancel")
+            ),
+            easyClose = TRUE
+          )
+        )
+        
+      })
+      
+      observeEvent(input$cancel_all_checkout, {
+        removeModal()
+        showModal(
+          modals$cancelModal()
+        )
+      })
+      
+      
+      
+      observeEvent(input$confirm_all_checkout, {
+        removeModal()
+        
+        # Check if admin password is correct
+        if(input$admin_password != 'shinyfire') {
+          showModal(
+            modals$warningModal("Admin password incorrect. Please try again.")
+          )
+          return()
+        }
+        
+        
+        # Execute sql statement that checks out everyone currently checked in
+        # No sqlInterpolate needed.
+        sql_command <- paste0(
+          "UPDATE ", Sys.getenv("ATTENDANCE_TABLE"), " SET check_out = ",
+          "'", as.POSIXct(Sys.time()), "'",
+          " WHERE check_out IS NULL")
+        
+        DBI::dbExecute(app_data$CON, sql_command)
+        
+        functions$UpdateAttendance(atten)
+        
+        showNotification("All firefighters checked out.", duration = 5)
+        
+        
+      })
+      
       
       observeEvent(input$refresh, {
         # browser()
