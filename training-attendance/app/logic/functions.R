@@ -66,11 +66,13 @@ FixColNames <- function(Data) {
 
 #' @export
 CurrentStatusTable <- function(Attendance, Roster) {
+  # Future Idea: This still assumes one training per day. 
+  # Eventually, I want to make it so that it can handle multiple trainings per day.
+  
   # browser()
   Attendance |>
     left_join(Roster) |>
-    dplyr::filter(is.na(check_out)) |>
-    dplyr::filter(as.Date(check_in) == as.Date(lubridate::with_tz(Sys.time()))) |>
+    dplyr::filter(as.Date(check_in) == as.Date(Sys.time())) |>
     transmute(
       firefighter_full_name = firefighter_full_name,
       check_in = format(with_tz(check_in, tzone = Sys.getenv("LOCAL_TZ")), "%H:%M"),

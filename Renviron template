@@ -1,0 +1,18 @@
+DB_HOST = ""
+DB_PASSWORD = ""
+
+TRAINING_TABLE = ""
+FIREFIGHTER_TABLE = ""
+ATTENDANCE_TABLE = ""
+APPARATUS_TABLE = ""
+INCIDENT_TABLE = ""
+FF_INC_TABLE = ""
+APP_INC_TABLE = ""
+FF_APP_TABLE = ""
+
+
+
+TZ = "UTC"
+LOCAL_TZ = "America/Denver"
+
+FD = "Crabapple Cove Fire Department"

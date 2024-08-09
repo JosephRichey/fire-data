@@ -9,10 +9,10 @@ box::use(
 #' @export
 CON <- dbConnect(RMySQL::MySQL(),
                 dbname = "cfddb",
-                host = Sys.getenv("CFDDB_HOST"),
+                host = Sys.getenv("DB_HOST"),
                 port = 3306,
                 user = "admin",
-                password = Sys.getenv("CFDDB_PASSWORD"))
+                password = Sys.getenv("DB_PASSWORD"))
 
 #' @export
 Training <- dbGetQuery(CON,

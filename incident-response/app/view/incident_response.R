@@ -6,6 +6,7 @@ box::use(
   data.table[...],
   dplyr[...],
   shinyalert[...],
+  DBI[...],
 )
 
 box::use(
@@ -16,14 +17,6 @@ UI <- function(id) {
   ns <- NS(id)
   tagList(
     actionButton(ns("add_incident"), "Add Incident"),
-    
-    #https://stackoverflow.com/questions/40631788/shiny-observe-triggered-by-dynamicaly-generated-inputs
-    # Create a variable using js to track the last changed input in the apparatus_div class.
-    tags$script(HTML(
-      sprintf("$(document).on('change', '.apparatus_div select', function () {
-                Shiny.onInputChange('%s', this.id);
-              });", ns("lastSelectId"))
-    ))
   )
   
 }
@@ -70,6 +63,8 @@ ModalsServer <- function(id) {
           selectInput(ns('area'), 'Response Area', c('Municipality', 'Primary Area', 'Mutual Aid', 'Outside Aid')),
           selectInput(ns("dispatch_reason"), "Dispatch Reason:", app_data$Dispatch_Codes),
           checkboxGroupInput(ns('units'), 'Units', c('EMS', 'Fire', 'Wildland')),
+          checkboxInput(ns('canceled'), 'Canceled before arrival'),
+          checkboxInput(ns('dropped'), 'Dropped call'),
           footer = tagList(
             actionButton(ns('cancel_mod_2'), 'Cancel'),
             actionButton(ns("mod_2_next"), "Next")
@@ -159,18 +154,6 @@ ModalsServer <- function(id) {
       }) |> 
         bindEvent(input$mod_4_next, ignoreNULL = T)
       
-      # Observe the last select input to update the selectInput choices
-      observe({
-        input$lastSelectId
-        # FIXME Currently can't get the selectInputs to update for some reason.
-        # current_input <- stringr::str_extract(input$lastSelectId, '[^-]*$')
-        # all_inputs <- lapply(input$apparatus, function(i) ns(i))
-        # 
-        # input$battalion_1
-        # updateSelectInput(session, "Battalion_1", selected = NULL)
-      
-        
-      })
       
       
       ###### Close Modals on cancel, display warning #####
@@ -239,27 +222,35 @@ DBWriteServer <- function(id) {
       
       observe({
         removeModal()
+        # browser()
         
         UTC_dispatch_time_date <- (input$dispatch_time +.01) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
         UTC_end_time_date <- (input$end_time +.01) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
         
         ###### Incident Statement Prepration
-        incident_statment <- paste0("INSERT INTO ", 
-               Sys.getenv("INCIDENT_TABLE"),
-               " VALUES ('",
-               input$incident_id, "','",
-               UTC_dispatch_time_date, "','",
-               UTC_end_time_date, "','",
-               input$address, "','",
-               input$dispatch_reason, "',",
-               if_else("EMS" %in% input$units, 1, 0), ",",
-               if_else("Fire" %in% input$units, 1, 0), ",",
-               if_else("Wildland" %in% input$units, 1, 0), ",'",
-               input$area, "','",
-               input$call_notes, "',0)"
-               )
+        incident_statment_prep <- "INSERT INTO ?incident_table VALUES (?incident_id, ?dispatch_time, ?end_time, ?address, ?dispatch_reason, ?ems, ?fire, ?wildland, ?area, ?canceled, ?dropped, ?call_notes, 0);"
+        
+        # Interpolate the values into the SQL command safely
+        incident_statment <- sqlInterpolate(
+          app_data$CON,
+          incident_statment_prep,
+          incident_table = SQL(Sys.getenv("INCIDENT_TABLE")),
+          incident_id = input$incident_id,
+          dispatch_time = UTC_dispatch_time_date,
+          end_time = UTC_end_time_date,
+          address = input$address,
+          dispatch_reason = input$dispatch_reason,
+          ems = if_else("EMS" %in% input$units, 1, 0),
+          fire = if_else("Fire" %in% input$units, 1, 0),
+          wildland = if_else("Wildland" %in% input$units, 1, 0),
+          area = input$area,
+          canceled = if_else(input$canceled, 1, 0),
+          dropped = if_else(input$dropped, 1, 0),
+          call_notes = input$call_notes
+        )
         
         ###### Firefighter incident statement preparation ######
+        # No interpolation needed here, just a loop to build the statement
         firefighter_incident_statement <- paste0("INSERT INTO ", 
                    Sys.getenv("FF_INC_TABLE"), 
                    " (incident_id, firefighter_id) VALUES "
@@ -279,6 +270,7 @@ DBWriteServer <- function(id) {
         
         
         ###### Apparatus incident statement preparation ######
+        # No interpolation needed here, just a loop to build the statement
         apparatus_incident_statement <- paste0("INSERT INTO ", 
                                                  Sys.getenv("APP_INC_TABLE"), 
                                                  " (incident_id, apparatus_id) VALUES "
@@ -295,6 +287,7 @@ DBWriteServer <- function(id) {
         apparatus_incident_statement <- sub(",([^,]*)$", ";\\1", apparatus_incident_statement)
         
         ###### Firefighter Apparatus statement preparation ######
+        # No interpolation needed here, just a loop to build the statement
         firefighter_apparatus_statement <- paste0("INSERT INTO ", 
                                                  Sys.getenv("FF_APP_TABLE"), 
                                                  " (incident_id, firefighter_id, apparatus_id) VALUES "
@@ -382,8 +375,6 @@ CardServer <- function(id) {
         Incidents <- R_Incident()
         
         Firefighter_Incident <- R_Firefighter_Incident()
-        
-        # browser()
         
         Incidents <- Incidents[Incidents$incident_end_time >= Sys.time() - 48*3600, ] |> 
           arrange(desc(incident_end_time))

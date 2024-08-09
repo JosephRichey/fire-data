@@ -1,16 +1,16 @@
 # Main table data
 INSERT INTO cfddb.firefighter_TEST VALUES
-    (1, "Bill", "Preston", "Bill Preston", "2020-01-01", TRUE, TRUE, NULL),
-    (2, "Pete", "Mitchell", "Pete Mitchell", "2020-01-01", TRUE, TRUE, NULL),
-    (3, "Napolean", "Dynamite", "Napolean Dynamite", "2020-01-01", TRUE, TRUE, NULL),
-    (4, "Lane", "Meyer", "Lane Meyer", "2020-01-01", TRUE, FALSE , NULL),
-    (5, "Steve", "Rogers", "Steve Rogers", "2020-01-01", TRUE, FALSE, NULL),
-    (6, "Samwise", "Gamgee", "Samwise Gamgee", "2020-01-01", TRUE, FALSE, NULL),
-    (7, "Scott", "Pilgram", "Scott Pilgram", "2020-01-01", TRUE, FALSE, NULL),
-    (8, "Tyler", "Durden", "Tyler Durden", "2020-01-01", TRUE, FALSE, NULL),
-    (9, "Thomas", "Anderson", "Thomas Anderson", "2020-01-01", TRUE, FALSE, NULL),
-    (10, "George", "Bailey", "George Bailey", "2020-01-01", TRUE, FALSE, "2021-01-05"),
-    (11, "Marty", "McFly", "Marty McFly", "2020-01-01", TRUE, FALSE, NULL);
+    (1, "Bill", "Preston", "Bill Preston", "1989-02-17", TRUE, TRUE, NULL),
+    (2, "Pete", "Mitchell", "Pete Mitchell", "1986-05-16", TRUE, TRUE, NULL),
+    (3, "Napolean", "Dynamite", "Napolean Dynamite", "2004-06-11", TRUE, TRUE, NULL),
+    (4, "Lane", "Meyer", "Lane Meyer", "1985-10-11", TRUE, FALSE , NULL),
+    (5, "Steve", "Rogers", "Steve Rogers", "2011-07-22", TRUE, FALSE, NULL),
+    (6, "Samwise", "Gamgee", "Samwise Gamgee", "2001-12-19", TRUE, FALSE, NULL),
+    (7, "Scott", "Pilgram", "Scott Pilgram", "2010-08-13", TRUE, FALSE, NULL),
+    (8, "Angela", "Bennett", "Angela Bennett", "1985-07-28", TRUE, FALSE, NULL),
+    (9, "Thomas", "Anderson", "Thomas Anderson", "1999-03-31", TRUE, FALSE, NULL),
+    (10, "George", "Bailey", "George Bailey", "1946-12-20", TRUE, FALSE, "1945-12-24"),
+    (11, "Marty", "McFly", "Marty McFly", "1985-07-03", TRUE, FALSE, NULL);
 
 INSERT INTO cfddb.apparatus_TEST values
 (1, 'Battalion 1'),
@@ -416,16 +416,16 @@ INSERT INTO cfddb.attendance_TEST VALUES
 
 # Incident Tables data
 INSERT INTO cfddb.incident_TEST VALUES 
-('1', '2024-07-21 08:15:00.01', '2024-07-21 09:30:00.01', '123 Maple Avenue', 'Head Injury', 1, 0, 0, 'Municipality', '', 0),
-('2', '2024-07-21 10:00:00.01', '2024-07-21 11:15:00.01', '456 Oak Street', 'Fractured Bone', 1, 0, 0, 'Primary Area', '', 0),
-('3', '2024-07-21 12:30:00.01', '2024-07-21 13:45:00.01', '789 Pine Road', 'Burn Injury', 1, 0, 0, 'Municipality', '', 0),
-('4', '2024-07-21 14:00:00.01', '2024-07-21 15:15:00.01', '101 Birch Lane', 'Respiratory Issue', 1, 0, 0, 'Primary Area', '', 0),
-('5', '2024-07-21 16:00:00.01', '2024-07-21 17:15:00.01', '202 Cedar Court', 'Grass Fire', 0, 1, 1, 'Outside Aid', '', 0),
-('6', '2024-07-21 18:30:00.01', '2024-07-21 19:45:00.01', '303 Elm Street', 'Stroke', 1, 0, 0, 'Primary Area', '', 0),
-('7', '2024-07-21 20:00:00.01', '2024-07-21 21:15:00.01', '404 Maple Drive', 'Seizure', 1, 0, 0, 'Municipality', '', 0),
-('8', '2024-07-21 22:00:00.01', '2024-07-21 23:15:00.01', '505 Oak Avenue', 'Grass Fire', 1, 0, 1, 'Mutual Aid', '', 0),
-('9', '2024-07-22 00:30:00.01', '2024-07-22 01:45:00.01', '606 Pine Lane', 'Drug Overdose', 0, 1, 0, 'Municipality', '', 0),
-('10', date_sub(sysdate(), interval 4 hour), sysdate(), '707 Birch Road', 'Structure Fire', 1, 1, 1, 'Primary Area', '', 0);
+('1', '2024-07-21 08:15:00.01', '2024-07-21 09:30:00.01', '123 Maple Avenue', 'Head Injury', 1, 0, 0, 'Municipality', 1, 0, '', 0),
+('2', '2024-07-21 10:00:00.01', '2024-07-21 11:15:00.01', '456 Oak Street', 'Fractured Bone', 1, 0, 0, 'Primary Area', 0, 1, '', 0),
+('3', '2024-07-21 12:30:00.01', '2024-07-21 13:45:00.01', '789 Pine Road', 'Burn Injury', 1, 0, 0, 'Municipality', 0, 0, '', 0),
+('4', '2024-07-21 14:00:00.01', '2024-07-21 15:15:00.01', '101 Birch Lane', 'Respiratory Issue', 1, 0, 0, 'Primary Area', 0, 0, '', 0),
+('5', '2024-07-21 16:00:00.01', '2024-07-21 17:15:00.01', '202 Cedar Court', 'Grass Fire', 0, 1, 1, 'Outside Aid', 0, 0, '', 0),
+('6', '2024-07-21 18:30:00.01', '2024-07-21 19:45:00.01', '303 Elm Street', 'Stroke', 1, 0, 0, 'Primary Area', 0, 0, '', 0),
+('7', '2024-07-21 20:00:00.01', '2024-07-21 21:15:00.01', '404 Maple Drive', 'Seizure', 1, 0, 0, 'Municipality', 0, 0, '', 0),
+('8', '2024-07-21 22:00:00.01', '2024-07-21 23:15:00.01', '505 Oak Avenue', 'Grass Fire', 1, 0, 1, 'Mutual Aid', 0, 0, '', 0),
+('9', '2024-07-22 00:30:00.01', '2024-07-22 01:45:00.01', '606 Pine Lane', 'Drug Overdose', 0, 1, 0, 'Municipality', 0, 0, '', 0),
+('10', date_sub(sysdate(), interval 4 hour), sysdate(), '707 Birch Road', 'Structure Fire', 1, 1, 1, 'Primary Area', 0, 0, '', 0);
 
 INSERT INTO cfddb.firefighter_incident_TEST (incident_id, firefighter_id, time_adjustment) VALUES
 ('1', 5, NULL),
@@ -433,11 +433,6 @@ INSERT INTO cfddb.firefighter_incident_TEST (incident_id, firefighter_id, time_a
 ('1', 6, NULL),
 ('1', 2, NULL),
 ('1', 11, NULL),
-('2', 4, NULL),
-('2', 8, NULL),
-('2', 7, NULL),
-('2', 3, NULL),
-('2', 9, NULL),
 ('3', 5, NULL),
 ('3', 6, NULL),
 ('3', 7, NULL),
@@ -492,8 +487,6 @@ INSERT INTO cfddb.firefighter_incident_TEST (incident_id, firefighter_id, time_a
 
 INSERT INTO cfddb.apparatus_incident_TEST (incident_id, apparatus_id, time_adjustment) VALUES
 ('1', 2, NULL),
-('2', 1, NULL),
-('2', 2, NULL),
 ('3', 3, NULL),
 ('4', 2, NULL),
 ('5', 4, NULL),
@@ -519,11 +512,6 @@ INSERT INTO cfddb.firefighter_apparatus_TEST (incident_id, firefighter_id, appar
 ('1', 6, 2),
 ('1', 2, 2),
 ('1', 11, 2),
-('2', 4, 1),
-('2', 8, 2),
-('2', 7, 2),
-('2', 3, 2),
-('2', 9, 1),
 ('3', 5, 3),
 ('3', 6, 3),
 ('3', 7, 3),

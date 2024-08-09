@@ -6,15 +6,17 @@ box::use(
 #' @export
 CON <- dbConnect(RMySQL::MySQL(),
                 dbname = "cfddb",
-                host = Sys.getenv("CFDDB_HOST"),
+                host = Sys.getenv("DB_HOST"),
                 port = 3306,
                 user = "admin",
-                password = Sys.getenv("CFDDB_PASSWORD"))
+                password = Sys.getenv("DB_PASSWORD"))
 
 #' @export
 Training <- dbGetQuery(CON,
                        paste0("SELECT * FROM ", Sys.getenv("TRAINING_TABLE"),
-                       " WHERE training_delete IS NULL"))
+                       " WHERE training_delete IS NULL")) |> 
+  mutate(training_start_time = as.POSIXct(training_start_time, format = "%Y-%m-%d %H:%M:%OS"),
+         training_end_time = as.POSIXct(training_end_time, format = "%Y-%m-%d %H:%M:%OS"))
 
 #' @export
 Firefighter <- dbGetQuery(CON,

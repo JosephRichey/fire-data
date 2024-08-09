@@ -6,7 +6,6 @@ box::use(
   bslib[...],
   DT[...],
   DBI[dbDisconnect],
-  # thematic[...],
 )
 
 box::use(
@@ -16,7 +15,6 @@ box::use(
   logic/app_data,
 )
 
-# thematic_shiny()
 
 #' @export
 ui <- function(id) {
@@ -25,6 +23,7 @@ ui <- function(id) {
     title = paste0(Sys.getenv('FD'), " - Data Portal"),
     theme = bs_theme(version = 5,
                      success = "#87292b",
+                     primary = '#ae3537',
                      bootswatch = "darkly"),
     nav_panel(title = "Training",
               layout_sidebar(
@@ -36,41 +35,6 @@ ui <- function(id) {
                 training$Output(ns('training'))
               )
     ),
-
-    # nav_panel(title = "Attendance Management",
-    #             navset_pill(
-    #               nav_panel(title = "Training",
-    #                 layout_sidebar(
-    #                   sidebar = sidebar(
-    #                     width = 400,
-    #                     open = 'desktop',
-    #                     actionButton('add_missing_attendance',
-    #                                  'Add Missing Attendance'),
-    #                     actionButton('delete_attendance',
-    #                                  'Delete Attendance'),
-    #                     actionButton('submit_changes',
-    #                                  'Submit Changes')
-    #                   ),
-    #                   card(
-    #                     height = 600,
-    #                     card_body(
-    #                     app_data$Attendance |>
-    #                       dplyr::left_join(app_data$Firefighter) |>
-    #                       dplyr::left_join(app_data$Training) |>
-    #                       dplyr::select(training_type, training_topic,
-    #                                     firefighter_full_name,
-    #                                     check_in, check_out) |>
-    #                       DT::datatable(editable = TRUE)
-    #                     )
-    #                   )
-    #
-    #                 ),
-    #               ),
-    #               nav_panel(title = "Calls"
-    #
-    #               )
-    #             ),
-    #           ),
 
     nav_panel(title = "Manage Roster",
               layout_sidebar(
@@ -86,40 +50,32 @@ ui <- function(id) {
 
     ),
 
-    # nav_panel(title = "Training Summary",
-    #           navset_pill(
-    #             # bg = "#87292b",
-    #             nav_panel(title = "Individual",
-    #                       layout_sidebar(
-    #                         sidebar = sidebar(
-    #                           title = "Set Filters",
-    #                           summary$UI(ns('ind_summary'), "Individual")
-    #                           ),
-    #                         summary$Output(ns('ind_summary'), "Individual")
-    #                         )
-    #                       ),
-    #
-    #             nav_panel(title = "Department",
-    #                       layout_sidebar(
-    #                         sidebar = sidebar(
-    #                           title = "Set Filters",
-    #                           summary$UI(ns('dep_summary'), "Department")
-    #                           ),
-    #                         summary$Output(ns('dep_summary'), "Department")
-    #                         )
-    #                       )
-    #             )
-    #
-    #
-    # ),
-    nav_spacer(),
-    nav_menu(
-      title = "Settings",
-      align = "right"#,
-      # nav_item(actionButton(ns("sign_out"), "Lock"), align = "center"),
-      # nav_item(helpText("v0.2.0-beta"), align = "center")
+    nav_panel(title = "Training Summary",
+              navset_pill(
+                nav_panel(title = "Individual",
+                          layout_sidebar(
+                            sidebar = sidebar(
+                              title = "Set Filters",
+                              summary$UI(ns('ind_summary'), "Individual")
+                              ),
+                            summary$Output(ns('ind_summary'), "Individual")
+                            )
+                          ),
+
+                nav_panel(title = "Department",
+                          layout_sidebar(
+                            sidebar = sidebar(
+                              title = "Set Filters",
+                              summary$UI(ns('dep_summary'), "Department")
+                              ),
+                            summary$Output(ns('dep_summary'), "Department")
+                            )
+                          )
+                )
+
     ),
-    helpText("v0.2.3 © CC BY-NC-SA 2024 Joseph Richey")
+    nav_spacer(),
+    helpText("v0.3.0 © CC BY-NC-SA 2024 Joseph Richey")
 
   )
 }
@@ -130,28 +86,6 @@ server <- function(id) {
 
     ##### Global Stuff #####
     ns <- session$ns
-    # Sign in/out capabilities
-    ## NOT MEANT TO BE SECURE
-    # observeEvent(input$sign_out, {
-    #   showModal(modalDialog(
-    #     textInput(ns("username"), "Username"),
-    #     passwordInput(ns("password"), "Password"),
-    #     title = "Unlock",
-    #     footer = tagList(
-    #       actionButton(ns("sign_in"), "Unlock")
-    #     )
-    #   ))
-    # }, ignoreNULL = FALSE)
-
-    # Check password and username
-    # observeEvent(input$sign_in, {
-    #   # browser()
-    #   if(input$username == "CFD" && input$password == "1975") {
-    #     removeModal()
-    #   } else {
-    #     stopApp()
-    #   }
-    # })
 
     training$Server('training')
 
