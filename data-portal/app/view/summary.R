@@ -121,7 +121,7 @@ Server <- function(id, ag_level) {
           mutate(training_date = with_tz(training_start_time, tzone = Sys.getenv('LOCAL_TZ'))) |>
           # Note, all three dates are in the local time zone
           filter(training_date >= input$training_filter_range[1] & training_date <= input$training_filter_range[2]) |>
-          mutate(training_length = difftime(hms::as_hms(training_end_time), hms::as_hms(training_start_time), units = 'hours') |> as.numeric())
+          mutate(training_length = difftime(training_end_time, training_start_time, units = 'hours') |> as.numeric())
 
         # Filter to indiviual if that's the level of aggregation
         if(ag_level == "Individual") {
