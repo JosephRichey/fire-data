@@ -9,7 +9,6 @@ box::use(
 
 box::use(
   app/view/check_in_out,
-  # app/view/current_status,
 )
 
 #' @export
@@ -43,7 +42,7 @@ ui <- function(id) {
     ),
     
     br(),
-    helpText("v0.2.3"),
+    helpText("v0.3.0 dev"),
     helpText("© CC BY-NC-SA 2024 Joseph Richey")
     
   )

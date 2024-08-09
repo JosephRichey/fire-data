@@ -157,6 +157,8 @@ Server <- function(id) {
       observeEvent(input$confirm_check_in, {
         # browser()
         removeModal()
+        
+        # No sqlInterpolate needed. All inputs are preselected.
         sql_command <- paste0(
           "INSERT INTO ", Sys.getenv("ATTENDANCE_TABLE"), "(firefighter_id, training_id, check_in, check_out) VALUES (",
            rvs$target_ff_id, ", ",
@@ -188,6 +190,7 @@ Server <- function(id) {
       observeEvent(input$confirm_check_out, {
         removeModal()
         
+        # No sqlInterpolate needed. All inputs are preselected.
         sql_command <- paste0(
           "UPDATE ", Sys.getenv("ATTENDANCE_TABLE"), " SET check_out = ",
           "'", as.POSIXct(Sys.time()), "'",
