@@ -41,17 +41,14 @@ UI <- function(id, ag_level) {
                      "Show trainings between:",
                      start = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')) - years(1),
                      end = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ'))),
-      actionButton(ns("generate_summary"), "Generate Summary")
-      # downloadButton(ns("download"), "Download Firefighter Training Summary")
+      downloadButton(ns("download"), "Download Firefighter Training Data")
     )
   } else {
     tagList(
       dateRangeInput(ns('training_filter_range'),
                      "Show trainings between:",
                      start = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')) - years(1),
-                     end = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ'))),
-      actionButton(ns("generate_summary"), "Generate Summary")
-      # downloadButton(ns("download"), "Download Firefighter Training Summary")
+                     end = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')))
     )
   }
 
@@ -106,7 +103,7 @@ Server <- function(id, ag_level) {
     id,
     function(input, output, session) {
 
-      R_Data <- eventReactive(input$generate_summary, {
+      R_Data <- reactive({
         # browser()
         # showPageSpinner(image = sample(gif_links, 1),
         #                 background = '#2D2D2D')
@@ -231,29 +228,29 @@ Server <- function(id, ag_level) {
         plot
       })
 
-      #FIXME - Download handler not currently working. Namespace error somewhere.
-      # # Data Download
-      # R_Data_Download <- reactive({
-      #   R_Data() |>
-      #     select(firefighter_full_name, training_type, training_topic,
-      #            check_in, check_out, auto_checkout,
-      #            training_length, training_description, date)
-      # })
-      #
-      # # Download Handler
-      # output$download <- downloadHandler(
-      #   filename = function() {
-      #     # paste0(if_else(ag_level == "Individual",
-      #     #                input$firefighter_full_name,
-      #     #                'departmnet'),
-      #     #        "-training-data_", Sys.Date(), ".csv")
-      #     'test.csv'
-      #   },
-      #   content = function(file) {
-      #     write.csv(R_Data_Download(), file)
-      #   }
-      # )
+      # Data Download
+      R_Data_Download <- reactive({
+        print('Generating Data Download')
+        R_Data() |>
+          select(firefighter_full_name, training_type, training_topic,
+                 check_in, check_out, auto_checkout,
+                 training_length, training_description)
+      })
 
+      # Download Handler
+      output$download <- downloadHandler(
+
+
+        filename = function() {
+          name <- paste0(input$summary_firefighter,
+                 "-training-data_", Sys.Date(), ".csv")
+          name <- gsub(" ", "-", name)
+          return(name)
+        },
+        content = function(file) {
+          utils::write.csv(R_Data_Download(), file)
+        }
+      )
 
     }
   )
