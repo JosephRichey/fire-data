@@ -1,5 +1,5 @@
 name: Call Attendance Tests
-on: 
+on:
   push:
     paths:
       - 'call-attendance-prototype/**'
@@ -9,11 +9,18 @@ jobs:
   main:
     name: Run linters and tests
     runs-on: ubuntu-20.04
-    defaults: 
+    defaults:
       run:
         working-directory: ./call-attendance
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      DB_HOST: ${{ secrets.DB_HOST}}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD}}
+      TRAINING_TABLE: ${{ secrets.TRAINING_TABLE}}
+      FIREFIGHTER_TABLE: ${{ secrets.FIREFIGHTER_TABLE}}
+      ATTENDANCE_TABLE: ${{ secrets.ATTENDANCE_TABLE}}
+      TZ: ${{ secrets.TZ}}
+      LOCAL_TZ: ${{ secrets.LOCAL_TZ}}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2

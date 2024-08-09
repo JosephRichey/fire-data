@@ -32,8 +32,7 @@ ui <- function(id) {
     incident_response$Output(ns('incident_response')),
     
     br(),
-    helpText("v0.3.0 dev"),
-    helpText("© CC BY-NC-SA 2024 Joseph Richey")
+    helpText("v0.3.0 © CC BY-NC-SA 2024 Joseph Richey")
   )
 }
 
