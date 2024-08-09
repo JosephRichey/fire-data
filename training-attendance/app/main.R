@@ -9,7 +9,6 @@ box::use(
 
 box::use(
   app/view/check_in_out,
-  # app/view/current_status,
 )
 
 #' @export
@@ -39,6 +38,8 @@ ui <- function(id) {
         ),
         min_height = "1200px"
       ),
+      check_in_out$Button(ns('check_in_out')),
+      
       col_widths = c(12, 12)
     ),
     

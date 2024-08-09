@@ -7,7 +7,6 @@ box::use(
   DBI[...],
   tibble[...],
   lubridate[...],
-  # shinycssloaders[...],
   hms[...],
   bsicons[...],
   plotly[...],
@@ -20,15 +19,6 @@ box::use(
   ../logic/functions,
   ../modals/modals,
 )
-
-
-gif_links <- c(
-  'https://media.tenor.com/qzmne_pCrr4AAAAi/firefighter-happily.gif',
-  'https://media.tenor.com/XhKWVvUOww8AAAAi/dagvandebrandweer-dvdb.gif',
-  'https://media.tenor.com/RuIhm-j5F80AAAAi/bomberos-bilbao.gif'
-)
-
-
 
 #' @export
 UI <- function(id, ag_level) {
@@ -51,7 +41,6 @@ UI <- function(id, ag_level) {
                      end = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')))
     )
   }
-
 }
 
 #' @export
@@ -104,10 +93,6 @@ Server <- function(id, ag_level) {
     function(input, output, session) {
 
       R_Data <- reactive({
-        # browser()
-        # showPageSpinner(image = sample(gif_links, 1),
-        #                 background = '#2D2D2D')
-        # Sys.sleep(1)
 
         A <- app_data$Attendance |>
           left_join(app_data$Firefighter |> select(firefighter_id, firefighter_full_name),
@@ -127,8 +112,6 @@ Server <- function(id, ag_level) {
         } else {
           A
         }
-
-        # hidePageSpinner()
 
         return(A)
 
@@ -213,17 +196,6 @@ Server <- function(id, ag_level) {
                  paper_bgcolor = '#222222',
                  font = list(color = '#FFFFFF'),
                  showlegend = TRUE)
-
-        # plot <- ggplot(plot_data, aes(x = Month, y = Total_Length, color = training_type, group = training_type)) +
-        #   geom_line() +
-        #   scale_color_manual(values = c("blue", "red", "green", 'grey')) +
-        #   geom_point() +
-        #   labs(title = "Training Summary",
-        #        x = "Month",
-        #        y = "Training Length (hours)",
-        #        color = "Training Type",
-        #        text = paste("Total Hours: ", plot_data$Total_Length, " hours")) +
-        #   theme_minimal()
 
         plot
       })
