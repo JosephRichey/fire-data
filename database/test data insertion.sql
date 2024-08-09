@@ -1,16 +1,16 @@
 # Main table data
 INSERT INTO cfddb.firefighter_TEST VALUES
-    (1, "Bill", "Preston", "Bill Preston", "2020-01-01", TRUE, TRUE, NULL),
-    (2, "Pete", "Mitchell", "Pete Mitchell", "2020-01-01", TRUE, TRUE, NULL),
-    (3, "Napolean", "Dynamite", "Napolean Dynamite", "2020-01-01", TRUE, TRUE, NULL),
-    (4, "Lane", "Meyer", "Lane Meyer", "2020-01-01", TRUE, FALSE , NULL),
-    (5, "Steve", "Rogers", "Steve Rogers", "2020-01-01", TRUE, FALSE, NULL),
-    (6, "Samwise", "Gamgee", "Samwise Gamgee", "2020-01-01", TRUE, FALSE, NULL),
-    (7, "Scott", "Pilgram", "Scott Pilgram", "2020-01-01", TRUE, FALSE, NULL),
-    (8, "Tyler", "Durden", "Tyler Durden", "2020-01-01", TRUE, FALSE, NULL),
-    (9, "Thomas", "Anderson", "Thomas Anderson", "2020-01-01", TRUE, FALSE, NULL),
-    (10, "George", "Bailey", "George Bailey", "2020-01-01", TRUE, FALSE, "2021-01-05"),
-    (11, "Marty", "McFly", "Marty McFly", "2020-01-01", TRUE, FALSE, NULL);
+    (1, "Bill", "Preston", "Bill Preston", "1989-02-17", TRUE, TRUE, NULL),
+    (2, "Pete", "Mitchell", "Pete Mitchell", "1986-05-16", TRUE, TRUE, NULL),
+    (3, "Napolean", "Dynamite", "Napolean Dynamite", "2004-06-11", TRUE, TRUE, NULL),
+    (4, "Lane", "Meyer", "Lane Meyer", "1985-10-11", TRUE, FALSE , NULL),
+    (5, "Steve", "Rogers", "Steve Rogers", "2011-07-22", TRUE, FALSE, NULL),
+    (6, "Samwise", "Gamgee", "Samwise Gamgee", "2001-12-19", TRUE, FALSE, NULL),
+    (7, "Scott", "Pilgram", "Scott Pilgram", "2010-08-13", TRUE, FALSE, NULL),
+    (8, "Angela", "Bennett", "Angela Bennett", "1985-07-28", TRUE, FALSE, NULL),
+    (9, "Thomas", "Anderson", "Thomas Anderson", "1999-03-31", TRUE, FALSE, NULL),
+    (10, "George", "Bailey", "George Bailey", "1946-12-20", TRUE, FALSE, "1945-12-24"),
+    (11, "Marty", "McFly", "Marty McFly", "1985-07-03", TRUE, FALSE, NULL);
 
 INSERT INTO cfddb.apparatus_TEST values
 (1, 'Battalion 1'),

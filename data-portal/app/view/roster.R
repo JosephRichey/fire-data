@@ -52,6 +52,7 @@ Server <- function(id) {
       output$roster_table <- renderDT({
 
         Table_Data <- rv() |>
+          dplyr::filter(is.na(firefighter_deactive_date)) |>
           select(firefighter_first_name, firefighter_last_name, firefighter_start_date)
 
         Table_Data <- functions$FixColNames(Table_Data)

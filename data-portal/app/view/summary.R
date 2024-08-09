@@ -41,17 +41,14 @@ UI <- function(id, ag_level) {
                      "Show trainings between:",
                      start = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')) - years(1),
                      end = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ'))),
-      actionButton(ns("generate_summary"), "Generate Summary")
-      # downloadButton(ns("download"), "Download Firefighter Training Summary")
+      downloadButton(ns("download"), "Download Firefighter Training Data")
     )
   } else {
     tagList(
       dateRangeInput(ns('training_filter_range'),
                      "Show trainings between:",
                      start = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')) - years(1),
-                     end = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ'))),
-      actionButton(ns("generate_summary"), "Generate Summary")
-      # downloadButton(ns("download"), "Download Firefighter Training Summary")
+                     end = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')))
     )
   }
 
@@ -71,19 +68,19 @@ Output <- function(id, ag_level) {
         value_box("EMS Hours",
                   textOutput(ns("ems_hours")),
                   showcase = bs_icon('activity',
-                                     class = 'text-success')),
+                                     class = 'text-info')),
         value_box("Fire Hours",
                   textOutput(ns("fire_hours")),
                   showcase = bs_icon('fire',
-                                     class = 'text-success')),
+                                     class = 'text-danger')),
         value_box("Wildland Hours",
                   textOutput(ns("wildland_hours")),
                   showcase = bs_icon('tree-fill',
-                                     class = 'text-success')),
+                                     color = '#00BC8C')),
         value_box("Other Hours",
                   textOutput(ns("other_hours")),
                   showcase = bs_icon('question-circle-fill',
-                                     class = 'text-success')),
+                                     class = 'text-light')),
 
         col_widths = c(6,6),
         row_widths = c(1,1)
@@ -106,7 +103,7 @@ Server <- function(id, ag_level) {
     id,
     function(input, output, session) {
 
-      R_Data <- eventReactive(input$generate_summary, {
+      R_Data <- reactive({
         # browser()
         # showPageSpinner(image = sample(gif_links, 1),
         #                 background = '#2D2D2D')
@@ -121,7 +118,7 @@ Server <- function(id, ag_level) {
           mutate(training_date = with_tz(training_start_time, tzone = Sys.getenv('LOCAL_TZ'))) |>
           # Note, all three dates are in the local time zone
           filter(training_date >= input$training_filter_range[1] & training_date <= input$training_filter_range[2]) |>
-          mutate(training_length = difftime(hms::as_hms(training_end_time), hms::as_hms(training_start_time), units = 'hours') |> as.numeric())
+          mutate(training_length = difftime(training_end_time, training_start_time, units = 'hours') |> as.numeric())
 
         # Filter to indiviual if that's the level of aggregation
         if(ag_level == "Individual") {
@@ -142,34 +139,35 @@ Server <- function(id, ag_level) {
         # browser()
 
         R_Data() |>
+          filter(credit == 1) |>
           select(training_length) |>
           sum()
       })
 
       output$ems_hours <- renderText({
         R_Data() |>
-          filter(training_type == "EMS") |>
+          filter(training_type == "EMS" & credit == 1) |>
           select(training_length) |>
           sum()
       })
 
       output$fire_hours <- renderText({
         R_Data() |>
-          filter(training_type == "Fire") |>
+          filter(training_type == "Fire" & credit == 1) |>
           select(training_length) |>
           sum()
       })
 
       output$wildland_hours <- renderText({
         R_Data() |>
-          filter(training_type == "Wildland") |>
+          filter(training_type == "Wildland" & credit == 1) |>
           select(training_length) |>
           sum()
       })
 
       output$other_hours <- renderText({
         R_Data() |>
-          filter(training_type == "Other") |>
+          filter(training_type == "Other" & credit == 1) |>
           select(training_length) |>
           sum()
       })
@@ -178,7 +176,8 @@ Server <- function(id, ag_level) {
         # browser()
         # Assuming your dataframe has a "date" column
         Training_Data <- R_Data() %>%
-          mutate(Month = format(as.Date(training_date), "%Y-%m"))
+          mutate(Month = format(as.Date(training_date), "%Y-%m")) |>
+          filter(credit == 1)
 
         # Generate a complete set of months
         all_months <- expand.grid(training_type = unique(Training_Data$training_type),
@@ -198,11 +197,21 @@ Server <- function(id, ag_level) {
                         color = ~training_type,
                         type = 'scatter',
                         mode = 'lines',
-                        colors = c("blue", "red", "green", 'grey'),
+                        colors = c("EMS" = "#3498DB", "Fire" = "#E74C3C", "Wildland" = "#00BC8C", "Other" = '#ADB5BD'),
                         text = ~paste("Total Hours: ", Total_Length, " hours")) %>%
           layout(title = "Training Summary",
-                 xaxis = list(title = "Month"),
-                 yaxis = list(title = "Training Length (hours)", zeroline = FALSE),
+                 xaxis = list(title = "Month",
+                              titlefont = list(color = '#FFFFFF'),
+                              tickfont = list(color = '#FFFFFF'),
+                              gridcolor = '#2d2d2d'),
+                 yaxis = list(title = "Training Length (hours)",
+                              titlefont = list(color = '#FFFFFF'),
+                              tickfont = list(color = '#FFFFFF'),
+                              gridcolor = '#2d2d2d',
+                              zeroline = FALSE),
+                 plot_bgcolor = '#222222',
+                 paper_bgcolor = '#222222',
+                 font = list(color = '#FFFFFF'),
                  showlegend = TRUE)
 
         # plot <- ggplot(plot_data, aes(x = Month, y = Total_Length, color = training_type, group = training_type)) +
@@ -219,29 +228,29 @@ Server <- function(id, ag_level) {
         plot
       })
 
-      #FIXME - Download handler not currently working. Namespace error somewhere.
-      # # Data Download
-      # R_Data_Download <- reactive({
-      #   R_Data() |>
-      #     select(firefighter_full_name, training_type, training_topic,
-      #            check_in, check_out, auto_checkout,
-      #            training_length, training_description, date)
-      # })
-      #
-      # # Download Handler
-      # output$download <- downloadHandler(
-      #   filename = function() {
-      #     # paste0(if_else(ag_level == "Individual",
-      #     #                input$firefighter_full_name,
-      #     #                'departmnet'),
-      #     #        "-training-data_", Sys.Date(), ".csv")
-      #     'test.csv'
-      #   },
-      #   content = function(file) {
-      #     write.csv(R_Data_Download(), file)
-      #   }
-      # )
+      # Data Download
+      R_Data_Download <- reactive({
+        print('Generating Data Download')
+        R_Data() |>
+          select(firefighter_full_name, training_type, training_topic,
+                 check_in, check_out, auto_checkout,
+                 training_length, training_description)
+      })
 
+      # Download Handler
+      output$download <- downloadHandler(
+
+
+        filename = function() {
+          name <- paste0(input$summary_firefighter,
+                 "-training-data_", Sys.Date(), ".csv")
+          name <- gsub(" ", "-", name)
+          return(name)
+        },
+        content = function(file) {
+          utils::write.csv(R_Data_Download(), file)
+        }
+      )
 
     }
   )
