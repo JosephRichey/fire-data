@@ -36,7 +36,7 @@ See a fully functioning example app <a href = "https://fire-data.shinyapps.io/da
 
 ### Training Attendance
 
-This is the most tried and tested app currently. This allows people to check in and out of trainings for training hours.
+This is the most tried and tested app currently. This allows people to check in and out of trainings for training hours. The admin password to sign everyone out is "positconf2024".
 
 Upcoming features include:
 
