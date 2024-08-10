@@ -100,7 +100,7 @@ Server <- function(id, ag_level) {
           left_join(app_data$Training |> select(training_id, training_type, training_topic, training_description, training_start_time, training_end_time),
                     by = c("training_id" = "training_id")) |>
           select(-c(attendance_id, firefighter_id, training_id)) |>
-          mutate(training_date = with_tz(training_start_time, tzone = Sys.getenv('LOCAL_TZ'))) |>
+          mutate(training_date = with_tz(training_start_time, tzone = Sys.getenv('LOCAL_TZ'))|> as.Date())  |>
           # Note, all three dates are in the local time zone
           filter(training_date >= input$training_filter_range[1] & training_date <= input$training_filter_range[2]) |>
           mutate(training_length = difftime(training_end_time, training_start_time, units = 'hours') |> as.numeric())
