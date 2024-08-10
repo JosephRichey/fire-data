@@ -65,7 +65,7 @@ Server <- function(id) {
         showModal(modalDialog(
           textInput(ns('add_first_name'), 'First Name'),
           textInput(ns('add_last_name'), 'Last Name'),
-          dateInput(ns('ff_start_date'), 'Start Date', value = Sys.Date()),
+          dateInput(ns('ff_start_date'), 'Start Date', value = app_data$Local_Date),
           title = "Add Firefighter",
           footer = tagList(
             actionButton(ns("action_add_firefigher"), "Add Firefighter")
