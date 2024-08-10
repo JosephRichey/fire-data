@@ -2,7 +2,7 @@ name: Call Attendance Tests
 on:
   push:
     paths:
-      - 'call-attendance-prototype/**'
+      - 'incident-response/**'
 permissions:
   contents: read
 jobs:
@@ -11,7 +11,8 @@ jobs:
     runs-on: ubuntu-20.04
     defaults:
       run:
-        working-directory: ./call-attendance
+        working-directory: ./incident-response
+
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       DB_HOST: ${{ secrets.DB_HOST}}
