@@ -242,7 +242,7 @@ Server <- function(id) {
           modalDialog(
             title = "Confirm Check Out",
             "Please enter an admin password",
-            passwordInput(ns("admin_password"), "Admin Password"),
+            passwordInput(ns("admin_password"), ""),
             footer = tagList(
               actionButton(ns("confirm_all_checkout"), "Confirm Check Out"),
               actionButton(ns("cancel_all_checkout"), "Cancel")
@@ -266,7 +266,7 @@ Server <- function(id) {
         removeModal()
         
         # Check if admin password is correct
-        if(input$admin_password != 'shinyfire') {
+        if(input$admin_password != 'positconf2024') {
           showModal(
             modals$warningModal("Admin password incorrect. Please try again.")
           )
