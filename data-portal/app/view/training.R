@@ -75,7 +75,7 @@ Output <- function(id) {
   ns <- NS(id)
   tagList(
     card(
-        div(DTOutput(ns('view_trainings')), style = 'background: #000000')
+        div(DTOutput(ns('view_trainings')), style = 'background: #2D2D2D')
     )
   )
 
@@ -174,7 +174,7 @@ Server <- function(id) {
           )
         } else if (x == "Other") {
           updateSelectInput(session,
-                            "modify_training_topic",
+                            "add_training_topic",
                             choices = c("General")
           )
         }
@@ -259,17 +259,24 @@ Server <- function(id) {
           return()
         }
 
-        sql_command <- paste0(
-          "INSERT INTO ", Sys.getenv("TRAINING_TABLE")," (training_type, training_topic, training_description, training_start_time, training_end_time, training_trainer, training_delete) VALUES ('",
-          input$add_training_type, "', '",
-          input$add_training_topic, "', '",
-          input$add_description, "', '",
-          local_start_time |> with_tz(), "', '",
-          local_end_time |> with_tz(), "', '",
-          input$add_training_trainer, "', NULL);"
+        # Use sqlInterpolate
+        sql_command <- "INSERT INTO ?training_table (training_type, training_topic, training_description, training_start_time, training_end_time, training_trainer, training_delete) VALUES (?training_type, ?training_topic, ?training_description, ?training_start_time, ?training_end_time, ?training_trainer, NULL);"
+
+        safe_sql <- sqlInterpolate(
+          app_data$CON,
+          sql_command,
+          training_table = SQL(Sys.getenv("TRAINING_TABLE")),
+          training_type = input$add_training_type,
+          training_topic = input$add_training_topic,
+          training_description = input$add_description,
+          training_start_time = local_start_time |> with_tz(),
+          training_end_time = local_end_time |> with_tz(),
+          training_trainer = input$add_training_trainer
         )
 
-        write_result <- DBI::dbExecute(app_data$CON, sql_command)
+        # Execute the safely interpolated SQL command
+        write_result <- dbExecute(app_data$CON, safe_sql)
+
 
         if(write_result == 1) {
           showModal(
@@ -285,6 +292,7 @@ Server <- function(id) {
           )
         }
 
+        # browser()
         updateReactiveValue()
 
 
@@ -327,44 +335,44 @@ Server <- function(id) {
       })
 
 
-      observeEvent(input$action_modify_training, {
-        # browser()
-        removeModal()
-
-        cell_click <- input$view_trainings_cell_clicked
-        modify_training_id <- row.names(rv()[cell_click$row,])
-
-
-        sql_command <- paste0(
-          "UPDATE ", Sys.getenv("TRAINING_TABLE")," SET training_type = '", input$modify_training_type,
-          "', training_topic = '", input$modify_training_topic,
-          "', training_description = '", input$modify_description,
-          "', training_date = '", input$modify_training_date,
-          "', training_start_time = '", input$modify_start_time |> strftime(format = "%T"),
-          "', training_end_time = '", input$modify_end_time |> strftime(format = "%T"),
-          "', training_trainer = '", input$modify_training_trainer,
-          "' WHERE training_id = ", modify_training_id, ";"
-        )
-
-        write_result <- DBI::dbExecute(app_data$CON, sql_command)
-
-        if(write_result == 1) {
-          showModal(
-            modalDialog(
-              title = "Success",
-              "Your training has been successfully modified. You may now close this window.",
-              easyClose = TRUE
-            )
-          )
-        } else {
-          showModal(
-            modals$errorModal(paste("Training modify failed with write result equal to", write_result))
-          )
-        }
-
-        updateReactiveValue()
-
-      })
+      # observeEvent(input$action_modify_training, {
+      #   # browser()
+      #   removeModal()
+      #
+      #   cell_click <- input$view_trainings_cell_clicked
+      #   modify_training_id <- row.names(rv()[cell_click$row,])
+      #
+      #
+      #   sql_command <- paste0(
+      #     "UPDATE ", Sys.getenv("TRAINING_TABLE")," SET training_type = '", input$modify_training_type,
+      #     "', training_topic = '", input$modify_training_topic,
+      #     "', training_description = '", input$modify_description,
+      #     "', training_date = '", input$modify_training_date,
+      #     "', training_start_time = '", input$modify_start_time |> strftime(format = "%T"),
+      #     "', training_end_time = '", input$modify_end_time |> strftime(format = "%T"),
+      #     "', training_trainer = '", input$modify_training_trainer,
+      #     "' WHERE training_id = ", modify_training_id, ";"
+      #   )
+      #
+      #   write_result <- DBI::dbExecute(app_data$CON, sql_command)
+      #
+      #   if(write_result == 1) {
+      #     showModal(
+      #       modalDialog(
+      #         title = "Success",
+      #         "Your training has been successfully modified. You may now close this window.",
+      #         easyClose = TRUE
+      #       )
+      #     )
+      #   } else {
+      #     showModal(
+      #       modals$errorModal(paste("Training modify failed with write result equal to", write_result))
+      #     )
+      #   }
+      #
+      #   updateReactiveValue()
+      #
+      # })
 
       observeEvent(input$delete_training, {
         # browser()
@@ -393,46 +401,46 @@ Server <- function(id) {
         ##################
       })
 
-      observeEvent(input$action_delete_training, {
-        # browser()
-        removeModal()
-
-        if(input$confirm_deletion == "Delete") {
-
-          cell_click <- input$view_trainings_cell_clicked
-          modify_training_id <- row.names(rv()[cell_click$row,])
-
-          sql_command <- paste0(
-            "UPDATE ", Sys.getenv("TRAINING_TABLE")," SET training_delete = NOW() WHERE training_id = ", modify_training_id, ";"
-          )
-
-          write_result <- DBI::dbExecute(app_data$CON, sql_command)
-
-          if(write_result == 1) {
-            showModal(
-              modalDialog(
-                title = "Success!",
-                "Your training has been successfully deleted. You may now close this window.",
-                easyClose = TRUE
-              )
-            )
-          } else {
-            showModal(
-              modals$errorModal(paste("Training delete failed with write result equal to", write_result))
-            )
-          }
-
-
-        } else {
-          showModal(modalDialog("Records will not be deleted.", title = "Delete Failed"))
-        }
-
-
-
-        updateReactiveValue()
-
-
-      })
+      # observeEvent(input$action_delete_training, {
+      #   # browser()
+      #   removeModal()
+      #
+      #   if(input$confirm_deletion == "Delete") {
+      #
+      #     cell_click <- input$view_trainings_cell_clicked
+      #     modify_training_id <- row.names(rv()[cell_click$row,])
+      #
+      #     sql_command <- paste0(
+      #       "UPDATE ", Sys.getenv("TRAINING_TABLE")," SET training_delete = NOW() WHERE training_id = ", modify_training_id, ";"
+      #     )
+      #
+      #     write_result <- DBI::dbExecute(app_data$CON, sql_command)
+      #
+      #     if(write_result == 1) {
+      #       showModal(
+      #         modalDialog(
+      #           title = "Success!",
+      #           "Your training has been successfully deleted. You may now close this window.",
+      #           easyClose = TRUE
+      #         )
+      #       )
+      #     } else {
+      #       showModal(
+      #         modals$errorModal(paste("Training delete failed with write result equal to", write_result))
+      #       )
+      #     }
+      #
+      #
+      #   } else {
+      #     showModal(modalDialog("Records will not be deleted.", title = "Delete Failed"))
+      #   }
+      #
+      #
+      #
+      #   updateReactiveValue()
+      #
+      #
+      # })
 
     }
   )

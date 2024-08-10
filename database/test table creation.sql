@@ -59,6 +59,8 @@ CREATE TABLE cfddb.incident_TEST (
     incident_fire_units bool,
     incident_wildland_units bool,
     incident_area varchar(255),
+    incident_canceled bool,
+    incident_dropped bool,
     incident_notes varchar(1000),
     incident_finalized bool
 );
