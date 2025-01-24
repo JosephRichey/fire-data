@@ -224,30 +224,47 @@ DBWriteServer <- function(id) {
         removeModal()
         # browser()
         
-        UTC_dispatch_time_date <- (input$dispatch_time +.01) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
-        UTC_end_time_date <- (input$end_time +.01) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
+        # Take only time componenet of the input
+        as.POSIXct(input$dispatch_time) |> format('%H:%M:%S')
         
+        UTC_dispatch_time_date <-  as.POSIXct((paste(input$dispatch_date, input$dispatch_time |> format('%H:%M:%S')))) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
+        UTC_end_time_date <- as.POSIXct((paste(input$end_date, input$end_time |> format('%H:%M:%S')))) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
+
         ###### Incident Statement Prepration
-        incident_statment_prep <- "INSERT INTO ?incident_table VALUES (?incident_id, ?dispatch_time, ?end_time, ?address, ?dispatch_reason, ?ems, ?fire, ?wildland, ?area, ?canceled, ?dropped, ?call_notes, 0);"
+        incident_statment_prep <- paste0("INSERT INTO ", SQL(Sys.getenv('INCIDENT_TABLE')), " VALUES ('", input$incident_id, "', '",
+                                         UTC_dispatch_time_date, "', '",
+                                         UTC_end_time_date, "', '",
+                                         input$address, "', '",
+                                         input$dispatch_reason, "', ",
+                                         if_else("EMS" %in% input$units, 1, 0), ", ",
+                                         if_else("Fire" %in% input$units, 1, 0), ", ",
+                                         if_else("Wildland" %in% input$units, 1, 0), ", '",
+                                         input$area, "', ",
+                                         if_else(input$canceled, 1, 0), ", ",
+                                         if_else(input$dropped, 1, 0), ", '",
+                                         input$call_notes, "', ",
+                                         "0);")
+        
+        incident_statment <- incident_statment_prep
         
         # Interpolate the values into the SQL command safely
-        incident_statment <- sqlInterpolate(
-          app_data$CON,
-          incident_statment_prep,
-          incident_table = SQL(Sys.getenv("INCIDENT_TABLE")),
-          incident_id = input$incident_id,
-          dispatch_time = UTC_dispatch_time_date,
-          end_time = UTC_end_time_date,
-          address = input$address,
-          dispatch_reason = input$dispatch_reason,
-          ems = if_else("EMS" %in% input$units, 1, 0),
-          fire = if_else("Fire" %in% input$units, 1, 0),
-          wildland = if_else("Wildland" %in% input$units, 1, 0),
-          area = input$area,
-          canceled = if_else(input$canceled, 1, 0),
-          dropped = if_else(input$dropped, 1, 0),
-          call_notes = input$call_notes
-        )
+        # incident_statment <- sqlInterpolate(
+        #   app_data$CON,
+        #   incident_statment_prep,
+        #   incident_table = SQL(Sys.getenv("INCIDENT_TABLE")),
+        #   incident_id = input$incident_id,
+        #   dispatch_time = UTC_dispatch_time_date,
+        #   end_time = UTC_end_time_date,
+        #   address = input$address,
+        #   dispatch_reason = input$dispatch_reason,
+        #   ems = if_else("EMS" %in% input$units, 1, 0),
+        #   fire = if_else("Fire" %in% input$units, 1, 0),
+        #   wildland = if_else("Wildland" %in% input$units, 1, 0),
+        #   area = input$area,
+        #   canceled = if_else(input$canceled, 1, 0),
+        #   dropped = if_else(input$dropped, 1, 0),
+        #   call_notes = input$call_notes
+        # )
         
         ###### Firefighter incident statement preparation ######
         # No interpolation needed here, just a loop to build the statement

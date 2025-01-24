@@ -113,7 +113,7 @@ Server <- function(id) {
                 title = "Confirm Check In",
                 paste0(rvs$target_ff_full_name, " is not checked in. Would you like to confirm check in?"),
                 footer = tagList(
-                  actionButton(ns("confirm_check_in"), "Confirm Check In"),
+                  actionButton(ns("confirm_check_in"), "Confirm Check In", class = "btn-success"),
                   actionButton(ns("cancel_check_in"), "Cancel")
                 ),
                 easyClose = TRUE
@@ -135,7 +135,7 @@ Server <- function(id) {
                 title = "Confirm Check Out",
                 paste0(rvs$target_ff_full_name, " is checked in. Would you like to confirm check out?"),
                 footer = tagList(
-                  actionButton(ns("confirm_check_out"), "Confirm Check Out"),
+                  actionButton(ns("confirm_check_out"), "Confirm Check Out", class = "btn-danger"),
                   actionButton(ns("cancel_check_out"), "Cancel")
                 ),
                 easyClose = TRUE
