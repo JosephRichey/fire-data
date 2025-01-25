@@ -1,0 +1,444 @@
+---
+title: 'Generate Test DB'
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(DBI)
+library(here)
+library(brio)
+library(lubridate)
+library(lorem)
+library(stringr)
+
+```
+
+
+```{r Drop and Create Tables}
+
+# Drop and Create Tables
+TEST <- dbConnect(RMySQL::MySQL(),
+                dbname = "test",
+                host = Sys.getenv("DB_HOST"),
+                port = 3306,
+                user = "admin",
+                password = Sys.getenv("DB_PASSWORD"))
+
+
+sql_script <- readLines(here::here("../database/new_db_structure.sql")) |> paste(collapse = "\n")
+
+sql_statements <- unlist(strsplit(sql_script, ";")) |> trimws()
+
+# Execute each statement
+for (stmt in sql_statements) {
+  if (stmt != "") { # Skip empty statements
+    tryCatch({
+      dbExecute(TEST, stmt)
+    }, error = function(e) {
+      message("Error executing statement: ", stmt, "\n", e$message)
+    })
+  }
+}
+
+
+```
+
+```{r Populate Table Functions}
+
+db_insert <- function(table, data) {
+  dbWriteTable(TEST, table, data, append = TRUE, row.names = FALSE)
+}
+
+# Helper to generate random dates near today
+generate_date <- function(offset_days = 0, range_days = 30, past_only = TRUE) {
+  today <- Sys.Date()
+  if(past_only) {
+    as.character(today + offset_days + sample(-range_days:0, 1))
+  } else {
+    as.character(today + offset_days + sample(-range_days:range_days, 1))
+  }
+  
+}
+
+# Helper to generate unique IDs
+generate_id <- function(prefix, n = 6) {
+  paste0(prefix, sprintf("%0*d", n, sample(1:10^n, 1)))
+}
+
+# Helper to generate address
+generate_address <- function() {
+  paste(sample(1:1000, 1), 
+        sample(c('Spuce', 'Elm', 'Pine',
+                 'Douglas', 'Maple', 'Juniper',
+                 'Cedar', 'Birch', 'Willow',
+                 'Oak', 'Hickory', 'Walnut',
+                 'Cherry', 'Pecan', 'Chestnut',
+                 'Sycamore', 'Poplar', 'Aspen',
+                 'Beech', 'Ash', 'Alder',
+                 'Locust', 'Cottonwood', 'Magnolia',
+                 'Palm', 'Redwood', 'Sequoia'), 1),
+        sample(c('St', 'Ave', 'Blvd', 'Ct', 'Dr', 'Ln', 'Rd', 'Way'), 1)
+        )
+}
+
+
+```
+
+## Populate `company`
+```{r company}
+company <- data.frame(
+  company_id = 1:3,
+  company_name = c("A", "B", "C")
+)
+
+db_insert("company", company)
+```
+
+## Populate `firefighter`
+```{r firefighter}
+
+firefighter <- data.frame(
+  firefighter_id = 1:11,
+  full_name = c(
+    "Bill Preston", "Pete Mitchell", "Napolean Dynamite", "Lane Meyer", "Steve Rogers",
+    "Samwise Gamgee", "Scott Pilgram", "Angela Bennett", "Thomas Anderson", "George Bailey", "Marty McFly"
+  ),
+  start_date = c(
+    "1989-02-17", "1986-05-16", "2004-06-11", "1985-10-11", "2011-07-22",
+    "2001-12-19", "2010-08-13", "1985-07-28", "1999-03-31", "1946-12-20", "1985-07-03"
+  ),
+  trainer = sample(0:1, 11, replace = TRUE, prob = c(0.2, 0.8)),
+  officer = sample(0:1, 11, replace = TRUE, prob = c(0.8, 0.2)),
+  active_status = sample(0:1, 11, replace = TRUE, prob = c(0.1, 0.9)),
+  company_id = sample(1:3, 11, replace = TRUE),
+  firefighter_role = sample(c("Captain", "Lieutenant", "Engineer", "Firefighter", "Probationary"), 11, TRUE),
+  supervisor = sample(1:10, 11, replace = TRUE)
+)
+
+firefighter[3,] <- c(3, "Napolean Dynamite", "2004-06-11", 1, 1, 1, 1, "Chief", NA)
+firefighter[10,] <- c(10, "George Bailey", "1946-12-20", 0, 0, 0, 1, "Firefighter", NA)
+
+db_insert("firefighter", firefighter)
+```
+
+
+
+
+## Populate `firefighter_contact`
+```{r firefighter_contact}
+firefighter_contact <- data.frame(
+  firefighter_id = 1:11,
+  street_address_1 = sapply(1:11, function(x) generate_address()),
+  street_address_2 = NA,
+  city = "Crabapple Cove",
+  state = "ME",
+  zip_code = "04578",
+  phone_number = sapply(1:11, function(x) paste0("(", sample(100:999, 1), ") ", sample(100:999, 1), "-", sample(1000:9999, 1))),
+  email_address = sapply(1:11, function(x) paste0(tolower(str_replace(firefighter$full_name[x], " ", "")), "@firedept.com"))
+  )
+
+firefighter_contact[3,3] <- "#65"
+
+db_insert("firefighter_contact", firefighter_contact)
+
+dbWriteTable(TEST, "firefighter_contact", firefighter_contact, append = TRUE, row.names = FALSE)
+
+```
+
+## Populate `firefighter_status_history`
+```{r firefighter_status_history}
+firefighter_status_history <- data.frame(
+  firefighter_id = sample(1:9, 2, replace = FALSE),
+  inactive_start_date = sapply(1:2, function(x) generate_date(-730, 180)),
+  inactive_end_date = sapply(1:2, function(x) generate_date(-365, 180))
+)
+
+
+firefighter_status_history[3,] <- c(10, "2010-01-01", NA)
+
+
+db_insert("firefighter_status_history", firefighter_status_history)
+
+```
+
+## Populate `certification_type`
+```{r certification_type}
+
+certification_type <- data.frame(
+  certification_type_id = 1:6,
+  certification_name = c("Firefighter I", "Firefighter II", "EMT", "AEMT", "CPR", "DO NOT USE"),
+  lead_time = c(6, 6, 6, 6, 6, 6),
+  lead_time_unit = "month",
+  renew_time = c(3, 3, 2, 2, 2, 1),
+  renew_time_unit = "year",
+  certification_expire = c(rep(NA, 5), "2025-01-01")
+)
+
+db_insert("certification_type", certification_type)
+
+
+```
+
+## Populate `certification`
+```{r certification}
+certification <- data.frame(
+  certification_id = 1:25,
+  type_id = sample(1:6, 25, replace = TRUE),
+  firefighter_id = sample(1:11, 25, replace = TRUE),
+  expiration_date = sapply(1:25, function(x) generate_date(0, 365, FALSE)),
+  snooze_expires = sapply(1:25, function(x) generate_date(0, 365, FALSE))
+)
+
+db_insert("certification", certification)
+
+
+```
+
+## Populate `setting`
+```{r setting}
+
+setting <- data.frame(
+  setting_id = 1:3,
+  major_setting_key = c('dispatch_code', 'dispatch_code', 'dispatch_code',
+                        'dispatch_code', 'dispatch_code', 'dispatch_code'),
+  minor_setting_key = c("Fire", "Fire", "Fire",
+                        "EMS", "EMS", "EMS"),
+  setting_value = c("Fire Alarm", "Structure Fire", "Vehicle Fire",
+                    "Cardiac or Respiratory Arrest / Death", "Choking", "Stroke (CVA) / Transient Ischemic Attack (TIA)")
+)
+
+db_insert("setting", setting)
+
+```
+
+## Populate `user_log`
+```{r user_log}
+
+user_log <- data.frame(
+  user_log_id = 1:10,
+  log_in = sapply(1:10, function(x) 
+    ymd_hms(
+      paste(
+        generate_date(-7, 0),
+        paste(sample(0:23, 1, TRUE)),
+        paste(sample(0:59, 2, TRUE), collapse = ":")
+        )
+      )
+    )
+  ) |> 
+  mutate(log_out = log_in + sample(60:360, 10, replace = TRUE),
+         log_in = as.POSIXct(log_in) |> format(usets = FALSE),
+         log_out = as.POSIXct(log_out) |> format(usets = FALSE))
+
+db_insert("user_log", user_log)
+
+```
+
+## Populate `apparatus`
+```{r}
+apparatus <- data.frame(
+  apparatus_id = 1:5,
+  apparatus_name = c("Engine 1", "Ladder 2", "Rescue 3", "Ambulance 1", "Battalion 1")
+)
+db_insert("apparatus", apparatus)
+```
+
+## Populate `equipment_type`
+```{r}
+equipment_type <- data.frame(
+  equipment_type_id = 1:4,
+  equipment_type = c("SCBA Battery", "Apparatus", "Turnout Gear", "DO NOT USE"),
+  check_lead_time = c(7, 7, 1, 1),
+  check_lead_time_unit = c("day", "day", "year", "year"),
+  check_time = c(1, 1, 1, 1),
+  check_time_unit = c("month", "month", "year", "year"),
+  expire_lead_time = c(6, NA, 1, 1),
+  expire_lead_time_unit = c("month", NA, "year", "year"),
+  expire_time = c(3, NA, 10, 5),
+  expire_time_unit = c("year", NA, "year", "year"),
+  equipment_type_expire = c(rep(NA, 3), "2025-01-01")
+)
+
+db_insert("equipment_type", equipment_type)
+
+```
+
+## Populate `equipment`
+```{r}
+
+equipment <- data.frame(
+  equipment_id = 1:10,
+  equipment_name = c("Battery 1", "Battery 2", "Battery 3", "Engine 1", "Ladder 2",
+                     "Turnouts", "Turnouts", "Turnouts", "Misc.", "Misc."),
+  type_id = c(1,1,1,2,2,3,3,3,4,4),
+  firefighter_id = c(NA,NA,NA,NA,NA,1,3,10,3,10),
+  next_check_date = c(
+    Sys.Date() + 3,
+    Sys.Date() + 3,
+    Sys.Date() + 8,
+    Sys.Date() + 3,
+    Sys.Date() + 8,
+    Sys.Date() + 180,
+    Sys.Date() + 180,
+    Sys.Date() + 180,
+    Sys.Date() + 180,
+    Sys.Date() + 180
+  ),
+  expiration_date = c(
+    Sys.Date() + 100,
+    Sys.Date() + 365,
+    Sys.Date() + 800,
+    Sys.Date() + 3000,
+    NA,
+    Sys.Date() + 180,
+    Sys.Date() + 180,
+    Sys.Date() + 720,
+    Sys.Date() + 180,
+    NA
+  ),
+  snooze_expires = c(
+    Sys.Date() + 100,
+    Sys.Date() + 365,
+    Sys.Date() + 800,
+    NA,
+    NA,
+    Sys.Date() + 180,
+    Sys.Date() + 180,
+    Sys.Date() + 720,
+    Sys.Date() + 180,
+    NA
+  )
+)
+
+db_insert("equipment", equipment)
+
+```
+
+## Populate `incident`
+```{r}
+dispatch_codes <- c(
+  "Abdominal Pain/Problems",
+  "Allergies / Envenomations",
+  "Animal Bites / Attacks",
+  "Assault / Sexual Assault / Stun Gun",
+  "Back Pain",
+  "Breathing Problems",
+  "Burns / Explosions",
+  "Carbon Monoxide / Inhalation / HAZMAT / CBRN",
+  "Cardiac or Respiratory Arrest / Death",
+  "Chest Pain",
+  "Choking",
+  "Convulsions / Seizures",
+  "Diabetic Problems",
+  "Drowning / Diving / SCUBA Accident",
+  "Electrocution / Lightning",
+  "Eye Problems / Injuries",
+  "Falls",
+  "Headache",
+  "Heart Problems / A.I.C.D.",
+  "Heat / Cold Exposure",
+  "Hemorrhage / Lacerations",
+  "Inaccessible Incident / Entrapments",
+  "Overdose / Poisoning (Ingestion)",
+  "Pregnancy / Childbirth / Miscarriage",
+  "Psychiatric / Suicide Attempt",
+  "Sick Person",
+  "Stab / Gunshot / Penetrating Trauma",
+  "Stroke (CVA) / Transient Ischemic Attack (TIA)",
+  "Traffic / Transportation Incidents",
+  "Traumatic Injuries",
+  "Unconscious / Fainting (Near)",
+  "Unknown Problem",
+  "Inter-Facility Transfer / Palliative Care",
+  "Automatic Crash Notification (A.C.N.)",
+  "Pandemic / Epidemic / Outbreak (Surveillance or Triage)",
+  "CO Alarm",
+  "Fire Alarm",
+  "Garage Fire",
+  "Grass Fire",
+  "HAZMAT",
+  "Illegal Burn",
+  "Motor Vehicle Accident (Injuries)",
+  "Motor Vehicle Accident (No Injuries)",
+  "Smoke Investigation",
+  "Structure Fire",
+  "Vehicle Fire"
+)
+
+incident <- data.frame(
+  incident_id = sapply(1:50, function(x) generate_id("INC")),
+  dispatch_time = sapply(1:50, function(x) 
+    ymd_hms(
+      paste(
+        generate_date(0, 7),
+        paste(sample(0:23, 1, TRUE)),
+        paste(sample(0:59, 2, TRUE), collapse = ":")
+        )
+      )
+    ),
+  address = sapply(1:50, function(x) generate_address()),
+  dispatch_reason = sample(dispatch_codes, 50, TRUE),
+  ems_units = sample(0:1, 50, replace = TRUE),
+  fire_units = sample(0:1, 50, replace = TRUE),
+  wildland_units = sample(0:1, 50, replace = TRUE),
+  area = sample(c('Municipality', 'Primary Area', 'Mutual Aid', 'Outside Aid'), 50, replace = TRUE),
+  canceled = sample(0:1, 5, replace = TRUE, prob = c(0.9, 0.1)),
+  dropped = sample(0:1, 5, replace = TRUE, prob = c(0.95, 0.05)),
+  notes = NA
+  # finalized = sample(0:1, 5, replace = TRUE)
+) |> 
+  mutate(end_time = dispatch_time + sample(300:36000, 50, replace = TRUE),
+         .after = "dispatch_time") |> 
+  mutate(finalized = if_else(end_time > Sys.time() - 60*60*24*7, 0, 1),
+         dispatch_time = as.POSIXct(dispatch_time) |> format(usets = FALSE),
+         end_time = as.POSIXct(end_time)|> format(usets = FALSE))
+
+db_insert("incident", incident)
+```
+
+
+
+## Populate `training`
+```{r}
+training <- data.frame(
+  training_id = 1:100,
+  training_type = sample(c('Fire', 'EMS', 'Wildland', 'Other'), 100, replace = TRUE, prob = c(0.4, 0.4, 0.15, 0.05)),
+  topic = sample(lorem::ipsum_words(n = 6) |> stringr::str_split(" ") |> unlist(), 100, replace = TRUE),
+  training_description = sapply(1:100, function(x) lorem::ipsum_words(n = 6)),
+  start_time = sapply(1:100, function(x) 
+    ymd_hms(
+      paste(
+        generate_date(0, 7),
+        paste(sample(c(16:20), 1, TRUE)),
+        paste(sample(c(0,30), 1, TRUE),
+              "00",
+              collapse = ":")
+        )
+      )
+    ),
+  trainer = sample(1:11, 100, replace = TRUE),
+  training_delete = NA
+) |> 
+  mutate(end_time = start_time + 60 * sample(c(90, 120, 150), 100, replace = TRUE),
+         .after = "start_time",
+         start_time = as.POSIXct(start_time) |> format(usets = FALSE),
+         end_time = as.POSIXct(end_time) |> format(usets = FALSE))
+
+
+db_insert("training", training)
+```
+
+## Disconnect from Database
+```{r}
+dbDisconnect(TEST)
+```
+
+### Notes:
+1. **Dynamic Dates**: All dates are generated relative to the script execution date.
+2. **Unique IDs**: IDs include prefixes (e.g., `FF` for firefighters, `INC` for incidents).
+3. **Table Structure**: Adjust data types and fields to match database schema if necessary.
+
+
+
+```
