@@ -17,3 +17,4 @@
 # Ignore database backups and exports
 database/Backups/
 database/Exports/
+database/GEnerateTestDb.html

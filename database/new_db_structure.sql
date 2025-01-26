@@ -5,7 +5,7 @@ DROP TABLE IF EXISTS test.certification;
 DROP TABLE IF EXISTS test.certification_type;
 DROP TABLE IF EXISTS test.setting;
 DROP TABLE IF EXISTS test.user_log;
-DROP TABLE IF EXISTS test.equipment_history;
+DROP TABLE IF EXISTS test.equipment_log;
 DROP TABLE IF EXISTS test.equipment;
 DROP TABLE IF EXISTS test.equipment_type;
 DROP TABLE IF EXISTS test.attendance;
@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS test.training;
 DROP TABLE IF EXISTS test.firefighter_incident;
 DROP TABLE IF EXISTS test.apparatus_incident;
 DROP TABLE IF EXISTS test.firefighter_apparatus;
+DROP TABLE IF EXISTS test.chain_of_command;
 DROP TABLE IF EXISTS test.firefighter;
 DROP TABLE IF EXISTS test.apparatus;
 DROP TABLE IF EXISTS test.incident;
@@ -32,9 +33,15 @@ CREATE TABLE test.firefighter (
     active_status boolean,
     company_id int,
     firefighter_role varchar(255),
-    supervisor int,
-    foreign key (supervisor) references test.firefighter(firefighter_id) ON DELETE SET NULL,
     foreign key (company_id) references test.company(company_id) ON DELETE SET NULL
+);
+
+CREATE TABLE test.chain_of_command (
+	chain_of_command_id INT PRIMARY KEY auto_increment,
+    firefighter_id INT,
+    supervisor_id INT,
+    foreign key (firefighter_id) references test.firefighter(firefighter_id) ON DELETE SET NULL,
+    foreign key (supervisor_id) references test.firefighter(firefighter_id) ON DELETE SET NULL
 );
 
 CREATE TABLE test.firefighter_contact (
@@ -124,8 +131,8 @@ CREATE TABLE test.equipment (
     foreign key (firefighter_id) references test.firefighter(firefighter_id)
 );
 
-CREATE TABLE test.equipment_history (
-	id INT PRIMARY KEY AUTO_INCREMENT,
+CREATE TABLE test.equipment_log (
+	equipment_log_id INT PRIMARY KEY AUTO_INCREMENT,
     checked_by_id INT,
     equipment_id INT,
     check_date VARCHAR(15),
@@ -154,6 +161,7 @@ CREATE TABLE test.attendance (
     check_out text,
     auto_checkout boolean,
     credit boolean,
+    excused boolean,
     foreign key (firefighter_id) references test.firefighter(firefighter_id),
     foreign key (training_id) references test.training(training_id)
     
