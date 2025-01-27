@@ -6,83 +6,36 @@ box::use(
 
 #' @export
 CON <- dbConnect(RMySQL::MySQL(),
-                 dbname = "cfddb",
+                 dbname = "test",
                  host = Sys.getenv("DB_HOST"),
                  port = 3306,
                  user = "admin",
                  password = Sys.getenv("DB_PASSWORD"))
 
 #' @export
-Firefighter <- dbGetQuery(CON,
-                          paste0("SELECT * FROM ", Sys.getenv("FIREFIGHTER_TABLE"),
-                                 " WHERE firefighter_deactive_date IS NULL"))
+Firefighter <- dbGetQuery(CON,"SELECT * FROM firefighter")
 
 #' @export
-Apparatus <- dbGetQuery(CON,
-                        paste0("SELECT * FROM ", Sys.getenv("APPARATUS_TABLE")))
+Apparatus <- dbGetQuery(CON, "SELECT * FROM apparatus")
 
 #' @export
-Incident <- dbGetQuery(CON,
-                       paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE")))
+Incident <- dbGetQuery(CON, "SELECT * FROM incident")
 
 #' @export
-Firefighter_Incident <- dbGetQuery(CON,
-                                paste0("SELECT * FROM ", Sys.getenv("FF_INC_TABLE")))
-
+Firefighter_Incident <- dbGetQuery(CON, "SELECT * FROM firefighter_incident")
 
 #' @export
-Dispatch_Codes <- list(
-  Medical = list(
-    "Abdominal Pain/Problems",
-    "Allergies / Envenomations",
-    "Animal Bites / Attacks",
-    "Assault / Sexual Assault / Stun Gun",
-    "Back Pain",
-    "Breathing Problems",
-    "Burns / Explosions",
-    "Carbon Monoxide / Inhalation / HAZMAT / CBRN",
-    "Cardiac or Respiratory Arrest / Death",
-    "Chest Pain",
-    "Choking",
-    "Convulsions / Seizures",
-    "Diabetic Problems",
-    "Drowning / Diving / SCUBA Accident",
-    "Electrocution / Lightning",
-    "Eye Problems / Injuries",
-    "Falls",
-    "Headache",
-    "Heart Problems / A.I.C.D.",
-    "Heat / Cold Exposure",
-    "Hemorrhage / Lacerations",
-    "Inaccessible Incident / Entrapments",
-    "Overdose / Poisoning (Ingestion)",
-    "Pregnancy / Childbirth / Miscarriage",
-    "Psychiatric / Suicide Attempt",
-    "Sick Person",
-    "Stab / Gunshot / Penetrating Trauma",
-    "Stroke (CVA) / Transient Ischemic Attack (TIA)",
-    "Traffic / Transportation Incidents",
-    "Traumatic Injuries",
-    "Unconscious / Fainting (Near)",
-    "Unknown Problem",
-    "Inter-Facility Transfer / Palliative Care",
-    "Automatic Crash Notification (A.C.N.)",
-    "Pandemic / Epidemic / Outbreak (Surveillance or Triage)"
-  ),
-  Fire = list(
-    "CO Alarm",
-    "Fire Alarm",
-    "Garage Fire",
-    "Grass Fire",
-    "HAZMAT",
-    "Illegal Burn",
-    "Motor Vehicle Accident (Injuries)",
-    "Motor Vehicle Accident (No Injuries)",
-    "Smoke Investigation",
-    "Structure Fire",
-    "Vehicle Fire"
-  )
+Setting <- dbGetQuery(CON, "SELECT * FROM setting")
+
+#' @export
+Dispatch_Codes <- lapply(
+  split(Setting$setting_value, Setting$minor_setting_key),
+  function(values) {
+    as.list(values)
+  }
 )
+  
+
 
 # Creating mapping vectors to get Ids
 #' @export
