@@ -212,15 +212,72 @@ db_insert("certification", certification)
 ## Populate `setting`
 ```{r setting}
 
-setting <- data.frame(
-  setting_id = 1:3,
-  major_setting_key = c('dispatch_code', 'dispatch_code', 'dispatch_code',
-                        'dispatch_code', 'dispatch_code', 'dispatch_code'),
-  minor_setting_key = c("Fire", "Fire", "Fire",
-                        "EMS", "EMS", "EMS"),
-  setting_value = c("Fire Alarm", "Structure Fire", "Vehicle Fire",
-                    "Cardiac or Respiratory Arrest / Death", "Choking", "Stroke (CVA) / Transient Ischemic Attack (TIA)")
+# Dispatch codes as a list
+Dispatch_Codes <- list(
+  Medical = c(
+    "Abdominal Pain/Problems",
+    "Allergies / Envenomations",
+    "Animal Bites / Attacks",
+    "Assault / Sexual Assault / Stun Gun",
+    "Back Pain",
+    "Breathing Problems",
+    "Burns / Explosions",
+    "Carbon Monoxide / Inhalation / HAZMAT / CBRN",
+    "Cardiac or Respiratory Arrest / Death",
+    "Chest Pain",
+    "Choking",
+    "Convulsions / Seizures",
+    "Diabetic Problems",
+    "Drowning / Diving / SCUBA Accident",
+    "Electrocution / Lightning",
+    "Eye Problems / Injuries",
+    "Falls",
+    "Headache",
+    "Heart Problems / A.I.C.D.",
+    "Heat / Cold Exposure",
+    "Hemorrhage / Lacerations",
+    "Inaccessible Incident / Entrapments",
+    "Overdose / Poisoning (Ingestion)",
+    "Pregnancy / Childbirth / Miscarriage",
+    "Psychiatric / Suicide Attempt",
+    "Sick Person",
+    "Stab / Gunshot / Penetrating Trauma",
+    "Stroke (CVA) / Transient Ischemic Attack (TIA)",
+    "Traffic / Transportation Incidents",
+    "Traumatic Injuries",
+    "Unconscious / Fainting (Near)",
+    "Unknown Problem",
+    "Inter-Facility Transfer / Palliative Care",
+    "Automatic Crash Notification (A.C.N.)",
+    "Pandemic / Epidemic / Outbreak (Surveillance or Triage)"
+  ),
+  Fire = c(
+    "CO Alarm",
+    "Fire Alarm",
+    "Garage Fire",
+    "Grass Fire",
+    "HAZMAT",
+    "Illegal Burn",
+    "Motor Vehicle Accident (Injuries)",
+    "Motor Vehicle Accident (No Injuries)",
+    "Smoke Investigation",
+    "Structure Fire",
+    "Vehicle Fire",
+    "Utility Problem"
+  )
 )
+
+# Flatten into a data frame
+setting <- data.frame(
+  setting_id = seq_along(unlist(Dispatch_Codes)),
+  major_setting_key = "dispatch_code",
+  minor_setting_key = rep(names(Dispatch_Codes), lengths(Dispatch_Codes)),
+  setting_value = unlist(Dispatch_Codes)
+)
+
+# Print the resulting data frame
+print(setting)
+
 
 db_insert("setting", setting)
 
