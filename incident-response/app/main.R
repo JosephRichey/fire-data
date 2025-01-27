@@ -16,8 +16,12 @@ ui <- function(id) {
     h1(Sys.getenv('FD')),
     h3("Incident Response"),
     theme = bs_theme(version = 5,
-                     secondary = "#87292b",
-                     success = "#87292b",
+                     primary = "#87292b",
+                     secondary = '#999999',
+                     success = "#2b8729",
+                     info = "#377eb8",
+                     warning = "#ffdc00",
+                     danger = "#640064",
                      bootswatch = "darkly"),
     layout_columns(
       card(
@@ -32,14 +36,14 @@ ui <- function(id) {
     incident_response$Output(ns('incident_response')),
     
     br(),
-    helpText("v0.3.0 © CC BY-NC-SA 2024 Joseph Richey")
+    helpText("v1.0.0_dev © CC BY-NC-SA 2024 Joseph Richey")
   )
 }
 
 #' @export
 server <- function(id) {
   moduleServer(id, function(input, output, session) {
-    incident_response$ModalsServer('incident_response')
+    incident_response$ModalServer('incident_response')
     incident_response$DBWriteServer('incident_response')
     incident_response$CardServer('incident_response')
     

@@ -11,14 +11,14 @@ box::use(
 
 box::use(
   app/logic/app_data,
+  app/modal/modal,
 )
 
 UI <- function(id) {
   ns <- NS(id)
   tagList(
-    actionButton(ns("add_incident"), "Add Incident"),
+    actionButton(ns("add_incident"), "Add Incident", class = "btn btn-primary"),
   )
-  
 }
 
 Output <- function(id) {
@@ -28,132 +28,72 @@ Output <- function(id) {
   )
 }
 
-ModalsServer <- function(id) {
+ModalServer <- function(id) {
   moduleServer(
     id,
     function(input, output, session) {
       
       ns <- session$ns
       
-      # First modal - Incident ID and Dispatch Time/Date
-      observe({
-        
-        modal <- modalDialog(
-          textInput(ns("incident_id"), "Incident ID:", ""),
-          dateInput(ns("dispatch_date"), "Dispatch Date:"),
-          timeInput(ns("dispatch_time"), "Dispatch Time:", value = as.ITime(Sys.time() |> with_tz(Sys.getenv('LOCAL_TZ'))-3600), seconds = F),
-          dateInput(ns("end_date"), "End Date:"),
-          timeInput(ns("end_time"), "End Time:", value = as.ITime(Sys.time() |> with_tz(Sys.getenv('LOCAL_TZ'))), seconds = F),
-          footer = tagList(
-            actionButton(ns('cancel_mod_1'), 'Cancel'),
-            actionButton(ns("mod_1_next"), "Next")
-          )
-        )
-        
-        # Show modal
-        showModal(modal)
-      }) |> 
-        bindEvent(input$add_incident, ignoreNULL = T)
+      incident_details <- reactiveValues(
+        incident_id = NULL,
+        dispatch_date = NULL,
+        dispatch_time = NULL,
+        end_date = NULL,
+        end_time = NULL,
+        address = NULL,
+        area = NULL,
+        dispatch_reason = NULL,
+        units = NULL,
+        canceled = NULL,
+        dropped = NULL,
+        apparatus = NULL,
+        firefighter = NULL,
+        call_notes = NULL,
+      )
       
-      # Second modal - Incident Address, units, Response Area
+      # Show first modal
       observe({
+        showModal(modal$key_time(ns))
+      }) |> 
+        bindEvent(input$add_incident, ignoreNULL = T, ignoreInit = T)
+      
+      # Show second modal
+      observeEvent(input$to_address_unit, {
         removeModal()
-        modal <- modalDialog(
-          textInput(ns('address'), 'Address:', ""),
-          selectInput(ns('area'), 'Response Area', c('Municipality', 'Primary Area', 'Mutual Aid', 'Outside Aid')),
-          selectInput(ns("dispatch_reason"), "Dispatch Reason:", app_data$Dispatch_Codes),
-          checkboxGroupInput(ns('units'), 'Units', c('EMS', 'Fire', 'Wildland')),
-          checkboxInput(ns('canceled'), 'Canceled before arrival'),
-          checkboxInput(ns('dropped'), 'Dropped call'),
-          footer = tagList(
-            actionButton(ns('cancel_mod_2'), 'Cancel'),
-            actionButton(ns("mod_2_next"), "Next")
-          )
-        )
-        
-        showModal(modal)
-      }) |> 
-        bindEvent(input$mod_1_next, ignoreNULL = T)
+        showModal(modal$address_unit(ns))
+      })
       
-      # Third modal - Apparatus and Firefighter selection
-      observe({
+      # Show third modal
+      observeEvent(input$to_apparatus_ff, {
         removeModal()
-        modal <- modalDialog(
-          selectInput(ns('apparatus'), 
-                      'Apparatus:', 
-                      choices = c(app_data$Apparatus |> pull(apparatus_name)),
-                      multiple = TRUE
-                      ),
-          selectInput(ns('firefighter'),
-                      'Firefighter',
-                      choices = c(app_data$Firefighter |> pull(firefighter_full_name)),
-                      multiple = TRUE
-          ),
-          footer = tagList(
-            actionButton(ns('cancel_mod_3'), 'Cancel'),
-            actionButton(ns("mod_3_next"), "Next")
-          )
-        )
-        
-        showModal(modal)
-      }) |> 
-        bindEvent(input$mod_2_next, ignoreNULL = T)
+        showModal(modal$apparatus_ff(ns))
+      })
       
-      # Fourth modal - assign personal to apparatus
-      observe({
+      # Show the fourth modal
+      observeEvent(input$to_assignment, {
         removeModal()
-        # browser()
-        
-        firefighter <- input$firefighter
-        apparatus <- input$apparatus
-        
-        select_inputs <- lapply(firefighter, function(i) {
-          div(class = 'firefighter_div',
-              bslib::layout_columns(
-              shiny::strong(i),
-              col_widths = c(12)),
-              bslib::layout_columns(
-              selectInput(paste0(ns(i), '_apparatus'),
-                          'Apparatus:',
-                          choices = apparatus),
-                          width = '200px'
-              ),
-              col_widths = c(12)
-              
-              
-          )
-        })
-        
-        modal <- modalDialog(
-          tagList(select_inputs),
-          
-          footer = tagList(
-            actionButton(ns("cancel_mod_4"), "Cancel"),
-            actionButton(ns("mod_4_next"), "Next")
-          )
-        )
-        
-        showModal(modal)
-      }) |> 
-        bindEvent(input$mod_3_next, ignoreNULL = T)
+        showModal(modal$assignment(ns))
+      })
       
-      # Fifth modal - Notes and submit
-      observe({
+      # Show the fifth modal
+      observeEvent(input$to_note, {
         removeModal()
-        
-        modal <- modalDialog(
-          textInput(ns("call_notes"), "Notes:", ""),
-          
-          footer = tagList(
-            actionButton(ns("cancel_mod_5"), "Cancel"),
-            actionButton(ns("mod_5_submit"), "Submit Incident")
-          )
-        )
-        
-        showModal(modal)
-      }) |> 
-        bindEvent(input$mod_4_next, ignoreNULL = T)
+        showModal(modal$note(ns))
+      })
       
+      # Cancel
+      observeEvent(input$cancel_modal, {
+        removeModal()
+        shinyalert(
+          title = "Warning",
+          text = "Incident not saved",
+          type = "warning"
+        )
+      })
+      
+      
+
       
       
       ###### Close Modals on cancel, display warning #####
