@@ -111,22 +111,18 @@ address_unit <- function(ns, incident_details) {
 
 apparatus_ff <- function(ns, incident_details) {
   modalDialog(
-  # selectInput(ns('apparatus'), 
-  #             'Apparatus:', 
-  #             choices = c(app_data$Apparatus |> pull(apparatus_name)),
-  #             multiple = TRUE
-  # ),
-  # selectInput(ns('firefighter'),
-  #             'Firefighter',
-  #             choices = c(app_data$Firefighter |> pull(firefighter_full_name)),
-  #             multiple = TRUE
-  # ),
-  # footer = tagList(
-  #   actionButton(ns('cancel_mod_3'), 'Cancel'),
-  #   actionButton(ns("mod_3_next"), "Next")
-  # )
-  
-    "I'm fine",
+    selectInput(
+      inputId = ns('apparatus'), 
+      label = 'Apparatus:', 
+      choices = app_data$Apparatus |> pull(apparatus_name),
+      selected = coalesce(incident_details$apparatus, "")
+    ),
+    selectInput(
+      inputId = ns('firefighter'),
+      label = 'Firefighter',
+      choices = app_data$Firefighter |> pull(full_name),
+      selected = coalesce(incident_details$firefighter, "")
+    ),
     footer = tagList(
       actionButton(ns('to_address_unit'), 'Back', class = 'btn btn-secondary'),
       actionButton(ns('cancel_modal'), 'Cancel', class = 'btn btn-warning'),
@@ -138,13 +134,7 @@ apparatus_ff <- function(ns, incident_details) {
   
 assignment <- function(ns, incident_details) {
   modalDialog(
-  # tagList(select_inputs),
-  # 
-  # footer = tagList(
-  #   actionButton(ns("cancel_mod_4"), "Cancel"),
-  #   actionButton(ns("mod_4_next"), "Next")
-  # )
-    "Thanks for asking",
+    "Still building...",
     footer = tagList(
       actionButton(ns('to_apparatus_ff'), 'Back', class = 'btn btn-secondary'),
       actionButton(ns('cancel_modal'), 'Cancel', class = 'btn btn-warning'),
@@ -156,13 +146,12 @@ assignment <- function(ns, incident_details) {
   
 note <- function(ns, incident_details) {
   modalDialog(
-  # textInput(ns("call_notes"), "Notes:", ""),
-  # 
-  # footer = tagList(
-  #   actionButton(ns("cancel_mod_5"), "Cancel"),
-  #   actionButton(ns("mod_5_submit"), "Submit Incident")
-  # )
-    "Goodbye",
+    
+    textAreaInput(
+      inputId = ns('call_notes'), 
+      label = 'Notes:', 
+      value = coalesce(incident_details$call_notes, "")
+    ),
     footer = tagList(
       actionButton(ns('to_assignment'), 'Back', class = 'btn btn-secondary'),
       actionButton(ns('cancel_modal'), 'Cancel', class = 'btn btn-warning'),

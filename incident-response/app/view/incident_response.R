@@ -116,6 +116,29 @@ ModalServer <- function(id) {
         incident_details$call_notes = NULL
       })
       
+      # Save and reset values
+      observeEvent(input$submit, {
+        removeModal()
+        shinyalert(
+          title = "Success",
+          text = "Incident saved",
+          type = "success"
+        )
+        incident_details$incident_id = NULL
+        incident_details$dispatch_date = NULL
+        incident_details$dispatch_time = NULL
+        incident_details$end_date = NULL
+        incident_details$end_time = NULL
+        incident_details$address = NULL
+        incident_details$area = NULL
+        incident_details$dispatch_reason = NULL
+        incident_details$units = NULL
+        incident_details$canceled = NULL
+        incident_details$dropped = NULL
+        incident_details$apparatus = NULL
+        incident_details$firefighter = NULL
+        incident_details$call_notes = NULL
+      })
       
 
       

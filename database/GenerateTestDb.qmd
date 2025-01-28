@@ -278,6 +278,50 @@ setting <- data.frame(
 # Print the resulting data frame
 print(setting)
 
+setting <- setting |> 
+  bind_rows(
+    data.frame(
+      setting_id = 48:59,
+      major_setting_key = c("dispatch_seconds",
+                            "dispatch_seconds",
+                            "response_area",
+                            "response_area",
+                            "response_area",
+                            "response_area",
+                            "response_units",
+                            "response_units",
+                            "response_units",
+                            "canceled",
+                            "dropped",
+                            "address"),
+      minor_setting_key = c("dispatch_time", 
+      "end_time",
+      "area",
+      "area",
+      "area",
+      "area",
+      "units",
+      "units",
+      "units",
+      NA,
+      NA,
+      NA),
+      setting_value = c(
+        "FALSE",
+        "FALSE",
+        "Municipality",
+        "Primary",
+        "Mutual Aid",
+        "Outside Aid",
+        "EMS",
+        "Fire",
+        "Wildland",
+        "TRUE",
+        "TRUE",
+        "FALSE"
+      )
+    )
+  )
 
 db_insert("setting", setting)
 
