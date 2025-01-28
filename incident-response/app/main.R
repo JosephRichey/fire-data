@@ -17,10 +17,10 @@ ui <- function(id) {
     h3("Incident Response"),
     theme = bs_theme(version = 5,
                      primary = "#87292b",
-                     secondary = '#999999',
-                     success = "#2b8729",
+                     secondary = '#565656',
+                     success = "#2b8764",
                      info = "#377eb8",
-                     warning = "#ffdc00",
+                     warning = "#91471d",
                      danger = "#640064",
                      bootswatch = "darkly"),
     layout_columns(
@@ -36,7 +36,7 @@ ui <- function(id) {
     incident_response$Output(ns('incident_response')),
     
     br(),
-    helpText("v1.0.0_dev © CC BY-NC-SA 2024 Joseph Richey")
+    helpText("v1.0.0-dev © CC BY-NC-SA 2024 Joseph Richey")
   )
 }
 

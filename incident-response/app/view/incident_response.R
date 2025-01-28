@@ -7,6 +7,7 @@ box::use(
   dplyr[...],
   shinyalert[...],
   DBI[...],
+  purrr[...],
 )
 
 box::use(
@@ -35,6 +36,8 @@ ModalServer <- function(id) {
       
       ns <- session$ns
       
+      ##### Reactives #####
+      
       incident_details <- reactiveValues(
         incident_id = NULL,
         dispatch_date = NULL,
@@ -49,40 +52,47 @@ ModalServer <- function(id) {
         dropped = NULL,
         apparatus = NULL,
         firefighter = NULL,
-        call_notes = NULL,
+        call_notes = NULL
       )
+      
+      ##### Modal Navigation #####
       
       # Show first modal
       observe({
-        showModal(modal$key_time(ns))
-      }) |> 
-        bindEvent(input$add_incident, ignoreNULL = T, ignoreInit = T)
+        showModal(modal$key_time(ns, incident_details))
+      }) |>
+        bindEvent(input$add_incident, ignoreNULL = TRUE, ignoreInit = TRUE)
       
       # Show second modal
-      observeEvent(input$to_address_unit, {
+      observe({
         removeModal()
-        showModal(modal$address_unit(ns))
-      })
+        showModal(modal$address_unit(ns, incident_details))
+      }) |>
+        bindEvent(input$to_address_unit, ignoreNULL = TRUE, ignoreInit = TRUE)
       
       # Show third modal
-      observeEvent(input$to_apparatus_ff, {
+      observe({
         removeModal()
-        showModal(modal$apparatus_ff(ns))
-      })
+        showModal(modal$apparatus_ff(ns, incident_details))
+      }) |>
+        bindEvent(input$to_apparatus_ff, ignoreNULL = TRUE, ignoreInit = TRUE)
       
-      # Show the fourth modal
-      observeEvent(input$to_assignment, {
+      # Show fourth modal
+      observe({
         removeModal()
-        showModal(modal$assignment(ns))
-      })
+        showModal(modal$assignment(ns, incident_details))
+      }) |>
+        bindEvent(input$to_assignment, ignoreNULL = TRUE, ignoreInit = TRUE)
       
-      # Show the fifth modal
-      observeEvent(input$to_note, {
+      # Show fifth modal
+      observe({
         removeModal()
-        showModal(modal$note(ns))
-      })
+        showModal(modal$note(ns, incident_details))
+      }) |>
+        bindEvent(input$to_note, ignoreNULL = TRUE, ignoreInit = TRUE)
       
-      # Cancel
+      
+      # Cancel and reset values
       observeEvent(input$cancel_modal, {
         removeModal()
         shinyalert(
@@ -90,63 +100,42 @@ ModalServer <- function(id) {
           text = "Incident not saved",
           type = "warning"
         )
+        incident_details$incident_id = NULL
+        incident_details$dispatch_date = NULL
+        incident_details$dispatch_time = NULL
+        incident_details$end_date = NULL
+        incident_details$end_time = NULL
+        incident_details$address = NULL
+        incident_details$area = NULL
+        incident_details$dispatch_reason = NULL
+        incident_details$units = NULL
+        incident_details$canceled = NULL
+        incident_details$dropped = NULL
+        incident_details$apparatus = NULL
+        incident_details$firefighter = NULL
+        incident_details$call_notes = NULL
       })
       
       
 
       
       
-      ###### Close Modals on cancel, display warning #####
-      # FIXME Can't get this to work dynamically, so I've got it separated out for now
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
-        )
-      }) |> 
-        bindEvent(input$cancel_mod_1, ignoreNULL = T, ignoreInit = T)
+      ###### Save Date Automatically When Modified #####
+      # List of variables to bind
+      fields <- c(
+        "incident_id", "dispatch_date", "dispatch_time", "end_date", "end_time", 
+        "address", "area", "dispatch_reason", "units", "canceled", 
+        "dropped", "apparatus", "firefighter", "call_notes"
+      )
       
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
-        )
-      }) |> 
-        bindEvent(input$cancel_mod_2, ignoreNULL = T, ignoreInit = T)
-      
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
-        )
-      }) |> 
-        bindEvent(input$cancel_mod_3, ignoreNULL = T, ignoreInit = T)
-      
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
-        )
-      }) |> 
-        bindEvent(input$cancel_mod_4, ignoreNULL = T, ignoreInit = T)
-      
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
-        )
-      }) |> 
-        bindEvent(input$cancel_mod_5, ignoreNULL = T, ignoreInit = T)
+      # Iterate and bind each field dynamically
+      walk(fields, ~ bindEvent(
+        observe({
+          incident_details[[.x]] <- input[[.x]]
+        }),
+        input[[.x]]
+      ))
+
       ####################################################
       
     }
