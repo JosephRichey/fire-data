@@ -19,12 +19,12 @@ key_time <- function(ns, incident_details) {
       # TODO Check that this dispatch date works with the tz conversion
       dateInput(ns("dispatch_date"), 
                   label = "Dispatch Date:",
-                  value = coalesce(incident_details$date, Sys.Date())
+                  value = coalesce(incident_details$dispatch_date, Sys.Date())
                 ),
       timeInput(ns("dispatch_time"), 
                   label = "Dispatch Time:", 
                   value = coalesce(
-                    incident_details$time,
+                    incident_details$dispatch_time,
                     Sys.time() |>
                       with_tz(Sys.getenv('LOCAL_TZ')) |>
                       floor_date("minute") - 3600
