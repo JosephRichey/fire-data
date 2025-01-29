@@ -4,6 +4,8 @@ This is the main repository for all apps developed to be used together to track 
 
 This was developed originally in two different repositories. The history of both repositories have been included in this one. If you want to see the original repositories, they are linked <a href = "https://github.com/JosephRichey/cfd_data_portal" target="_blank">here</a> and <a href = "https://github.com/JosephRichey/cfd_training_attendance" target="_blank">here</a>.
 
+_Currently, the app is under active development. There are issues with each of the example apps, especially with recording times._
+
 ## Usage
 
 This code is licensed under CC BY-NC-SA. The general idea of this project is it can be setup to run with minimal modification. The general steps are as follows:
