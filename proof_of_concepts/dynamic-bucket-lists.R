@@ -8,28 +8,29 @@ ui <- fluidPage(
   fluidRow(
     column(
       width = 12,
-      tags$b("Select Apparatus and Names"),
       selectInput(
         inputId = "apparatus",
         label = "Select Apparatus:",
-        choices = c("truck 1", "truck 2", "truck 3"),
+        choices = c("truck 1", "truck 2", "truck 3", 
+                    "truck 4", "truck 5", "truck 6",
+                    "truck 7", "truck 8", "truck 9",
+                    "truck 10", "truck 11", "truck 12",
+                    "truck 13", "truck 14", "truck 15"),
         selected = c("truck 1"),
         multiple = TRUE
       ),
       selectInput(
         inputId = "names",
         label = "Select Names:",
-        choices = c("Alice", "Bob", "Charlie", "David", "Eve", "Frank"),
+        choices = c("Alice", "Bob", "Charlie", "David", "Eve", "Frank",
+                    "Zelda", "Yvonne", "Xander", "Wendy", "Victor", "Ursula",
+                    "Thomas", "Samantha", "Robert", "Quincy", "Patricia", "Oscar",
+                    "Nancy", "Molly", "Lenny", "Kevin", "Jenny", "Isaac", "Hannah",
+                    "George", "Fred", "Edgar", "Doris", "Cathy"),
         selected = c("Alice", "Bob"),
         multiple = TRUE
-      )
-    )
-  ),
-  fluidRow(
-    column(
-      tags$b("Exercise"),
-      width = 12,
-      uiOutput("dynamic_bucket_list")
+      ),
+      actionButton("show_modal", "Open Bucket List")
     )
   ),
   fluidRow(
@@ -51,11 +52,10 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
-  # Generate dynamic bucket list UI
-  output$dynamic_bucket_list <- renderUI({
+  # Function to generate dynamic bucket list UI
+  generate_bucket_list <- reactive({
     req(input$apparatus, input$names)
     
-    # Combine static and dynamic rank lists
     do.call(
       bucket_list,
       c(
@@ -78,6 +78,28 @@ server <- function(input, output, session) {
         })
       )
     )
+  })
+  
+  # Show modal when button is clicked
+  observeEvent(input$show_modal, {
+    showModal(modalDialog(
+      title = "Bucket List",
+      uiOutput("dynamic_bucket_list"),
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Close"),
+        actionButton("save_bucket_list", "Save")
+      ), size = 'l'
+    ))
+  })
+  
+  observeEvent(input$save_bucket_list, {
+    removeModal()
+  })
+  
+  # Render dynamic bucket list inside modal
+  output$dynamic_bucket_list <- renderUI({
+    generate_bucket_list()
   })
   
   # Render results

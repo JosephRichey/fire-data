@@ -65,7 +65,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$delete_row, {
     
-    browser()
+    # browser()
     # Capture the row to delete
     row_id <- as.numeric(input$delete_row)
     
@@ -99,7 +99,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$save_to_db, {
     # Capture the edited data from the DataTable
-    browser()
+    # browser()
     
     edited_data <- input$edit_table_cell_edit
     if (!is.null(edited_data)) {

@@ -1,0 +1,27 @@
+/* Make sortable items primary blue */
+.sortable-item {
+  background-color: #87292b !important;
+  color: white !important;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+/* Style for the rank lists */
+.rank-list-item {
+  background-color: #87292b !important; 
+  color: white !important;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.rank-list {
+  background-color: #565656 !important;
+}
+
+.rank-list-empty {
+  background-color: #565656 !important;
+}
+

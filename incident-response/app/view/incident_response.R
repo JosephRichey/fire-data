@@ -8,6 +8,7 @@ box::use(
   shinyalert[...],
   DBI[...],
   purrr[...],
+  sortable[...],
 )
 
 box::use(
@@ -16,9 +17,10 @@ box::use(
 )
 
 UI <- function(id) {
+    
   ns <- NS(id)
   tagList(
-    actionButton(ns("add_incident"), "Add Incident", class = "btn btn-primary"),
+    actionButton(ns("add_incident"), "Add Incident", class = "btn btn-primary")
   )
 }
 
@@ -80,13 +82,23 @@ ModalServer <- function(id) {
       # Show fourth modal
       observe({
         removeModal()
-        showModal(modal$assignment(ns, incident_details))
+        showModal(modalDialog(
+          title = "Assign Firefighters to Apparatus",
+          uiOutput(ns("dynamic_bucket_list")),
+          easyClose = TRUE,
+          footer = tagList(
+            actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-secondary"),
+            actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
+            actionButton(ns("to_note"), "Next", class = "btn btn-primary")
+          ), size = 'l'
+        ))
       }) |>
         bindEvent(input$to_assignment, ignoreNULL = TRUE, ignoreInit = TRUE)
       
       # Show fifth modal
       observe({
         removeModal()
+        browser()
         showModal(modal$note(ns, incident_details))
       }) |>
         bindEvent(input$to_note, ignoreNULL = TRUE, ignoreInit = TRUE)
@@ -158,8 +170,51 @@ ModalServer <- function(id) {
         }),
         input[[.x]]
       ))
-
-      ####################################################
+      
+      ##### Apparatus and Firefighter Assignment #####
+      generate_apparatus_firefighter <- reactive({
+        req(input$apparatus, input$firefighter)
+        
+        # browser()
+        
+        div('rank-list-item', style = "background-color: #996868 !important;")
+        
+        do.call(
+          bucket_list,
+          c(
+            list(
+              header = "Assign Firefighters to Apparatus",
+              group_name = "apparatus_list_group",
+              orientation = "horizontal",
+              add_rank_list(
+                text = "Drag from here",
+                labels = input$firefighter,
+                input_id = "firefighter_list",
+                options = sortable_options(
+                  group = "apparatus_list_group",
+                  class = "sortable-item"
+                  )
+              )
+            ),
+            lapply(input$apparatus, function(apparatus_name) {
+              add_rank_list(
+                text = apparatus_name,
+                labels = NULL,
+                input_id = paste0("rank_list_", apparatus_name),
+                options = sortable_options(
+                  group = "apparatus_list_group",
+                  class = "sortable-item"
+                )
+              )
+            })
+          )
+        )
+      })
+      
+      # Render dynamic bucket list inside modal
+      output$dynamic_bucket_list <- renderUI({
+        generate_apparatus_firefighter()
+      })
       
     }
   )
