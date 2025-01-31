@@ -27,8 +27,11 @@ UI <- function(id) {
 Output <- function(id) {
   ns <- NS(id)
   tagList(
-    uiOutput(ns('incident_cards'))
+    uiOutput(ns('incident_cards')),
+    verbatimTextOutput(ns("results"))
   )
+  
+  
 }
 
 ModalServer <- function(id) {
@@ -84,7 +87,7 @@ ModalServer <- function(id) {
         removeModal()
         showModal(modalDialog(
           title = "Assign Firefighters to Apparatus",
-          uiOutput(ns("dynamic_bucket_list")),
+          uiOutput(ns("firefighter_apparatus_list")),
           easyClose = TRUE,
           footer = tagList(
             actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-secondary"),
@@ -95,10 +98,12 @@ ModalServer <- function(id) {
       }) |>
         bindEvent(input$to_assignment, ignoreNULL = TRUE, ignoreInit = TRUE)
       
+      
       # Show fifth modal
       observe({
+        # browser()
         removeModal()
-        browser()
+        # browser()
         showModal(modal$note(ns, incident_details))
       }) |>
         bindEvent(input$to_note, ignoreNULL = TRUE, ignoreInit = TRUE)
@@ -136,6 +141,30 @@ ModalServer <- function(id) {
           text = "Incident saved",
           type = "success"
         )
+      })
+      
+      
+      output$results <- renderPrint({
+        
+        vals <- reactiveValuesToList(incident_details)
+        
+        print(vals)
+      
+        list <- input$ff_app_lists
+        
+        for (i in 1:length(list)) {
+
+          print(
+            paste0(
+              names(list)[[i]] |> 
+                stringr::str_replace("apparatus_list_", "") |> 
+                stringr::str_replace("app-incident_response-", ""), 
+              ": ", 
+              paste(list[[i]], collapse = ", ")
+            )
+          )
+        }
+        
         incident_details$incident_id = NULL
         incident_details$dispatch_date = NULL
         incident_details$dispatch_time = NULL
@@ -150,7 +179,9 @@ ModalServer <- function(id) {
         incident_details$apparatus = NULL
         incident_details$firefighter = NULL
         incident_details$call_notes = NULL
-      })
+        
+      }) |> 
+        bindEvent(input$submit, ignoreNULL = TRUE)
       
 
       
@@ -172,37 +203,35 @@ ModalServer <- function(id) {
       ))
       
       ##### Apparatus and Firefighter Assignment #####
-      generate_apparatus_firefighter <- reactive({
+      generate_firefighter_apparatus <- reactive({
         req(input$apparatus, input$firefighter)
-        
-        # browser()
-        
-        div('rank-list-item', style = "background-color: #996868 !important;")
         
         do.call(
           bucket_list,
           c(
             list(
-              header = "Assign Firefighters to Apparatus",
-              group_name = "apparatus_list_group",
+              header = NULL,
+              group_name = ns("ff_app_lists"),
               orientation = "horizontal",
               add_rank_list(
-                text = "Drag from here",
+                text = "Standby",
                 labels = input$firefighter,
-                input_id = "firefighter_list",
+                input_id = ns("standby_list"),
                 options = sortable_options(
-                  group = "apparatus_list_group",
+                  group = "bucket_list",
                   class = "sortable-item"
-                  )
+                )
               )
             ),
             lapply(input$apparatus, function(apparatus_name) {
               add_rank_list(
                 text = apparatus_name,
                 labels = NULL,
-                input_id = paste0("rank_list_", apparatus_name),
+                input_id = paste0("apparatus_list_", apparatus_name |> 
+                                    stringr::str_to_lower() |> 
+                                    stringr::str_replace_all(" ", "_")),
                 options = sortable_options(
-                  group = "apparatus_list_group",
+                  group = "bucket_list",
                   class = "sortable-item"
                 )
               )
@@ -211,9 +240,10 @@ ModalServer <- function(id) {
         )
       })
       
+      
       # Render dynamic bucket list inside modal
-      output$dynamic_bucket_list <- renderUI({
-        generate_apparatus_firefighter()
+      output$firefighter_apparatus_list <- renderUI({
+        generate_firefighter_apparatus()
       })
       
     }

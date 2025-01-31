@@ -3,8 +3,6 @@ box::use(
   bslib[...],
 )
 
-library(shiny)
-
 box::use(
   view/incident_response,
 )
