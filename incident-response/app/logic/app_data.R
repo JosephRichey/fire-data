@@ -2,6 +2,7 @@ box::use(
   dplyr[filter, ...],
   odbc[...],
   shiny[...],
+  lubridate[with_tz],
 )
 
 #' @export
@@ -79,6 +80,10 @@ Dispatch_Codes <- lapply(
     as.list(values)
   }
 )
+
+#' @export
+# FIXME This won't work if a call is recorded at 00:30.
+Current_Local_Date <- Sys.time() |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(tz = Sys.getenv('LOCAL_TZ'))
   
 
 

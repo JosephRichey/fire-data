@@ -41,7 +41,7 @@ ModalServer <- function(id) {
       
       ns <- session$ns
       
-      ##### Reactives #####
+      ##### Reactives to save until write or reset #####
       
       incident_details <- reactiveValues(
         incident_id = NULL,
@@ -83,6 +83,52 @@ ModalServer <- function(id) {
         bindEvent(input$to_apparatus_ff, ignoreNULL = TRUE, ignoreInit = TRUE)
       
       # Show fourth modal
+      
+      ##### Assignment Widget #####
+      ##### Apparatus and Firefighter Assignment #####
+      generate_firefighter_apparatus <- reactive({
+        req(input$apparatus, input$firefighter)
+        
+        do.call(
+          bucket_list,
+          c(
+            list(
+              header = NULL,
+              group_name = ns("ff_app_lists"),
+              orientation = "horizontal",
+              add_rank_list(
+                text = "Standby",
+                labels = input$firefighter,
+                input_id = ns("standby_list"),
+                options = sortable_options(
+                  group = "bucket_list",
+                  class = "sortable-item"
+                )
+              )
+            ),
+            lapply(input$apparatus, function(apparatus_name) {
+              add_rank_list(
+                text = apparatus_name,
+                labels = NULL,
+                input_id = paste0("apparatus_list_", apparatus_name |> 
+                                    stringr::str_to_lower() |> 
+                                    stringr::str_replace_all(" ", "_")),
+                options = sortable_options(
+                  group = "bucket_list",
+                  class = "sortable-item"
+                )
+              )
+            })
+          )
+        )
+      })
+      
+      
+      # Render dynamic bucket list inside modal
+      output$firefighter_apparatus_list <- renderUI({
+        generate_firefighter_apparatus()
+      })
+      
       observe({
         removeModal()
         showModal(modalDialog(
@@ -98,18 +144,17 @@ ModalServer <- function(id) {
       }) |>
         bindEvent(input$to_assignment, ignoreNULL = TRUE, ignoreInit = TRUE)
       
+      ##### End Assignment Widget #####
       
       # Show fifth modal
       observe({
-        # browser()
         removeModal()
-        # browser()
         showModal(modal$note(ns, incident_details))
       }) |>
         bindEvent(input$to_note, ignoreNULL = TRUE, ignoreInit = TRUE)
       
       
-      # Cancel and reset values
+      ##### Cancel and reset values #####
       observeEvent(input$cancel_modal, {
         removeModal()
         shinyalert(
@@ -202,49 +247,7 @@ ModalServer <- function(id) {
         input[[.x]]
       ))
       
-      ##### Apparatus and Firefighter Assignment #####
-      generate_firefighter_apparatus <- reactive({
-        req(input$apparatus, input$firefighter)
-        
-        do.call(
-          bucket_list,
-          c(
-            list(
-              header = NULL,
-              group_name = ns("ff_app_lists"),
-              orientation = "horizontal",
-              add_rank_list(
-                text = "Standby",
-                labels = input$firefighter,
-                input_id = ns("standby_list"),
-                options = sortable_options(
-                  group = "bucket_list",
-                  class = "sortable-item"
-                )
-              )
-            ),
-            lapply(input$apparatus, function(apparatus_name) {
-              add_rank_list(
-                text = apparatus_name,
-                labels = NULL,
-                input_id = paste0("apparatus_list_", apparatus_name |> 
-                                    stringr::str_to_lower() |> 
-                                    stringr::str_replace_all(" ", "_")),
-                options = sortable_options(
-                  group = "bucket_list",
-                  class = "sortable-item"
-                )
-              )
-            })
-          )
-        )
-      })
       
-      
-      # Render dynamic bucket list inside modal
-      output$firefighter_apparatus_list <- renderUI({
-        generate_firefighter_apparatus()
-      })
       
     }
   )

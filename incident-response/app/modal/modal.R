@@ -16,11 +16,10 @@ key_time <- function(ns, incident_details) {
       label = "Incident ID:",
       value = coalesce(incident_details$incident_id, "")
     ),
-    # TODO Check that this dispatch date works with the tz conversion
     dateInput(
       inputId = ns("dispatch_date"),
       label = "Dispatch Date:",
-      value = coalesce(incident_details$dispatch_date, Sys.Date())
+      value = coalesce(incident_details$dispatch_date, app_data$Current_Local_Date)
     ),
     timeInput(
       inputId = ns("dispatch_time"),
@@ -36,7 +35,7 @@ key_time <- function(ns, incident_details) {
     dateInput(
       inputId = ns("end_date"),
       label = "End Date:",
-      value = coalesce(incident_details$end_date, Sys.Date())
+      value = coalesce(incident_details$end_date, app_data$Current_Local_Date)
     ),
     timeInput(
       inputId = ns("end_time"),
