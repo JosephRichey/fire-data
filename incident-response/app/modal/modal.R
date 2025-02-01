@@ -112,19 +112,19 @@ address_unit <- function(ns, incident_details) {
   )
 }
 
-apparatus_ff <- function(ns, incident_details) {
+select_ff_aparatus <- function(ns, incident_details) {
   modalDialog(
     selectInput(
       inputId = ns("apparatus"),
       label = "Apparatus:",
-      choices = app_data$Apparatus |> pull(apparatus_name),
+      choices = app_data$Apparatus() |> pull(apparatus_name),
       selected = coalesce(incident_details$apparatus, ""),
       multiple = TRUE
     ),
     selectInput(
       inputId = ns("firefighter"),
       label = "Firefighter",
-      choices = app_data$Firefighter |> pull(full_name),
+      choices = app_data$Firefighter() |> pull(full_name),
       selected = coalesce(incident_details$firefighter, ""),
       multiple = TRUE
     ),

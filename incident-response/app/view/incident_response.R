@@ -20,15 +20,18 @@ UI <- function(id) {
     
   ns <- NS(id)
   tagList(
-    actionButton(ns("add_incident"), "Add Incident", class = "btn btn-primary")
+    actionButton(ns("add_incident"), "Add Incident", class = "btn btn-primary"),
+    actionButton(ns("add_additional_response"), "Add Additional Response", class = "btn btn-secondary"),
+    actionButton(ns("edit_incident_id"), "Edit Incident ID", class = "btn btn-warning"),
+    actionButton(ns("edit_incident"), "Edit Incident", class = "btn btn-primary"),
   )
 }
 
 Output <- function(id) {
   ns <- NS(id)
   tagList(
-    uiOutput(ns('incident_cards')),
-    verbatimTextOutput(ns("results"))
+    uiOutput(ns('incident_cards'))#,
+    # verbatimTextOutput(ns("results"))
   )
   
   
@@ -61,6 +64,44 @@ ModalServer <- function(id) {
       )
       
       ##### Modal Navigation #####
+      observe({
+        Incident_Edit <- app_data$Incident() |> 
+          filter(incident_id == 'INC006872')
+        Ff_App_Edit <- app_data$Firefighter_Apparatus() |> 
+          filter(incident_id == 'INC006872') |> 
+          left_join(
+            app_data$Firefighter(),
+            by = c('firefighter_id' = 'firefighter_id')) |>
+          left_join(
+            app_data$Apparatus(),
+            by = c('apparatus_id' = 'apparatus_id')) |> 
+          select(full_name, apparatus_name)
+        
+        
+        incident_details$incident_id <- Incident_Edit$incident_id
+        incident_details$dispatch_date <- Incident_Edit$dispatch_time |> as.Date()
+        incident_details$dispatch_time <- Incident_Edit$dispatch_time
+        incident_details$end_date <- Incident_Edit$end_time |> as.Date()
+        incident_details$end_time <- Incident_Edit$end_time
+        incident_details$address <- Incident_Edit$address
+        incident_details$area <- Incident_Edit$area
+        incident_details$dispatch_reason <- Incident_Edit$dispatch_reason
+        incident_details$units <- c(
+          if_else(Incident_Edit$ems == 1, "EMS", NA),
+          if_else(Incident_Edit$fire == 1, "Fire", NA),
+          if_else(Incident_Edit$wildland == 1, "Wildland", NA)
+        )
+        incident_details$canceled <- Incident_Edit$canceled
+        incident_details$dropped <- Incident_Edit$dropped
+        incident_details$apparatus <- Ff_App_Edit$apparatus_name
+        incident_details$firefighter <- Ff_App_Edit$full_name
+        incident_details$call_notes <- Incident_Edit$notes
+        
+        showModal(modal$key_time(ns, incident_details))
+      }) |>
+        bindEvent(input$edit_incident, ignoreNULL = TRUE, ignoreInit = TRUE)
+
+      
       
       # Show first modal
       observe({
@@ -78,7 +119,7 @@ ModalServer <- function(id) {
       # Show third modal
       observe({
         removeModal()
-        showModal(modal$apparatus_ff(ns, incident_details))
+        showModal(modal$select_ff_aparatus(ns, incident_details))
       }) |>
         bindEvent(input$to_apparatus_ff, ignoreNULL = TRUE, ignoreInit = TRUE)
       
@@ -88,7 +129,7 @@ ModalServer <- function(id) {
       ##### Apparatus and Firefighter Assignment #####
       generate_firefighter_apparatus <- reactive({
         req(input$apparatus, input$firefighter)
-        
+
         do.call(
           bucket_list,
           c(
@@ -180,12 +221,7 @@ ModalServer <- function(id) {
       
       # Save and reset values
       observeEvent(input$submit, {
-        removeModal()
-        shinyalert(
-          title = "Success",
-          text = "Incident saved",
-          type = "success"
-        )
+
       })
       
       
@@ -263,29 +299,57 @@ DBWriteServer <- function(id) {
       observe({
         removeModal()
         # browser()
-        
-        # Take only time componenet of the input
+        # Take only time component of the input
         as.POSIXct(input$dispatch_time) |> format('%H:%M:%S')
         
-        UTC_dispatch_time_date <-  as.POSIXct((paste(input$dispatch_date, input$dispatch_time |> format('%H:%M:%S')))) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
+        UTC_dispatch_time_date <-  as.POSIXct(
+          (
+            paste(
+              input$dispatch_date,
+              input$dispatch_time |> 
+                format('%H:%M:%S')
+              )
+            )
+          ) |> 
+          force_tz(app_data$TZ) |> with_tz()
         UTC_end_time_date <- as.POSIXct((paste(input$end_date, input$end_time |> format('%H:%M:%S')))) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
-
-        ###### Incident Statement Prepration
-        incident_statment_prep <- paste0("INSERT INTO ", SQL(Sys.getenv('INCIDENT_TABLE')), " VALUES ('", input$incident_id, "', '",
-                                         UTC_dispatch_time_date, "', '",
-                                         UTC_end_time_date, "', '",
-                                         input$address, "', '",
-                                         input$dispatch_reason, "', ",
-                                         if_else("EMS" %in% input$units, 1, 0), ", ",
-                                         if_else("Fire" %in% input$units, 1, 0), ", ",
-                                         if_else("Wildland" %in% input$units, 1, 0), ", '",
-                                         input$area, "', ",
-                                         if_else(input$canceled, 1, 0), ", ",
-                                         if_else(input$dropped, 1, 0), ", '",
-                                         input$call_notes, "', ",
-                                         "0);")
         
-        incident_statment <- incident_statment_prep
+        Current_Incident <- app_data$Incident()
+        # browser()
+        New_Incident <- data.frame(
+          incident_id = input$incident_id,
+          dispatch_time = UTC_dispatch_time_date,
+          end_time = UTC_end_time_date,
+          address = if (is.null(input$address)) "" else input$address,
+          dispatch_reason = input$dispatch_reason,
+          ems_units = if_else("EMS" %in% input$units, 1, 0),
+          fire_units = if_else("Fire" %in% input$units, 1, 0),
+          wildland_units = if_else("Wildland" %in% input$units, 1, 0),
+          area = input$area,
+          canceled = if_else(input$canceled, 1, 0),
+          dropped = if_else(input$dropped, 1, 0),
+          notes = input$call_notes,
+          finalized = 0
+        )
+        
+        app_data$Incident(rbind(Current_Incident, New_Incident)) 
+        
+        ###### Incident Statement Prepration
+        # incident_statment_prep <- paste0("INSERT INTO ", SQL(Sys.getenv('INCIDENT_TABLE')), " VALUES ('", input$incident_id, "', '",
+        #                                  UTC_dispatch_time_date, "', '",
+        #                                  UTC_end_time_date, "', '",
+        #                                  input$address, "', '",
+        #                                  input$dispatch_reason, "', ",
+        #                                  if_else("EMS" %in% input$units, 1, 0), ", ",
+        #                                  if_else("Fire" %in% input$units, 1, 0), ", ",
+        #                                  if_else("Wildland" %in% input$units, 1, 0), ", '",
+        #                                  input$area, "', ",
+        #                                  if_else(input$canceled, 1, 0), ", ",
+        #                                  if_else(input$dropped, 1, 0), ", '",
+        #                                  input$call_notes, "', ",
+        #                                  "0);")
+        # 
+        # incident_statment <- incident_statment_prep
         
         # Interpolate the values into the SQL command safely
         # incident_statment <- sqlInterpolate(
@@ -308,101 +372,106 @@ DBWriteServer <- function(id) {
         
         ###### Firefighter incident statement preparation ######
         # No interpolation needed here, just a loop to build the statement
-        firefighter_incident_statement <- paste0("INSERT INTO ", 
-                   Sys.getenv("FF_INC_TABLE"), 
-                   " (incident_id, firefighter_id) VALUES "
-            )
-        
-        
-        for(ff in input$firefighter) {
-          firefighter_incident_statement <- paste0(firefighter_incident_statement, "('",
-                                                             input$incident_id, "',",
-                                                             app_data$firefighter_mapping[[ff]], "),"
-                                                             )
-        }
-      
-        
-        # Replace the last comma with a semi-colon
-        firefighter_incident_statement <- sub(",([^,]*)$", ";\\1", firefighter_incident_statement)
-        
-        
-        ###### Apparatus incident statement preparation ######
-        # No interpolation needed here, just a loop to build the statement
-        apparatus_incident_statement <- paste0("INSERT INTO ", 
-                                                 Sys.getenv("APP_INC_TABLE"), 
-                                                 " (incident_id, apparatus_id) VALUES "
-        )
-        
-        for(app in input$apparatus) {
-          apparatus_incident_statement <- paste0(apparatus_incident_statement, "('",
-                                                             input$incident_id, "',",
-                                                             app_data$apparatus_mapping[[app]], "),"
-          )
-        }
-        
-        # Replace the last comma with a semi-colon
-        apparatus_incident_statement <- sub(",([^,]*)$", ";\\1", apparatus_incident_statement)
-        
-        ###### Firefighter Apparatus statement preparation ######
-        # No interpolation needed here, just a loop to build the statement
-        firefighter_apparatus_statement <- paste0("INSERT INTO ", 
-                                                 Sys.getenv("FF_APP_TABLE"), 
-                                                 " (incident_id, firefighter_id, apparatus_id) VALUES "
-        )
-        
-        for(ff in input$firefighter) {
-          app <- input[[paste0(ff, "_apparatus")]]
-          
-          
-          firefighter_apparatus_statement <- paste0(firefighter_apparatus_statement, "('",
-                                                             input$incident_id, "',",
-                                                             app_data$firefighter_mapping[[ff]], ",",
-                                                             app_data$apparatus_mapping[[app]], "),"
-          )
-          
-        }
-        
-        # Replace the last comma with a semi-colon
-        firefighter_apparatus_statement <- sub(",([^,]*)$", ";\\1", firefighter_apparatus_statement)
+        # firefighter_incident_statement <- paste0("INSERT INTO ", 
+        #            Sys.getenv("FF_INC_TABLE"), 
+        #            " (incident_id, firefighter_id) VALUES "
+        #     )
+        # 
+        # 
+        # for(ff in input$firefighter) {
+        #   firefighter_incident_statement <- paste0(firefighter_incident_statement, "('",
+        #                                                      input$incident_id, "',",
+        #                                                      app_data$firefighter_mapping[[ff]], "),"
+        #                                                      )
+        # }
+        # 
+        # 
+        # # Replace the last comma with a semi-colon
+        # firefighter_incident_statement <- sub(",([^,]*)$", ";\\1", firefighter_incident_statement)
+        # 
+        # 
+        # ###### Apparatus incident statement preparation ######
+        # # No interpolation needed here, just a loop to build the statement
+        # apparatus_incident_statement <- paste0("INSERT INTO ", 
+        #                                          Sys.getenv("APP_INC_TABLE"), 
+        #                                          " (incident_id, apparatus_id) VALUES "
+        # )
+        # 
+        # for(app in input$apparatus) {
+        #   apparatus_incident_statement <- paste0(apparatus_incident_statement, "('",
+        #                                                      input$incident_id, "',",
+        #                                                      app_data$apparatus_mapping[[app]], "),"
+        #   )
+        # }
+        # 
+        # # Replace the last comma with a semi-colon
+        # apparatus_incident_statement <- sub(",([^,]*)$", ";\\1", apparatus_incident_statement)
+        # 
+        # ###### Firefighter Apparatus statement preparation ######
+        # # No interpolation needed here, just a loop to build the statement
+        # firefighter_apparatus_statement <- paste0("INSERT INTO ", 
+        #                                          Sys.getenv("FF_APP_TABLE"), 
+        #                                          " (incident_id, firefighter_id, apparatus_id) VALUES "
+        # )
+        # 
+        # for(ff in input$firefighter) {
+        #   app <- input[[paste0(ff, "_apparatus")]]
+        #   
+        #   
+        #   firefighter_apparatus_statement <- paste0(firefighter_apparatus_statement, "('",
+        #                                                      input$incident_id, "',",
+        #                                                      app_data$firefighter_mapping[[ff]], ",",
+        #                                                      app_data$apparatus_mapping[[app]], "),"
+        #   )
+        #   
+        # }
+        # 
+        # # Replace the last comma with a semi-colon
+        # firefighter_apparatus_statement <- sub(",([^,]*)$", ";\\1", firefighter_apparatus_statement)
         
         #####
         
         # Print the statements
-        print('Incident statement to be exectuted.')
-        print(incident_statment)
-        print('Firefighter Incident statement to be exectuted.')
-        print(firefighter_incident_statement)
-        print('Apparatus Incident statement to be exectuted.')
-        print(apparatus_incident_statement)
-        print('Firefighter Apparatus statement to be exectuted.')
-        print(firefighter_apparatus_statement)
+        # print('Incident statement to be exectuted.')
+        # print(incident_statment)
+        # print('Firefighter Incident statement to be exectuted.')
+        # print(firefighter_incident_statement)
+        # print('Apparatus Incident statement to be exectuted.')
+        # print(apparatus_incident_statement)
+        # print('Firefighter Apparatus statement to be exectuted.')
+        # print(firefighter_apparatus_statement)
         
         # Execute the statements
-        incident_write_result <- DBI::dbExecute(app_data$CON,
-                                       incident_statment)
-        ff_inc_write_result <- DBI::dbExecute(app_data$CON,
-                                       firefighter_incident_statement)
-        app_inc_write_result <- DBI::dbExecute(app_data$CON,
-                                       apparatus_incident_statement)
-        ff_app_write_result <- DBI::dbExecute(app_data$CON,
-                                       firefighter_apparatus_statement)
+      #   incident_write_result <- DBI::dbExecute(app_data$CON,
+      #                                  incident_statment)
+      #   ff_inc_write_result <- DBI::dbExecute(app_data$CON,
+      #                                  firefighter_incident_statement)
+      #   app_inc_write_result <- DBI::dbExecute(app_data$CON,
+      #                                  apparatus_incident_statement)
+      #   ff_app_write_result <- DBI::dbExecute(app_data$CON,
+      #                                  firefighter_apparatus_statement)
+      #   
+      #   # Check if the write was successful
+      #   if(all(exists('incident_write_result'), exists('ff_inc_write_result'), exists('app_inc_write_result'), exists('ff_app_write_result'))) {
+      #     shinyalert(
+      #       title = "Success",
+      #       text = "Incident saved",
+      #       type = "success"
+      #     )
+      #   } else {
+      #     shinyalert(
+      #       title = "Error",
+      #       text = "Tables not saved properly. Please contact your application administrator.",
+      #       type = "error"
+      #     )
+      #   }
+      # }) |> 
+      #   bindEvent(input$mod_5_submit, ignoreNULL = T)
         
-        # Check if the write was successful
-        if(all(exists('incident_write_result'), exists('ff_inc_write_result'), exists('app_inc_write_result'), exists('ff_app_write_result'))) {
-          shinyalert(
-            title = "Success",
-            text = "Incident saved",
-            type = "success"
-          )
-        } else {
-          shinyalert(
-            title = "Error",
-            text = "Tables not saved properly. Please contact your application administrator.",
-            type = "error"
-          )
-        }
+        
+        
       }) |> 
-        bindEvent(input$mod_5_submit, ignoreNULL = T)
+          bindEvent(input$submit, ignoreNULL = T)
     }
   )
 }
@@ -411,30 +480,26 @@ CardServer <- function(id) {
   moduleServer(
     id,
     function(input, output, session) {
-      
-      R_Incident <- reactiveVal(app_data$Incident)
-      
-      R_Firefighter_Incident <- reactiveVal(app_data$Firefighter_Incident)
-      
+
       ns <- session$ns
       
       updateReactiveValue <- function() {
-        R_Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE"))))
-        R_Firefighter_Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("FF_INC_TABLE"))))
+        app_data$Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE"))))
+        app_data$Firefighter_Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("FF_INC_TABLE"))))
       }
       
       
       ns <- session$ns
       
       output$incident_cards <- renderUI({
-        updateReactiveValue()
+        # updateReactiveValue()
         
-        Incidents <- R_Incident()
+        Incidents <- app_data$Incident()
         
-        Firefighter_Incident <- R_Firefighter_Incident()
+        Firefighter_Incident <- app_data$Firefighter_Incident()
         
-        Incidents <- Incidents[Incidents$incident_end_time >= Sys.time() - 48*3600, ] |> 
-          arrange(desc(incident_end_time))
+        Incidents <- Incidents[Incidents$end_time >= Sys.time() - 48*3600, ] |> 
+          arrange(desc(end_time))
         
         lapply(seq_len(nrow(Incidents)), function(i) {
           incident <- Incidents[i, ]
@@ -445,13 +510,13 @@ CardServer <- function(id) {
           names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters]
           
           card(
-            card_header(paste(incident$incident_dispatch_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(), 
-                              incident$incident_dispatch_reason)),
+            card_header(paste(incident$dispatch_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(), 
+                              incident$dispatch_reason)),
             p(paste(names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters], collapse = ", "))
           )
         })
       }) |> 
-        bindEvent(input$mod_5_submit, ignoreNULL = F, ignoreInit = F)
+        bindEvent(input$submit, ignoreNULL = F, ignoreInit = F)
       
       
     }

@@ -6,6 +6,9 @@ box::use(
 )
 
 #' @export
+TZ <- Sys.getenv("LOCAL_TZ")
+
+#' @export
 CON <- dbConnect(RMySQL::MySQL(),
                  dbname = "test",
                  host = Sys.getenv("DB_HOST"),
@@ -14,16 +17,22 @@ CON <- dbConnect(RMySQL::MySQL(),
                  password = Sys.getenv("DB_PASSWORD"))
 
 #' @export
-Firefighter <- dbGetQuery(CON,"SELECT * FROM firefighter")
+Firefighter <- reactiveVal(dbGetQuery(CON,"SELECT * FROM firefighter"))
 
 #' @export
-Apparatus <- dbGetQuery(CON, "SELECT * FROM apparatus")
+Apparatus <- reactiveVal(dbGetQuery(CON, "SELECT * FROM apparatus"))
 
 #' @export
-Incident <- dbGetQuery(CON, "SELECT * FROM incident")
+Firefighter_Apparatus <- reactiveVal(dbGetQuery(CON, "SELECT * FROM firefighter_apparatus"))
 
 #' @export
-Firefighter_Incident <- dbGetQuery(CON, "SELECT * FROM firefighter_incident")
+Incident <- reactiveVal(dbGetQuery(CON, "SELECT * FROM incident") |> 
+  mutate(dispatch_time = as.POSIXct(dispatch_time, tz = 'UTC') |> with_tz(TZ),
+         end_time = as.POSIXct(end_time, tz = "UTC") |> with_tz(TZ))
+  )
+
+#' @export
+Firefighter_Incident <- reactiveVal(dbGetQuery(CON, "SELECT * FROM firefighter_incident"))
 
 
 ##### Extract Setting Information #####
@@ -89,7 +98,7 @@ Current_Local_Date <- Sys.time() |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(t
 
 # Creating mapping vectors to get Ids
 #' @export
-apparatus_mapping <- stats::setNames(Apparatus$apparatus_id, Apparatus$apparatus_name)
+apparatus_mapping <- stats::setNames(Apparatus()$apparatus_id, Apparatus()$apparatus_name)
 
 #' @export
-firefighter_mapping <- stats::setNames(Firefighter$firefighter_id, Firefighter$firefighter_full_name)
+firefighter_mapping <- stats::setNames(Firefighter()$firefighter_id, Firefighter()$firefighter_full_name)
