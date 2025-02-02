@@ -9,6 +9,7 @@ box::use(
   DBI[...],
   purrr[...],
   sortable[...],
+  shinyjs[...],
 )
 
 box::use(
@@ -23,15 +24,14 @@ UI <- function(id) {
     actionButton(ns("add_incident"), "Add Incident", class = "btn btn-primary"),
     actionButton(ns("add_additional_response"), "Add Additional Response", class = "btn btn-secondary"),
     actionButton(ns("edit_incident_id"), "Edit Incident ID", class = "btn btn-light"),
-    # actionButton(ns("edit_incident"), "Edit Incident", class = "btn btn-primary"),
   )
 }
 
 Output <- function(id) {
   ns <- NS(id)
+  useShinyjs()
   tagList(
-    uiOutput(ns('incident_cards'))#,
-    # verbatimTextOutput(ns("results"))
+    uiOutput(ns('incident_cards'))
   )
   
   
@@ -64,6 +64,8 @@ ModalServer <- function(id) {
       )
       
       ##### Modal Navigation #####
+      
+      # Edit Modal
       observe({
         Incident_Edit <- app_data$Incident() |> 
           filter(incident_id == 'INC006872')
@@ -101,6 +103,11 @@ ModalServer <- function(id) {
       }) |>
         bindEvent(input$edit_incident, ignoreNULL = TRUE, ignoreInit = TRUE)
 
+      # Additional Response Modal
+      observe({
+        showModal(modal$key_time_additional(ns, incident_details))
+      }) |>
+        bindEvent(input$add_additional_response, ignoreNULL = TRUE, ignoreInit = TRUE)
       
       
       # Show first modal
@@ -194,56 +201,6 @@ ModalServer <- function(id) {
       }) |>
         bindEvent(input$to_note, ignoreNULL = TRUE, ignoreInit = TRUE)
       
-      # TODO Break this out into a separate server
-      # Show password modal
-      observe({
-        showModal(modal$password(ns))
-      }) |>
-        bindEvent(input$edit_incident_id, ignoreNULL = TRUE, ignoreInit = TRUE)
-      
-      # Show edit incident modal
-      observe({
-        removeModal()
-        if(input$password == app_data$password) {
-          showModal(modal$edit_incident_id(ns))
-        } else {
-          shinyalert(
-            title = "Error",
-            text = "Incorrect password",
-            type = "error"
-          )
-        }
-      }) |> 
-        bindEvent(input$to_edit_id, ignoreNULL = TRUE)
-      
-      # Confirm and save new incident id
-      observe({
-        removeModal()
-        showModal(
-          modal$submit_new_id(ns, input$old_incident_id, input$new_incident_id)
-        )
-      }) |> 
-        bindEvent(input$to_edit_confirm, ignoreNULL = TRUE)
-      
-      # Save new incident id
-      observe({
-        removeModal()
-        
-        New <- app_data$Incident() |> 
-          mutate(incident_id = if_else(incident_id == input$old_incident_id,
-                                  input$new_incident_id,
-                                  incident_id)) 
-        
-        app_data$Incident(New)
-        
-        shinyalert(
-          title = "Success",
-          text = "Incident ID saved",
-          type = "success"
-        )
-      }) |> 
-        bindEvent(input$submit_new_id, ignoreNULL = TRUE)
-      
       
       ##### Cancel and reset values #####
       observeEvent(input$cancel_modal, {
@@ -269,14 +226,8 @@ ModalServer <- function(id) {
         incident_details$call_notes = NULL
       })
       
-      # Save and reset values
-      observeEvent(input$submit, {
-
-      })
-      
-      
-      output$results <- renderPrint({
-        
+      observe({
+        browser()
         vals <- reactiveValuesToList(incident_details)
         
         print(vals)
@@ -332,11 +283,6 @@ ModalServer <- function(id) {
         }),
         input[[.x]]
       ))
-      
-      observe({
-        print(incident_details$dispatch_time)
-      }) |> 
-        bindEvent(input$dispatch_time, ignoreNULL = TRUE)
       
     }
   )
@@ -562,19 +508,103 @@ CardServer <- function(id) {
           
           names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters]
           
+          # browser()
+          
+          edit_button <- sprintf(
+            '<button id="edit_%s" 
+      onclick="Shiny.setInputValue(\'edit_row\', \'%s-\' + Math.random(), {priority: \'event\'}); 
+               Shiny.setInputValue(\'dummy_event\', Math.random(), {priority: \'event\'})" 
+      class="btn btn-primary">Edit</button>',
+            incident$incident_id, incident$incident_id
+          )
+          
           card(
-            card_header(paste(incident$incident_id, incident$dispatch_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(), 
-                              incident$dispatch_reason)),
-            p(paste(names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters], collapse = ", "))
+            card_header(HTML(paste(
+              incident$incident_id, 
+              incident$dispatch_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(), 
+              incident$dispatch_reason, 
+              edit_button  # Insert the button directly into the header
+            ))),
+            p(paste('test', collapse = ", "))
           )
         })
       }) |> 
-        bindEvent(input$submit, ignoreNULL = F, ignoreInit = F)
+        bindEvent(app_data$Incident(), ignoreNULL = F, ignoreInit = F)
+      
+      
+      observeEvent(input$edit_row, {
+        showModal(
+          modalDialog(
+            title = "Edit Incident",
+            paste("Editing incident:", input$edit_row)  # Show which ID was clicked
+          )
+        )
+      })
       
       
     }
   )
   
+}
+
+UpdateIdServer <- function(id) {
+  moduleServer(
+    id,
+    function(input, output, session) {
+      
+      ns <- session$ns
+      
+      # Show password modal
+      observe({
+        showModal(modal$password(ns))
+      }) |>
+        bindEvent(input$edit_incident_id, ignoreNULL = TRUE, ignoreInit = TRUE)
+      
+      # Show edit incident modal
+      observe({
+        removeModal()
+        if(input$password == app_data$password) {
+          showModal(modal$edit_incident_id(ns))
+        } else {
+          shinyalert(
+            title = "Error",
+            text = "Incorrect password",
+            type = "error"
+          )
+        }
+      }) |> 
+        bindEvent(input$to_edit_id, ignoreNULL = TRUE)
+      
+      # Confirm and save new incident id
+      observe({
+        removeModal()
+        showModal(
+          modal$submit_new_id(ns, input$old_incident_id, input$new_incident_id)
+        )
+      }) |> 
+        bindEvent(input$to_edit_confirm, ignoreNULL = TRUE)
+      
+      # Save new incident id
+      observe({
+        removeModal()
+        
+        New <- app_data$Incident() |> 
+          mutate(incident_id = if_else(incident_id == input$old_incident_id,
+                                       input$new_incident_id,
+                                       incident_id)) 
+        
+        app_data$Incident(New)
+        
+        shinyalert(
+          title = "Success",
+          text = "Incident ID saved",
+          type = "success"
+        )
+      }) |> 
+        bindEvent(input$submit_new_id, ignoreNULL = TRUE)
+      
+    }
+  )
 }
 
 

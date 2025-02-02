@@ -1,6 +1,7 @@
 box::use(
   shiny[...],
   bslib[...],
+  shinyjs[...],
 )
 
 box::use(
@@ -47,6 +48,7 @@ server <- function(id) {
     incident_response$ModalServer('incident_response')
     incident_response$DBWriteServer('incident_response')
     incident_response$CardServer('incident_response')
+    incident_response$UpdateIdServer('incident_response')
     
     options(shiny.error = function() { cat(geterrmessage(), "\n") })
     

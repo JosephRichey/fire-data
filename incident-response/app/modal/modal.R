@@ -62,6 +62,67 @@ key_time <- function(ns, incident_details) {
     )
   )
 }
+ 
+# FIXME Have to prevent going back after forward and ending up in a modal user shouldn't be in
+# FIXME Need to cache and reset values
+
+key_time_additional <- function(ns, incident_details) {
+  modalDialog(
+    selectInput(
+      inputId = ns("incident_id_additional"),
+      label = "Incident ID:",
+      choices = app_data$Incident() |> 
+        arrange(desc(dispatch_time)) |>
+        filter(dispatch_time > Sys.time() - days(4)) |>
+        pull(incident_id),
+      selected = coalesce(incident_details$incident_id, "")
+    ),
+    dateInput(
+      inputId = ns("dispatch_date"),
+      label = "Dispatch Date:",
+      value = coalesce(incident_details$dispatch_date, app_data$Current_Local_Date)
+    ),
+    timeInput(
+      inputId = ns("dispatch_time"),
+      label = "Dispatch Time:",
+      value = coalesce(
+        incident_details$dispatch_time,
+        Sys.time() |>
+          with_tz(Sys.getenv("LOCAL_TZ")) |>
+          floor_date("minute") - 3600
+      ),
+      seconds = app_data$dispatch_time_seconds
+    ),
+    dateInput(
+      inputId = ns("end_date"),
+      label = "End Date:",
+      value = coalesce(incident_details$end_date, app_data$Current_Local_Date)
+    ),
+    timeInput(
+      inputId = ns("end_time"),
+      label = "End Time:",
+      value = coalesce(
+        incident_details$end_time,
+        Sys.time() |>
+          with_tz(Sys.getenv("LOCAL_TZ")) |>
+          floor_date("minute")
+      ),
+      seconds = app_data$end_time_seconds
+    ),
+    footer = tagList(
+      actionButton(
+        inputId = ns("cancel_modal"),
+        label = "Cancel",
+        class = "btn btn-warning"
+      ),
+      actionButton(
+        inputId = ns("to_apparatus_ff"),
+        label = "Next",
+        class = "btn btn-primary"
+      )
+    )
+  )
+}
 
 address_unit <- function(ns, incident_details) {
   modalDialog(
