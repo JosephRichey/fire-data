@@ -78,7 +78,11 @@ address <- if_else(Setting |>
   filter(major_setting_key == "address") |>
   select(setting_value) == 'TRUE', TRUE, FALSE)
 
-
+#' @export
+password <- Setting |> 
+  filter(major_setting_key == "password") |> 
+  select(setting_value) |> 
+  pull()
 
 Dispatch_Setting <- Setting |> 
   filter(major_setting_key == "dispatch_code")
@@ -97,8 +101,12 @@ Current_Local_Date <- Sys.time() |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(t
 
 
 # Creating mapping vectors to get Ids
-#' @export
-apparatus_mapping <- stats::setNames(Apparatus()$apparatus_id, Apparatus()$apparatus_name)
+Static_Apparatus <- dbGetQuery(CON, "SELECT * FROM apparatus")
+Static_Firefighter <- dbGetQuery(CON, "SELECT * FROM firefighter
+                                        WHERE active_status = 1")
 
 #' @export
-firefighter_mapping <- stats::setNames(Firefighter()$firefighter_id, Firefighter()$firefighter_full_name)
+apparatus_mapping <- stats::setNames(Static_Apparatus$apparatus_id, Static_Apparatus$apparatus_name)
+
+#' @export
+firefighter_mapping <- stats::setNames(Static_Firefighter$firefighter_id, Static_Firefighter$firefighter_full_name)

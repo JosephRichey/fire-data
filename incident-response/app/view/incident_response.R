@@ -22,8 +22,8 @@ UI <- function(id) {
   tagList(
     actionButton(ns("add_incident"), "Add Incident", class = "btn btn-primary"),
     actionButton(ns("add_additional_response"), "Add Additional Response", class = "btn btn-secondary"),
-    actionButton(ns("edit_incident_id"), "Edit Incident ID", class = "btn btn-warning"),
-    actionButton(ns("edit_incident"), "Edit Incident", class = "btn btn-primary"),
+    actionButton(ns("edit_incident_id"), "Edit Incident ID", class = "btn btn-light"),
+    # actionButton(ns("edit_incident"), "Edit Incident", class = "btn btn-primary"),
   )
 }
 
@@ -164,7 +164,7 @@ ModalServer <- function(id) {
         )
       })
       
-      
+      # TODO Have this built on a cached value.
       # Render dynamic bucket list inside modal
       output$firefighter_apparatus_list <- renderUI({
         generate_firefighter_apparatus()
@@ -193,6 +193,56 @@ ModalServer <- function(id) {
         showModal(modal$note(ns, incident_details))
       }) |>
         bindEvent(input$to_note, ignoreNULL = TRUE, ignoreInit = TRUE)
+      
+      # TODO Break this out into a separate server
+      # Show password modal
+      observe({
+        showModal(modal$password(ns))
+      }) |>
+        bindEvent(input$edit_incident_id, ignoreNULL = TRUE, ignoreInit = TRUE)
+      
+      # Show edit incident modal
+      observe({
+        removeModal()
+        if(input$password == app_data$password) {
+          showModal(modal$edit_incident_id(ns))
+        } else {
+          shinyalert(
+            title = "Error",
+            text = "Incorrect password",
+            type = "error"
+          )
+        }
+      }) |> 
+        bindEvent(input$to_edit_id, ignoreNULL = TRUE)
+      
+      # Confirm and save new incident id
+      observe({
+        removeModal()
+        showModal(
+          modal$submit_new_id(ns, input$old_incident_id, input$new_incident_id)
+        )
+      }) |> 
+        bindEvent(input$to_edit_confirm, ignoreNULL = TRUE)
+      
+      # Save new incident id
+      observe({
+        removeModal()
+        
+        New <- app_data$Incident() |> 
+          mutate(incident_id = if_else(incident_id == input$old_incident_id,
+                                  input$new_incident_id,
+                                  incident_id)) 
+        
+        app_data$Incident(New)
+        
+        shinyalert(
+          title = "Success",
+          text = "Incident ID saved",
+          type = "success"
+        )
+      }) |> 
+        bindEvent(input$submit_new_id, ignoreNULL = TRUE)
       
       
       ##### Cancel and reset values #####
@@ -283,7 +333,10 @@ ModalServer <- function(id) {
         input[[.x]]
       ))
       
-      
+      observe({
+        print(incident_details$dispatch_time)
+      }) |> 
+        bindEvent(input$dispatch_time, ignoreNULL = TRUE)
       
     }
   )
@@ -483,17 +536,17 @@ CardServer <- function(id) {
 
       ns <- session$ns
       
-      updateReactiveValue <- function() {
-        app_data$Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE"))))
-        app_data$Firefighter_Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("FF_INC_TABLE"))))
-      }
+      # updateReactiveValue <- function() {
+      #   app_data$Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE"))))
+      #   app_data$Firefighter_Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("FF_INC_TABLE"))))
+      # }
       
       
       ns <- session$ns
       
       output$incident_cards <- renderUI({
         # updateReactiveValue()
-        
+        # browser()
         Incidents <- app_data$Incident()
         
         Firefighter_Incident <- app_data$Firefighter_Incident()
@@ -510,7 +563,7 @@ CardServer <- function(id) {
           names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters]
           
           card(
-            card_header(paste(incident$dispatch_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(), 
+            card_header(paste(incident$incident_id, incident$dispatch_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(), 
                               incident$dispatch_reason)),
             p(paste(names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters], collapse = ", "))
           )

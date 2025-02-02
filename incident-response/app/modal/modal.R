@@ -105,7 +105,7 @@ address_unit <- function(ns, incident_details) {
       )
     },
     footer = tagList(
-      actionButton(ns("add_incident"), "Back", class = "btn btn-secondary"),
+      actionButton(ns("add_incident"), "Back", class = "btn btn-light"),
       actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
       actionButton(ns("to_apparatus_ff"), "Next", class = "btn btn-primary")
     )
@@ -129,7 +129,7 @@ select_ff_aparatus <- function(ns, incident_details) {
       multiple = TRUE
     ),
     footer = tagList(
-      actionButton(ns("to_address_unit"), "Back", class = "btn btn-secondary"),
+      actionButton(ns("to_address_unit"), "Back", class = "btn btn-light"),
       actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
       actionButton(ns("to_assignment"), "Next", class = "btn btn-primary")
     )
@@ -141,7 +141,7 @@ assignment <- function(ns, incident_details) {
   modalDialog(
     "Still building...",
     footer = tagList(
-      actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-secondary"),
+      actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-light"),
       actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
       actionButton(ns("to_note"), "Next", class = "btn btn-primary")
     )
@@ -157,9 +157,62 @@ note <- function(ns, incident_details) {
       value = coalesce(incident_details$call_notes, "")
     ),
     footer = tagList(
-      actionButton(ns("to_assignment"), "Back", class = "btn btn-secondary"),
+      actionButton(ns("to_assignment"), "Back", class = "btn btn-light"),
       actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
       actionButton(ns("submit"), "Submit", class = "btn btn-success")
+    )
+  )
+}
+
+
+password <- function(ns) {
+  modalDialog(
+    "Please enter an admin password to edit the incident id.",
+    passwordInput(
+      inputId = ns("password"),
+      label = "",
+      placeholder = "Password"
+    ),
+    footer = tagList(
+      actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
+      actionButton(ns("to_edit_id"), "Next", class = "btn btn-primary")
+    )
+  )
+}
+
+# TODO - have this set to have the 14 days be editable
+edit_incident_id <- function(ns) {
+  modalDialog(
+    selectInput(
+      inputId = ns("old_incident_id"),
+      label = "Incident ID to edit:",
+      choices = app_data$Incident() |> 
+        arrange(desc(dispatch_time)) |>
+        filter(dispatch_time > Sys.time() - days(14)) |>
+        pull(incident_id)
+    ),
+    textInput(
+      inputId = ns("new_incident_id"),
+      label = "New Incident ID:"
+    ),
+    footer = tagList(
+      actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
+      actionButton(ns("to_edit_confirm"), "Next", class = "btn btn-primary")
+    )
+  )
+}
+
+submit_new_id <- function(ns, old, new) {
+  modalDialog(
+    "Are you sure you want to submit this incident?",
+    br(),
+    br(),
+    strong(paste("Incident ID", old, 
+                "will be updated to", new)),
+    
+    footer = tagList(
+      actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
+      actionButton(ns("submit_new_id"), "Submit", class = "btn btn-success")
     )
   )
 }

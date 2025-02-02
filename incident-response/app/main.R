@@ -17,11 +17,12 @@ ui <- function(id) {
     h3("Incident Response"),
     theme = bs_theme(version = 5,
                      primary = "#87292b",
-                     secondary = '#565656',
+                     secondary = '#a05050',
                      success = "#2b8764",
                      info = "#377eb8",
-                     warning = "#91471d",
+                     warning = "#D76F33",
                      danger = "#640064",
+                     light = "#565656",
                      bootswatch = "darkly"),
     layout_columns(
       card(
