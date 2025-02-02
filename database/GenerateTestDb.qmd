@@ -471,7 +471,7 @@ incident <- data.frame(
   dispatch_time = sapply(1:50, function(x) 
     ymd_hms(
       paste(
-        generate_date(0, 7),
+        generate_date(0, 60),
         paste(sample(0:23, 1, TRUE)),
         paste(sample(0:59, 2, TRUE), collapse = ":")
         )
