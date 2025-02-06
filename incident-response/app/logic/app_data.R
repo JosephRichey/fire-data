@@ -39,6 +39,21 @@ Firefighter_Incident <- reactiveVal(dbGetQuery(CON, "SELECT * FROM firefighter_i
 
 Setting <- dbGetQuery(CON, "SELECT * FROM setting")
 
+# Primary Key Validation
+#' @export
+incident_pk_regex <- Setting |> 
+  filter(major_setting_key == "incident_pk_regex") |> 
+  select(setting_value) |> 
+  pull()
+
+# Primary Key Message
+#' @export
+incident_pk_message <- Setting |> 
+  filter(major_setting_key == "incident_pk_regex") |> 
+  select(minor_setting_key) |> 
+  pull()
+
+
 #' @export
 dispatch_time_seconds <- if_else(Setting |> 
   filter(major_setting_key == "dispatch_seconds" &

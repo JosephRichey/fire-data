@@ -3,15 +3,20 @@ box::use(
   bslib[...],
   shinyjs[...],
 )
-
+#console.log(shinyjs);
 box::use(
   view/incident_response,
 )
 
+
+
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  
+  useShinyjs()
+  tagList(
+    uiOutput(ns('incident_cards'))
+  )
   page_fixed(
     title = Sys.getenv('FD'),
     h1(Sys.getenv('FD')),
