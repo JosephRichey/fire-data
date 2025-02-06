@@ -19,6 +19,7 @@ key_time <- function(ns, incident_details) {
     dateInput(
       inputId = ns("dispatch_date"),
       label = "Dispatch Date:",
+      max = app_data$Current_Local_Date |> as.Date(),
       value = coalesce(incident_details$dispatch_date, app_data$Current_Local_Date)
     ),
     timeInput(
@@ -35,6 +36,7 @@ key_time <- function(ns, incident_details) {
     dateInput(
       inputId = ns("end_date"),
       label = "End Date:",
+      max = app_data$Current_Local_Date |> as.Date(),
       value = coalesce(incident_details$end_date, app_data$Current_Local_Date)
     ),
     timeInput(
@@ -80,6 +82,7 @@ key_time_additional <- function(ns, incident_details) {
     dateInput(
       inputId = ns("dispatch_date"),
       label = "Dispatch Date:",
+      max = app_data$Current_Local_Date |> as.Date(),
       value = coalesce(incident_details$dispatch_date, app_data$Current_Local_Date)
     ),
     timeInput(
@@ -96,6 +99,7 @@ key_time_additional <- function(ns, incident_details) {
     dateInput(
       inputId = ns("end_date"),
       label = "End Date:",
+      max = app_data$Current_Local_Date,
       value = coalesce(incident_details$end_date, app_data$Current_Local_Date)
     ),
     timeInput(
