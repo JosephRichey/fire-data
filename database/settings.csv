@@ -59,3 +59,4 @@ setting_id,major_setting_key,minor_setting_key,setting_value
 58,dropped,NULL,TRUE
 59,address,NULL,FALSE
 60,password,NULL,123
+61,incident_pk_regex,Must be five digits,\d{5}
