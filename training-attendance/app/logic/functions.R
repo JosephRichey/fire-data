@@ -11,19 +11,20 @@ box::use(
 )
 
 #' @export
-VerifyTrainingTime <- function(sysTime) {
+VerifyTrainingTime <- function(sysTime, r_training) {
   # browser()
 
   # Check if there is a training happening currently.
-  Current_Training <- app_data$Training |>
+  Current_Training <- r_training |>
     dplyr::filter(
-      sysTime + 300 > training_start_time & # Allow clock in 5 minutes early
-        sysTime - (60 * 60) < training_end_time # Allow clock out 60 minutes late
+      #FIXME Customize how early they can clock in and how late they can clock out.
+      sysTime + 300 > start_time & # Allow clock in 5 minutes early
+        sysTime - (60 * 60) < end_time # Allow clock out 60 minutes late
     )
 
-  Next_Training <- app_data$Training |>
+  Next_Training <- r_training |>
     dplyr::filter(
-      training_start_time > sysTime
+      start_time > sysTime
     ) |>
     dplyr::slice(1)
 
@@ -37,7 +38,9 @@ VerifyTrainingTime <- function(sysTime) {
             "There are no future trainings scheduled.",
             paste0(
               "The next training is scheduled for ",
-              with_tz(Next_Training$training_start_time, tzone = Sys.getenv("LOCAL_TZ")),
+              with_tz(Next_Training$start_time, tzone = Sys.getenv("LOCAL_TZ")),
+              
+            #FIXME This message needs to show the correct time they can check in.
               ". You can check in five minutes before the scheduled start time."
             )
           ),
@@ -66,31 +69,45 @@ FixColNames <- function(Data) {
 
 #' @export
 CurrentStatusTable <- function(Attendance, Roster) {
-  # Future Idea: This still assumes one training per day. 
+  # FIXME This still assumes one training per day. 
   # Eventually, I want to make it so that it can handle multiple trainings per day.
   
   # browser()
   Attendance |>
     left_join(Roster) |>
-    dplyr::filter(as.Date(check_in) == as.Date(Sys.time())) |>
+    dplyr::filter(as.Date(check_in) == as.Date(Sys.Date())) |>
     transmute(
-      firefighter_full_name = firefighter_full_name,
-      check_in = format(with_tz(check_in, tzone = Sys.getenv("LOCAL_TZ")), "%H:%M"),
-      check_out = format(with_tz(check_out, tzone = Sys.getenv("LOCAL_TZ")), "%H:%M")
+      full_name = full_name,
+      check_in = format(check_in, "%Y-%m-%d %H:%M:%S", tz = Sys.getenv('LOCAL_TZ'), usetz = FALSE),
+      check_out = format(check_out, "%Y-%m-%d %H:%M:%S", tz = Sys.getenv('LOCAL_TZ'), usetz = FALSE)
     ) |>
     FixColNames()
 }
 
 #' @export
 UpdateAttendance <- function(rv) {
-  Updated_Attendance <- DBI::dbGetQuery(
-    app_data$CON,
-    paste0("SELECT * FROM ", Sys.getenv("ATTENDANCE_TABLE"))
-  ) |>
+  Updated_Attendance <- DBI::dbGetQuery(app_data$CON,
+                                        paste0("SELECT * FROM attendance")) |> 
     mutate(
-      check_in = as.POSIXct(check_in),
-      check_out = as.POSIXct(check_out)
+      check_in = as.POSIXct(check_in, tz = 'UTC') |> 
+        with_tz(Sys.getenv('TZ')),
+      check_out = as.POSIXct(check_out, tz = 'UTC') |> 
+        with_tz(Sys.getenv('TZ'))
     )
 
   rv(Updated_Attendance)
+}
+
+#' @export
+UpdateTrainings <- function(rv) {
+  Updated_Trainings <- DBI::dbGetQuery(app_data$CON,"SELECT * FROM training 
+                       WHERE training_delete IS NULL") |> 
+    mutate(
+      start_time = as.POSIXct(start_time, tz = 'UTC') |> 
+        with_tz(Sys.getenv('TZ')),
+      end_time = as.POSIXct(end_time, tz = 'UTC') |> 
+        with_tz(Sys.getenv('TZ'))
+    )
+
+  rv(Updated_Trainings)
 }

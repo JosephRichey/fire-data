@@ -15,8 +15,9 @@ box::use(
 UI <- function(id) {
   ns <- NS(id)
   tagList(
-    selectInput(ns('name'), "Name", app_data$Firefighter$firefighter_full_name, selected = NULL),
-    actionButton(ns('check_in_out'), "Check In/Check Out")
+    selectInput(ns('name'), "Name", app_data$Firefighter$full_name, selected = NULL),
+    actionButton(ns('check_in_out'), "Check In/Check Out", class = 'btn-primary'),
+    actionButton(ns('refresh_trainings'), "Refresh Trainings", class = 'btn-light')
   )
 }
 
@@ -26,14 +27,14 @@ Output <- function(id) {
   
   tagList(
     DT::dataTableOutput(ns("current_status")),
-    actionButton(ns('refresh'), 'Refresh')
+    actionButton(ns('refresh_attendance'), 'Refresh Attendance Table', class = 'btn-light')
   )
 }
 
 #' @export
 Button <- function(id) {
   ns <- NS(id)
-  actionButton(ns('all_checkout'), 'Check Everyone Out')
+  actionButton(ns('all_checkout'), 'Check Everyone Out', class = 'btn-secondary')
 }
 
 #' @export
@@ -49,16 +50,19 @@ Server <- function(id) {
       
       atten <- reactiveVal(app_data$Attendance)
       
+      r_training <- reactiveVal(app_data$Training)
+      
       observeEvent(input$check_in_out, {
-        # browser()
         
         # Use variable to help with debugging.
         sysTime <- Sys.time()
         # sysTime <- as.POSIXct("2024-07-06 02:00:00")
         
         # Check if there is a valid training currently.
-        verification <- functions$VerifyTrainingTime(sysTime)
+        verification <- functions$VerifyTrainingTime(sysTime, r_training())
         
+        
+        # browser()
         # Handle any errors and display appropriate modal.
         if(typeof(verification) == 'list') {
           if(verification[[2]] == 'warning') {
@@ -83,15 +87,16 @@ Server <- function(id) {
           
           # Get ff id and training id. Store in rvs to access in other parts of server.
           rvs$target_ff_id <- app_data$Firefighter |>
-            dplyr::filter(firefighter_full_name == input$name) |>
+            dplyr::filter(full_name == input$name) |>
             pull(firefighter_id)
           
           rvs$target_ff_full_name <- input$name
           
+          #FIXME This shoulnd't be duplicated- use a function.
           rvs$target_training_id <- app_data$Training |>
             dplyr::filter(
-              sysTime + 300 > training_start_time & # Same logic as VerifyTrainingTime
-                sysTime - (60 * 60) < training_end_time # Same logic as VerifyTrainingTime
+              sysTime + 300 > start_time & # Same logic as VerifyTrainingTime
+                sysTime - (60 * 60) < end_time # Same logic as VerifyTrainingTime
             ) |>
             pull(training_id)
           
@@ -105,7 +110,7 @@ Server <- function(id) {
           
           
           # Check series of conditions and call appropriate modals.
-          
+          # browser()
           # No check ins for current training.
           if(nrow(Firefighter_Attendance) == 0) {
             showModal(
@@ -114,7 +119,7 @@ Server <- function(id) {
                 paste0(rvs$target_ff_full_name, " is not checked in. Would you like to confirm check in?"),
                 footer = tagList(
                   actionButton(ns("confirm_check_in"), "Confirm Check In", class = "btn-success"),
-                  actionButton(ns("cancel_check_in"), "Cancel")
+                  actionButton(ns("cancel"), "Cancel", class = 'btn-light')
                 ),
                 easyClose = TRUE
               )
@@ -135,8 +140,8 @@ Server <- function(id) {
                 title = "Confirm Check Out",
                 paste0(rvs$target_ff_full_name, " is checked in. Would you like to confirm check out?"),
                 footer = tagList(
-                  actionButton(ns("confirm_check_out"), "Confirm Check Out", class = "btn-danger"),
-                  actionButton(ns("cancel_check_out"), "Cancel")
+                  actionButton(ns("confirm_check_out"), "Confirm Check Out", class = "btn-secondary"),
+                  actionButton(ns("cancel"), "Cancel", class = 'btn-light')
                 ),
                 easyClose = TRUE
               )
@@ -148,14 +153,7 @@ Server <- function(id) {
         }
       })
       
-      observeEvent(input$cancel_check_in, {
-        removeModal()
-        showModal(
-          modals$cancelModal()
-        )
-      })
-      
-      observeEvent(input$cancel_check_out, {
+      observeEvent(input$cancel, {
         removeModal()
         showModal(
           modals$cancelModal()
@@ -163,15 +161,15 @@ Server <- function(id) {
       })
       
       observeEvent(input$confirm_check_in, {
-        # browser()
+        browser()
         removeModal()
         
         # No sqlInterpolate needed. All inputs are preselected.
         sql_command <- paste0(
-          "INSERT INTO ", Sys.getenv("ATTENDANCE_TABLE"), "(firefighter_id, training_id, check_in, check_out) VALUES (",
+          "INSERT INTO attendance (firefighter_id, training_id, check_in, check_out) VALUES (",
            rvs$target_ff_id, ", ",
            rvs$target_training_id, ", '",
-           as.POSIXct(Sys.time()), "', ",
+           as.POSIXct(Sys.time()) |> format(tz = "UTC", usetz = FALSE), "', ",
            "NULL)")
         
         write_result <- DBI::dbExecute(app_data$CON,
@@ -181,7 +179,8 @@ Server <- function(id) {
             modalDialog(
               title = "Success",
               paste0(rvs$target_ff_full_name, " has successfully checked in. You may now close this window."),
-              easyClose = TRUE
+              easyClose = TRUE,
+              class = 'btn-light'
             )
           )
         } else {
@@ -200,8 +199,8 @@ Server <- function(id) {
         
         # No sqlInterpolate needed. All inputs are preselected.
         sql_command <- paste0(
-          "UPDATE ", Sys.getenv("ATTENDANCE_TABLE"), " SET check_out = ",
-          "'", as.POSIXct(Sys.time()), "'",
+          "UPDATE attendance SET check_out = ",
+          "'", as.POSIXct(Sys.time()) |> format(tz = "UTC", usetz = FALSE), "'",
           "WHERE attendance_id = ", rvs$attendance_id)
         
         write_result <- DBI::dbExecute(app_data$CON,
@@ -212,7 +211,8 @@ Server <- function(id) {
             modalDialog(
               title = "Success",
               paste0(rvs$target_ff_full_name, " has successfully checked out. You may now close this window."),
-              easyClose = TRUE
+              easyClose = TRUE,
+              class = 'btn-light'
             )
           )
         } else {
@@ -244,8 +244,8 @@ Server <- function(id) {
             "Please enter an admin password",
             passwordInput(ns("admin_password"), ""),
             footer = tagList(
-              actionButton(ns("confirm_all_checkout"), "Confirm Check Out"),
-              actionButton(ns("cancel_all_checkout"), "Cancel")
+              actionButton(ns("confirm_all_checkout"), "Confirm Check Out", class = "btn-secondary"),
+              actionButton(ns("cancel"), "Cancel", class = 'btn-light')
             ),
             easyClose = TRUE
           )
@@ -253,20 +253,12 @@ Server <- function(id) {
         
       })
       
-      observeEvent(input$cancel_all_checkout, {
-        removeModal()
-        showModal(
-          modals$cancelModal()
-        )
-      })
-      
-      
       
       observeEvent(input$confirm_all_checkout, {
         removeModal()
         
         # Check if admin password is correct
-        if(input$admin_password != 'positconf2024') {
+        if(input$admin_password != '123') {
           showModal(
             modals$warningModal("Admin password incorrect. Please try again.")
           )
@@ -277,8 +269,8 @@ Server <- function(id) {
         # Execute sql statement that checks out everyone currently checked in
         # No sqlInterpolate needed.
         sql_command <- paste0(
-          "UPDATE ", Sys.getenv("ATTENDANCE_TABLE"), " SET check_out = ",
-          "'", as.POSIXct(Sys.time()), "'",
+          "UPDATE attendance SET check_out = ",
+          "'", as.POSIXct(Sys.time()) |> format(tz = "UTC", usetz = FALSE), "'",
           " WHERE check_out IS NULL")
         
         DBI::dbExecute(app_data$CON, sql_command)
@@ -291,11 +283,18 @@ Server <- function(id) {
       })
       
       
-      observeEvent(input$refresh, {
+      observeEvent(input$refresh_attendance, {
         # browser()
         print("Refreshed attendance data.")
         functions$UpdateAttendance(atten)
         showNotification("Current status refreshed.", duration = 5)
+      })
+      
+      observeEvent(input$refresh_trainings, {
+        # browser()
+        print("Refreshed training data.")
+        functions$UpdateTrainings(r_training)
+        showNotification("Trainings refreshed.", duration = 5)
       })
       
       session$onSessionEnded(function() {

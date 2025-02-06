@@ -19,8 +19,13 @@ ui <- function(id) {
     h1(Sys.getenv('FD')),
     h3("Training Attendance"),
     theme = bs_theme(version = 5,
-                     secondary = "#87292b",
-                     success = "#87292b",
+                     primary = "#87292b",
+                     secondary = '#a05050',
+                     success = "#2b8764",
+                     info = "#377eb8",
+                     warning = "#D76F33",
+                     danger = "#640064",
+                     light = "#565656",
                      bootswatch = "darkly"),
     layout_columns(
       card(
