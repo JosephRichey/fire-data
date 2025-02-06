@@ -1,0 +1,13 @@
+name: dynamic-buckets
+title: proof_of_concepts
+username: fire-data
+account: fire-data
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13843743
+bundleId: 9717883
+url: https://fire-data.shinyapps.io/dynamic-buckets/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: forward-backward-navigation.R|incident_management_page.R|managing_time.R|org_chart.R|vertical-icon-navigation.R|data

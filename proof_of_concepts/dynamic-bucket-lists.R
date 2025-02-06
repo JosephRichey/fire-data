@@ -1,6 +1,8 @@
 library(shiny)
 library(sortable)
 
+reactlog::reactlog_enable()
+
 ui <- fluidPage(
   tags$head(
     tags$style(HTML(".bucket-list-container {min-height: 350px;}"))
@@ -52,33 +54,72 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
+  cache <- reactiveVal(NULL) 
+  
   # Function to generate dynamic bucket list UI
   generate_bucket_list <- reactive({
     req(input$apparatus, input$names)
     
-    do.call(
-      bucket_list,
-      c(
-        list(
-          header = "Drag the items in any desired bucket",
-          group_name = "bucket_list_group",
-          orientation = "horizontal",
-          add_rank_list(
-            text = "Drag from here",
-            labels = input$names,
-            input_id = "rank_list_1"
-          )
-        ),
-        lapply(input$apparatus, function(apparatus_name) {
-          add_rank_list(
-            text = apparatus_name,
-            labels = NULL,
-            input_id = paste0("rank_list_", apparatus_name)
-          )
-        })
+    # if(is.null(cache())) {
+      print('No cached value. Initializing.')
+      do.call(
+        bucket_list,
+        c(
+          list(
+            header = "Drag the items in any desired bucket",
+            group_name = "bucket_list_group",
+            orientation = "horizontal",
+            add_rank_list(
+              text = "Drag from here",
+              labels = input$names,
+              input_id = "rank_list_1"
+            )
+          ),
+          lapply(input$apparatus, function(apparatus_name) {
+            add_rank_list(
+              text = apparatus_name,
+              labels = NULL,
+              input_id = paste0("rank_list_", apparatus_name)
+            )
+          })
+        )
       )
-    )
-  })
+    # } else {
+    #   print('Cached value found. Using cached value.')
+    #   a <- cache()
+    #   # browser()
+    #   do.call(
+    #     bucket_list,
+    #     c(
+    #       list(
+    #         header = "Drag the items in any desired bucket",
+    #         group_name = "bucket_list_group",
+    #         orientation = "horizontal",
+    #         add_rank_list(
+    #           text = "Drag from here",
+    #           labels = a$rank_list_1,
+    #           input_id = "rank_list_1"
+    #         )
+    #       ),
+    #       lapply(input$apparatus, function(apparatus_name) {
+    #         add_rank_list(
+    #           text = apparatus_name,
+    #           labels = NULL,
+    #           input_id = paste0("rank_list_", apparatus_name)
+    #         )
+    #       })
+    #     )
+    #   )
+    # }
+    
+  }) 
+  
+  # observe({
+   # cache(input$bucket_list_group)
+  #  # browser()
+  # }
+  # ) |> 
+  #   bindEvent(input$bucket_list_group)
   
   # Show modal when button is clicked
   observeEvent(input$show_modal, {
@@ -115,3 +156,5 @@ server <- function(input, output, session) {
 }
 
 shinyApp(ui, server)
+
+# shiny::reactlogShow()
