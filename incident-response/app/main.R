@@ -6,6 +6,7 @@ box::use(
 #console.log(shinyjs);
 box::use(
   view/incident_response,
+  logic/app_data,
 )
 
 
@@ -54,6 +55,11 @@ server <- function(id) {
     incident_response$DBWriteServer('incident_response')
     incident_response$CardServer('incident_response')
     incident_response$UpdateIdServer('incident_response')
+    
+    session$onSessionEnded(function() {
+      DBI::dbDisconnect(app_data$CON)
+      print('DB Disconnected')
+    })
     
     options(shiny.error = function() { cat(geterrmessage(), "\n") })
     
