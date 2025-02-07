@@ -124,4 +124,4 @@ Static_Firefighter <- dbGetQuery(CON, "SELECT * FROM firefighter
 apparatus_mapping <- stats::setNames(Static_Apparatus$apparatus_id, Static_Apparatus$apparatus_name)
 
 #' @export
-firefighter_mapping <- stats::setNames(Static_Firefighter$firefighter_id, Static_Firefighter$firefighter_full_name)
+firefighter_mapping <- stats::setNames(Static_Firefighter$firefighter_id, Static_Firefighter$full_name)

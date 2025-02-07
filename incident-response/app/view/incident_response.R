@@ -9,7 +9,8 @@ box::use(
   DBI[...],
   purrr[...],
   sortable[...],
-  shinyjs[...],
+  htmlwidgets[...],
+  shinyTime[...],
 )
 
 box::use(
@@ -17,9 +18,6 @@ box::use(
   app/modal/modal,
 )
 
-jsCode <- "shinyjs.editIncident = function(params) {
-  Shiny.setInputValue('edit_incident', params, {priority: 'event'});
-}"
 
 UI <- function(id) {
     
@@ -34,7 +32,6 @@ UI <- function(id) {
 Output <- function(id) {
   ns <- NS(id)
   tagList(
-    extendShinyjs(text = jsCode, functions = c("editIncident")),
     uiOutput(ns('incident_cards'))
   )
   
@@ -48,7 +45,7 @@ ModalServer <- function(id) {
       
       ns <- session$ns
       
-      edit <- reactiveVal(NULL)
+      edit <- reactiveVal(FALSE)
       
       ##### Reactives to save until write or reset #####
       
@@ -78,9 +75,9 @@ ModalServer <- function(id) {
         edit(TRUE)
         
         Incident_Edit <- app_data$Incident() |> 
-          filter(incident_id == 'INC006872')
+          filter(incident_id == input$edit_incident)
         Ff_App_Edit <- app_data$Firefighter_Apparatus() |> 
-          filter(incident_id == 'INC006872') |> 
+          filter(incident_id == input$edit_incident) |> 
           left_join(
             app_data$Firefighter(),
             by = c('firefighter_id' = 'firefighter_id')) |>
@@ -109,9 +106,11 @@ ModalServer <- function(id) {
         incident_details$firefighter <- Ff_App_Edit$full_name
         incident_details$call_notes <- Incident_Edit$notes
         
-        showModal(modal$key_time(ns, incident_details))
+        # browser()
+        
+        showModal(modal$key_time(ns, incident_details, edit()))
       }) |>
-        bindEvent(input$edit_INC020406, ignoreNULL = TRUE, ignoreInit = TRUE)
+        bindEvent(input$edit_incident, ignoreNULL = TRUE, ignoreInit = TRUE)
 
       # Additional Response Modal
       observe({
@@ -119,38 +118,48 @@ ModalServer <- function(id) {
       }) |>
         bindEvent(input$add_additional_response, ignoreNULL = TRUE, ignoreInit = TRUE)
       
-      
+
       # Show first modal
       observe({
-        edit(FALSE)
-        showModal(modal$key_time(ns, incident_details))
+        showModal(modal$key_time(ns, incident_details, edit()))
       }) |>
         bindEvent(input$add_incident, ignoreNULL = TRUE, ignoreInit = TRUE)
       
       
       # Validate first modal and show second modal
       observe({
-        if(!grepl(app_data$incident_pk_regex, input$incident_id)) {
-          shinyalert(
-            title = "Error",
-            text = paste("Please enter an id that matches the following criteria:\n",
-            app_data$incident_pk_message),
-            type = "error"
-          )
+        
+        # Skip validation if editing
+        if(edit()) {
+          removeModal()
+          showModal(modal$address_unit(ns, incident_details))
           return()
+        } else {
+          if(!grepl(app_data$incident_pk_regex, input$incident_id)) {
+            shinyalert(
+              title = "Error",
+              text = paste("Please enter an id that matches the following criteria:\n",
+                           app_data$incident_pk_message),
+              type = "error"
+            )
+            return()
+          }
+          
+          if(input$incident_id %in% app_data$Incident()$incident_id) {
+            shinyalert(
+              title = "Error",
+              text = "Incident ID already exists",
+              type = "error"
+            )
+            return()
+          }
+          
+          removeModal()
+          showModal(modal$address_unit(ns, incident_details))
+          
         }
         
-        if(input$incident_id %in% app_data$Incident()$incident_id) {
-          shinyalert(
-            title = "Error",
-            text = "Incident ID already exists",
-            type = "error"
-          )
-          return()
-        }
         
-        removeModal()
-        showModal(modal$address_unit(ns, incident_details))
       }) |>
         bindEvent(input$to_address_unit, ignoreNULL = TRUE, ignoreInit = TRUE)
       
@@ -225,120 +234,6 @@ ModalServer <- function(id) {
       }) |>
         bindEvent(input$to_assignment, ignoreNULL = TRUE, ignoreInit = TRUE)
       
-      ##### FIXME This is the code i was using to try to cached values
-      # 
-      # # Create the bucket list UI as before
-      # output$firefighter_apparatus_list <- renderUI({
-      #   # Build the initial UI if needed. This part can remain mostly unchanged.
-      #   do.call(
-      #     bucket_list,
-      #     c(
-      #       list(
-      #         header = NULL,
-      #         group_name = ns("ff_app_lists"),
-      #         orientation = "horizontal",
-      #         add_rank_list(
-      #           text = "Standby",
-      #           labels = standby_firefighters(),
-      #           input_id = ns("standby_list"),
-      #           options = sortable_options(
-      #             group = "bucket_list",
-      #             class = "sortable-item"
-      #           )
-      #         )
-      #       ),
-      #       lapply(cached_firefighters_assigned_to_app(), function(list_element) {
-      #         tmp <- list_element[[1]][2] |> unlist() |> unname()
-      #         
-      #         if(is.na(tmp)) {
-      #           add_rank_list(
-      #             text = list_element[[1]][1] |> unlist() |> unname(),
-      #             labels = NULL,
-      #             input_id = paste0("apparatus_list_", 
-      #                               list_element[[1]][1] |> unlist() |> unname()),
-      #             # stringr::str_to_lower(apparatus_name) |> 
-      #             #   stringr::str_replace_all(" ", "_")),
-      #             options = sortable_options(
-      #               group = "bucket_list",
-      #               class = "sortable-item"
-      #             )
-      #           )
-      #         } else {
-      #           add_rank_list(
-      #             text = list_element[[1]][1] |> unlist() |> unname(),
-      #             labels = tmp,
-      #             input_id = paste0("apparatus_list_", 
-      #                               list_element[[1]][1] |> unlist() |> unname()),
-      #             # stringr::str_to_lower(apparatus_name) |> 
-      #             #   stringr::str_replace_all(" ", "_")),
-      #             options = sortable_options(
-      #               group = "bucket_list",
-      #               class = "sortable-item"
-      #             )
-      #           )
-      #         }
-      #         
-      #       })
-      #     )
-      #   )
-      # })
-      # 
-      # standby_firefighters <- reactiveVal(NULL)
-      # possible_apparatus <- reactiveVal(NULL)
-      # cached_firefighters_assigned_to_app <- reactiveVal(NULL)
-      # 
-      # generate_firefighter_apparatus <- reactive({
-      #   req(input$apparatus)
-      #   req(input$firefighter)
-      #   
-      #   browser()
-      #   
-      #   # If not assignments have been made, build the lists like normal
-      #   if(is.null(input$ff_app_lists)) {
-      #     standby_firefighters(input$firefighter)
-      #     possible_apparatus(input$apparatus)
-      #     cached_firefighters_assigned_to_app(
-      #       input$apparatus |> 
-      #         purrr::map(
-      #           function(apparatus_name) {
-      #             list(
-      #               apparatus_name = apparatus_name,
-      #               firefighters = NULL
-      #             )
-      #           }
-      #         )
-      #     )
-      #   } else {
-      #   # If assingments have been made, build the updated lists
-      #     standby_firefighters(input$ff_app_lists$`app-incident_response-standby_list`)
-      #     
-      #     possible_apparatus(input$apparatus)
-      #     
-      #     cached_firefighters_assigned_to_app(
-      #       purrr::map(
-      #         names(input$ff_app_lists),
-      #         function(bucket_name) {
-      #           if (stringr::str_starts(bucket_name, "apparatus_list_")) {
-      #             list(
-      #               apparatus_name = stringr::str_remove(bucket_name, "apparatus_list_"),
-      #               firefighters = input$ff_app_lists[[bucket_name]]
-      #             )
-      #           }
-      #         }
-      #       ) |> purrr::compact()
-      #     )
-      #   }
-      #   
-      # }) |> bindEvent(input$to_apparatus_ff, input$to_note, ignoreNULL = TRUE, ignoreInit = TRUE)
-      # 
-      # 
-      # # # Render dynamic bucket list inside modal
-      # observeEvent(c(input$to_apparatus_ff, input$to_note), {
-      #   # Cache or use the latest assignment values
-      #   # For example, if you need to store it:
-      #   incident_details$ff_app_assignemnt <- generate_firefighter_apparatus()
-      #   cat('Assignment updated:', file = stderr())
-      # })
       
       ##### End Assignment Widget #####
       
@@ -372,10 +267,11 @@ ModalServer <- function(id) {
         incident_details$apparatus = NULL
         incident_details$firefighter = NULL
         incident_details$call_notes = NULL
+        
+        edit(FALSE)
       })
       
       observe({
-        # browser()
         vals <- reactiveValuesToList(incident_details)
         
         print(vals)
@@ -394,21 +290,6 @@ ModalServer <- function(id) {
             )
           )
         }
-        
-        incident_details$incident_id = NULL
-        incident_details$dispatch_date = NULL
-        incident_details$dispatch_time = NULL
-        incident_details$end_date = NULL
-        incident_details$end_time = NULL
-        incident_details$address = NULL
-        incident_details$area = NULL
-        incident_details$dispatch_reason = NULL
-        incident_details$units = NULL
-        incident_details$canceled = NULL
-        incident_details$dropped = NULL
-        incident_details$apparatus = NULL
-        incident_details$firefighter = NULL
-        incident_details$call_notes = NULL
         
       }) |> 
         bindEvent(input$submit, ignoreNULL = TRUE)
@@ -430,14 +311,14 @@ ModalServer <- function(id) {
         input[[.x]]
       ))
       
-    }
-  )
-}
-
-DBWriteServer <- function(id) {
-  moduleServer(
-    id,
-    function(input, output, session) {
+#     }
+#   )
+# }
+#  # Removed temporarily so edit() could be accessed within this context.
+# DBWriteServer <- function(id) {
+#   moduleServer(
+#     id,
+#     function(input, output, session) {
       
       ns <- session$ns
       
@@ -462,7 +343,7 @@ DBWriteServer <- function(id) {
         Current_Incident <- app_data$Incident()
         # browser()
         New_Incident <- data.frame(
-          incident_id = input$incident_id,
+          incident_id = coalesce(input$incident_id, input$edit_incident),
           dispatch_time = UTC_dispatch_time_date,
           end_time = UTC_end_time_date,
           address = if (is.null(input$address)) "" else input$address,
@@ -476,8 +357,53 @@ DBWriteServer <- function(id) {
           notes = input$call_notes,
           finalized = 0
         )
+        # browser()
+        # If editing, replace record. If not, add new record
+        if(edit()) {
+          app_data$Incident() |> 
+            filter(incident_id != input$edit_incident) |> 
+            rbind(New_Incident) |> 
+            app_data$Incident()
+        } else {
+          app_data$Incident(rbind(Current_Incident, New_Incident))
+        }
         
-        app_data$Incident(rbind(Current_Incident, New_Incident)) 
+        edit(FALSE)
+        
+        incident_details$incident_id = NULL
+        incident_details$dispatch_date = NULL
+        incident_details$dispatch_time = NULL
+        incident_details$end_date = NULL
+        incident_details$end_time = NULL
+        incident_details$address = NULL
+        incident_details$area = NULL
+        incident_details$dispatch_reason = NULL
+        incident_details$units = NULL
+        incident_details$canceled = NULL
+        incident_details$dropped = NULL
+        incident_details$apparatus = NULL
+        incident_details$firefighter = NULL
+        incident_details$call_notes = NULL
+        
+        browser()
+        
+        #FIXME See if this can be done with a JS call
+        # FIXME Values are not being updated for some reason
+        updateTextInput(session, ns("incident_id"), value = 'test')
+        # updateDateInput(session, "dispatch_date", NULL)
+        # shinyTime::updateTimeInput(session, "dispatch_time", NULL)
+        # updateDateInput(session, "end_date", NULL)
+        # shinyTime::updateTimeInput(session, "end_time", NULL)
+        # updateTextInput(session, "address", NULL)
+        # updateSelectInput(session, "area", NULL)
+        # updateSelectInput(session, "dispatch_reason", NULL)
+        # updateCheckboxGroupInput(session, "units", NULL)
+        # updateCheckboxInput(session, "canceled", NULL)
+        # updateCheckboxInput(session, "dropped", NULL)
+        # updateTextInput(session, "call_notes", NULL)
+        # updateSelectInput(session, "apparatus", NULL)
+        # updateSelectInput(session, "firefighter", NULL)
+        
         
         ###### Incident Statement Prepration
         # incident_statment_prep <- paste0("INSERT INTO ", SQL(Sys.getenv('INCIDENT_TABLE')), " VALUES ('", input$incident_id, "', '",
@@ -628,14 +554,6 @@ CardServer <- function(id) {
 
       ns <- session$ns
       
-      # updateReactiveValue <- function() {
-      #   app_data$Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE"))))
-      #   app_data$Firefighter_Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("FF_INC_TABLE"))))
-      # }
-      
-      
-      ns <- session$ns
-      
       output$incident_cards <- renderUI({
         # updateReactiveValue()
         # browser()
@@ -652,43 +570,43 @@ CardServer <- function(id) {
           firefighters <- Firefighter_Incident[Firefighter_Incident$incident_id == incident$incident_id, ] |> 
             pull(firefighter_id) 
           
-          names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters]
+          responded <- names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters]
           
-          # browser()
           
-          edit_button <- sprintf(
-            '<button id="edit" 
-            onclick = "shinyjs.editIncident(%s)"
-            class="btn btn-primary" 
-            data-toggle="modal" 
-            data-target="#editModal">Edit</button>',
-            incident$incident_id
-          )
           
           card(
-            card_header(HTML(paste(
-              incident$incident_id, 
-              incident$dispatch_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(), 
-              incident$dispatch_reason, 
-              edit_button  # Insert the button directly into the header
-            ))),
-            p(paste('test', collapse = ", "))
+            card_header(
+              HTML(
+                paste(
+                  incident$incident_id, 
+                  format(incident$dispatch_time, "%m-%d-%Y", usetz = F), 
+                  incident$dispatch_reason, 
+                  div(
+                    style = "display: inline-block; margin-left: 10px;",
+                    tags$button(
+                      "Edit",
+                      onclick = sprintf("App.edit_incident('%s', '%s')", 
+                                        ns(""),
+                                        incident$incident_id),
+                      class = "btn btn-primary"
+                    )
+                  ),
+                  sep = " | "
+                )
+              )
+            ),
+            p(
+              paste(
+                format(incident$dispatch_time, "%H:%M:%S", usetz = F),
+                format(incident$end_time, "%H:%M:%S", usetz = F), 
+                sep = " - "
+                )
+            ),
+            p(paste(responded, collapse = ", "))
           )
         })
       }) |> 
         bindEvent(app_data$Incident(), ignoreNULL = F, ignoreInit = F)
-      
-      
-      observeEvent(input$edit_incident, {
-        showModal(
-          modalDialog(
-            title = "Edit Incident",
-            paste("Editing incident:", input$edit_incident)  # Show which ID was clicked
-          )
-        )
-      })
-      
-      
     }
   )
   

@@ -1,9 +1,8 @@
 box::use(
   shiny[...],
   bslib[...],
-  shinyjs[...],
 )
-#console.log(shinyjs);
+
 box::use(
   view/incident_response,
   logic/app_data,
@@ -14,7 +13,7 @@ box::use(
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  useShinyjs()
+
   tagList(
     uiOutput(ns('incident_cards'))
   )
@@ -52,7 +51,7 @@ ui <- function(id) {
 server <- function(id) {
   moduleServer(id, function(input, output, session) {
     incident_response$ModalServer('incident_response')
-    incident_response$DBWriteServer('incident_response')
+    # incident_response$DBWriteServer('incident_response')
     incident_response$CardServer('incident_response')
     incident_response$UpdateIdServer('incident_response')
     

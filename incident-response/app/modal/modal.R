@@ -9,13 +9,15 @@ box::use(
   ../logic/app_data,
 )
 
-key_time <- function(ns, incident_details) {
+key_time <- function(ns, incident_details, edit) {
   modalDialog(
-    textInput(
-      inputId = ns("incident_id"),
-      label = "Incident ID:",
-      value = coalesce(incident_details$incident_id, "")
-    ),
+    if(!edit) {
+      textInput(
+        inputId = ns("incident_id"),
+        label = "Incident ID:",
+        value = coalesce(incident_details$incident_id, "")
+      )
+    },
     dateInput(
       inputId = ns("dispatch_date"),
       label = "Dispatch Date:",
