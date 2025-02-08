@@ -16,6 +16,7 @@ box::use(
 box::use(
   app/logic/app_data,
   app/modal/modal,
+  app/logic/functions,
 )
 
 
@@ -46,6 +47,8 @@ ModalServer <- function(id) {
       ns <- session$ns
       
       edit <- reactiveVal(FALSE)
+      
+      additional <- reactiveVal(FALSE)
       
       ##### Reactives to save until write or reset #####
       
@@ -106,14 +109,13 @@ ModalServer <- function(id) {
         incident_details$firefighter <- Ff_App_Edit$full_name
         incident_details$call_notes <- Incident_Edit$notes
         
-        # browser()
-        
         showModal(modal$key_time(ns, incident_details, edit()))
       }) |>
         bindEvent(input$edit_incident, ignoreNULL = TRUE, ignoreInit = TRUE)
 
       # Additional Response Modal
       observe({
+        additional(TRUE)
         showModal(modal$key_time_additional(ns, incident_details))
       }) |>
         bindEvent(input$add_additional_response, ignoreNULL = TRUE, ignoreInit = TRUE)
@@ -154,6 +156,12 @@ ModalServer <- function(id) {
             return()
           }
           
+          # FIXME Need a way to validate that time is in proper order.
+          # This is a little tricky because of crossing dates (probably 
+          # need a function so I can do this consistently throughout the app. 
+          # I think there are some other places where something similar to this 
+          # needs to be done.)
+          
           removeModal()
           showModal(modal$address_unit(ns, incident_details))
           
@@ -166,7 +174,7 @@ ModalServer <- function(id) {
       # Show third modal
       observe({
         removeModal()
-        showModal(modal$select_ff_aparatus(ns, incident_details))
+        showModal(modal$select_ff_aparatus(ns, incident_details, additional()))
       }) |>
         bindEvent(input$to_apparatus_ff, ignoreNULL = TRUE, ignoreInit = TRUE)
       
@@ -177,7 +185,6 @@ ModalServer <- function(id) {
       generate_firefighter_apparatus <- reactive({
         req(input$apparatus, input$firefighter)
 
-        # browser()
         do.call(
           bucket_list,
           c(
@@ -253,46 +260,10 @@ ModalServer <- function(id) {
           text = "Incident not saved",
           type = "warning"
         )
-        incident_details$incident_id = NULL
-        incident_details$dispatch_date = NULL
-        incident_details$dispatch_time = NULL
-        incident_details$end_date = NULL
-        incident_details$end_time = NULL
-        incident_details$address = NULL
-        incident_details$area = NULL
-        incident_details$dispatch_reason = NULL
-        incident_details$units = NULL
-        incident_details$canceled = NULL
-        incident_details$dropped = NULL
-        incident_details$apparatus = NULL
-        incident_details$firefighter = NULL
-        incident_details$call_notes = NULL
         
-        edit(FALSE)
+        functions$resetCachedValues(incident_details, edit, additional)
+        
       })
-      
-      observe({
-        vals <- reactiveValuesToList(incident_details)
-        
-        print(vals)
-      
-        list <- input$ff_app_lists
-        
-        for (i in 1:length(list)) {
-
-          print(
-            paste0(
-              names(list)[[i]] |> 
-                stringr::str_replace("apparatus_list_", "") |> 
-                stringr::str_replace("app-incident_response-", ""), 
-              ": ", 
-              paste(list[[i]], collapse = ", ")
-            )
-          )
-        }
-        
-      }) |> 
-        bindEvent(input$submit, ignoreNULL = TRUE)
   
       
       ###### Save Date Automatically When Modified #####
@@ -300,7 +271,7 @@ ModalServer <- function(id) {
       fields <- c(
         "incident_id", "dispatch_date", "dispatch_time", "end_date", "end_time", 
         "address", "area", "dispatch_reason", "units", "canceled", 
-        "dropped", "apparatus", "firefighter", "call_notes"
+        "dropped", "apparatus", "firefighter", "call_notes", 'incident_id_additional'
       )
       
       # Iterate and bind each field dynamically
@@ -319,45 +290,83 @@ ModalServer <- function(id) {
 #   moduleServer(
 #     id,
 #     function(input, output, session) {
+#      
+#     ns <- session$ns
       
-      ns <- session$ns
+      ### Everything that happens on sbumit
       
       observe({
-        removeModal()
-        # browser()
-        # Take only time component of the input
-        as.POSIXct(input$dispatch_time) |> format('%H:%M:%S')
+        ## Print values to log
+        vals <- reactiveValuesToList(incident_details)
         
-        UTC_dispatch_time_date <-  as.POSIXct(
-          (
-            paste(
-              input$dispatch_date,
-              input$dispatch_time |> 
-                format('%H:%M:%S')
-              )
-            )
-          ) |> 
-          force_tz(app_data$TZ) |> with_tz()
-        UTC_end_time_date <- as.POSIXct((paste(input$end_date, input$end_time |> format('%H:%M:%S')))) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
+        print(vals)
+        
+        list <- input$ff_app_lists
+        
+        for (i in 1:length(list)) {
+          
+          cat(
+            paste0(
+              names(list)[[i]] |> 
+                stringr::str_replace("apparatus_list_", "") |> 
+                stringr::str_replace("app-incident_response-", ""), 
+              ": ", 
+              paste(list[[i]], collapse = "\n")
+            ),
+            file = stderr()
+          )
+        }
+        
+        # Take only time component of the input
+        
+        # FIXME For now, we're staying in Local TZ since we're not writing to the DB
+        # In the future, this needs to handle both. Options are:
+        # 1. Write to DB in UTC and convert to local time on read (use update reactive function)
+        # 2. Write to DB in UTC and update the reactive values to local time
+
+        
+        
+        local_dispatch_time <- as.POSIXct(
+          paste(
+            #FIXME Veryify this actually works- on the second entry,
+            # if defaults are changed, then no value is cached.
+            # But if defauls don't change, then we should be good to grab
+            # the input, right?
+            coalesce(incident_details$dispatch_date, input$dispatch_date),
+            coalesce(incident_details$dispatch_time, input$dispatch_time) |> format("%H:%M:%S")
+          ),
+          tz = Sys.getenv('LOCAL_TZ')
+        )
+        local_end_time <- as.POSIXct(
+          paste(
+            coalesce(incident_details$end_date, input$end_date),
+            coalesce(incident_details$end_time, input$end_time) |> format("%H:%M:%S")
+          ),
+          tz = Sys.getenv('LOCAL_TZ')
+        )
         
         Current_Incident <- app_data$Incident()
-        # browser()
         New_Incident <- data.frame(
-          incident_id = coalesce(input$incident_id, input$edit_incident),
-          dispatch_time = UTC_dispatch_time_date,
-          end_time = UTC_end_time_date,
-          address = if (is.null(input$address)) "" else input$address,
-          dispatch_reason = input$dispatch_reason,
-          ems_units = if_else("EMS" %in% input$units, 1, 0),
-          fire_units = if_else("Fire" %in% input$units, 1, 0),
-          wildland_units = if_else("Wildland" %in% input$units, 1, 0),
-          area = input$area,
-          canceled = if_else(input$canceled, 1, 0),
-          dropped = if_else(input$dropped, 1, 0),
-          notes = input$call_notes,
+          incident_id = coalesce(incident_details$incident_id, incident_details$incident_id_additional, input$incident_id_additional),
+          dispatch_time = local_dispatch_time,
+          end_time = local_end_time,
+          address = if (is.null(incident_details$address)) NA else incident_details$address,
+          dispatch_reason = if (is.null(incident_details$dispatch_reason)) NA else incident_details$dispatch_reason,
+          # FIXME Current DB structure allows only 3 types of responses. Are we sure there will only ever be three types?
+          ems_units = if (is.null(incident_details$units)) NA else if_else("EMS" %in% incident_details$units, 1, 0),
+          fire_units = if (is.null(incident_details$units)) NA else if_else("Fire" %in% incident_details$units, 1, 0),
+          wildland_units = if (is.null(incident_details$units)) NA else if_else("Wildland" %in% incident_details$units, 1, 0),
+          area = if (is.null(incident_details$area)) NA else incident_details$area,
+          canceled = if (is.null(incident_details$canceled)) NA else if
+              (is.numeric(incident_details$canceled)) incident_details$canceled else
+              if_else(incident_details$canceled, 1, 0),
+          dropped = if (is.null(incident_details$dropped)) NA else if
+            (is.numeric(incident_details$dropped)) incident_details$dropped else
+            if_else(incident_details$dropped, 1, 0),
+          notes = if (is.null(incident_details$call_notes)) "" else incident_details$call_notes,
           finalized = 0
         )
-        # browser()
+        
         # If editing, replace record. If not, add new record
         if(edit()) {
           app_data$Incident() |> 
@@ -368,41 +377,17 @@ ModalServer <- function(id) {
           app_data$Incident(rbind(Current_Incident, New_Incident))
         }
         
-        edit(FALSE)
+        functions$resetCachedValues(incident_details, edit, additional)
         
-        incident_details$incident_id = NULL
-        incident_details$dispatch_date = NULL
-        incident_details$dispatch_time = NULL
-        incident_details$end_date = NULL
-        incident_details$end_time = NULL
-        incident_details$address = NULL
-        incident_details$area = NULL
-        incident_details$dispatch_reason = NULL
-        incident_details$units = NULL
-        incident_details$canceled = NULL
-        incident_details$dropped = NULL
-        incident_details$apparatus = NULL
-        incident_details$firefighter = NULL
-        incident_details$call_notes = NULL
+        cat('finished', file = stderr())
         
-        browser()
+        removeModal()
         
-        #FIXME See if this can be done with a JS call
-        # FIXME Values are not being updated for some reason
-        updateTextInput(session, ns("incident_id"), value = 'test')
-        # updateDateInput(session, "dispatch_date", NULL)
-        # shinyTime::updateTimeInput(session, "dispatch_time", NULL)
-        # updateDateInput(session, "end_date", NULL)
-        # shinyTime::updateTimeInput(session, "end_time", NULL)
-        # updateTextInput(session, "address", NULL)
-        # updateSelectInput(session, "area", NULL)
-        # updateSelectInput(session, "dispatch_reason", NULL)
-        # updateCheckboxGroupInput(session, "units", NULL)
-        # updateCheckboxInput(session, "canceled", NULL)
-        # updateCheckboxInput(session, "dropped", NULL)
-        # updateTextInput(session, "call_notes", NULL)
-        # updateSelectInput(session, "apparatus", NULL)
-        # updateSelectInput(session, "firefighter", NULL)
+        shinyalert(
+          title = "Success",
+          text = "Incident saved",
+          type = "success"
+        )
         
         
         ###### Incident Statement Prepration
@@ -556,12 +541,11 @@ CardServer <- function(id) {
       
       output$incident_cards <- renderUI({
         # updateReactiveValue()
-        # browser()
         Incidents <- app_data$Incident()
         
         Firefighter_Incident <- app_data$Firefighter_Incident()
         
-        Incidents <- Incidents[Incidents$end_time >= Sys.time() - 48*3600, ] |> 
+        Incidents <- Incidents[Incidents$end_time >= Sys.time() - 96*3600, ] |> 
           arrange(desc(end_time))
         
         lapply(seq_len(nrow(Incidents)), function(i) {
@@ -580,7 +564,7 @@ CardServer <- function(id) {
                 paste(
                   incident$incident_id, 
                   format(incident$dispatch_time, "%m-%d-%Y", usetz = F), 
-                  incident$dispatch_reason, 
+                  if_else(is.na(incident$dispatch_reason), "Additional Response", incident$dispatch_reason), 
                   div(
                     style = "display: inline-block; margin-left: 10px;",
                     tags$button(
@@ -641,6 +625,7 @@ UpdateIdServer <- function(id) {
         bindEvent(input$to_edit_id, ignoreNULL = TRUE)
       
       # Confirm and save new incident id
+      #FIXME Use a funciton so same validation happens as when originally adding id
       observe({
         removeModal()
         showModal(
