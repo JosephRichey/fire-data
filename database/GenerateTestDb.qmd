@@ -415,7 +415,7 @@ db_insert("attendance", loading_df)
 ```
 
 
-## Populate `incident`
+## Populate `incident` and `incident_xref`
 ```{r}
 dispatch_codes <- c(
   "Abdominal Pain/Problems",
@@ -492,9 +492,38 @@ incident <- data.frame(
          .after = "dispatch_time") |> 
   mutate(finalized = if_else(end_time > Sys.time() - 60*60*24*7, 0, 1),
          dispatch_time = as.POSIXct(dispatch_time) |> format(usets = FALSE),
-         end_time = as.POSIXct(end_time)|> format(usets = FALSE))
+         end_time = as.POSIXct(end_time)|> format(usets = FALSE)) |> 
+  arrange(desc(end_time))
+
+top_incident <- incident|> 
+  slice(1)
+
+additional_incident <- incident|> 
+  slice(2) |> 
+  mutate(address = NA,
+         dispatch_reason = NA,
+         ems_units = NA,
+         fire_units = NA,
+         wildland_units = NA,
+         area = NA,
+         canceled = NA,
+         dropped = NA,
+         incident_id = paste0(top_incident$incident_id, "-additional-50")
+         )
+
+incident <- incident|> 
+  slice(-2) |> 
+  bind_rows(additional_incident)
+
+
+incident_xref <- data.frame(
+  id = 1,
+  primary_incident = top_incident$incident_id,
+  additional_incident = paste0(top_incident$incident_id, "-additional-50")
+)
 
 db_insert("incident", incident)
+db_insert("incident_xref", incident_xref)
 ```
 
 ## Populate `firefighter_incident`, `apparatus_incident`, and `firefighter_apparatus`

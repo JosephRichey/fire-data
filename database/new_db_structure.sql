@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS test.firefighter_apparatus;
 DROP TABLE IF EXISTS test.chain_of_command;
 DROP TABLE IF EXISTS test.firefighter;
 DROP TABLE IF EXISTS test.apparatus;
+DROP TABLE IF EXISTS test.incident_xref;
 DROP TABLE IF EXISTS test.incident;
 DROP TABLE IF EXISTS test.company;
 
@@ -169,7 +170,8 @@ CREATE TABLE test.attendance (
 
 # Incident tables
 CREATE TABLE test.incident (
-	incident_id varchar(255) PRIMARY KEY,
+	id INT PRIMARY KEY AUTO_INCREMENT,
+	incident_id varchar(255),
     dispatch_time varchar(255),
     end_time varchar(255),
     address varchar(255),
@@ -182,6 +184,18 @@ CREATE TABLE test.incident (
     dropped bool,
     notes text,
     finalized bool
+);
+
+ALTER TABLE test.incident ADD INDEX (incident_id);
+
+
+CREATE TABLE test.incident_xref (
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    primary_incident varchar(255),
+    additional_incident varchar(255),
+    FOREIGN KEY (primary_incident) references test.incident(incident_id) ON UPDATE CASCADE,
+    #FIXME Check that this logic works and it actually needs to cascade
+    FOREIGN KEY (additional_incident) references test.incident(incident_id) ON UPDATE CASCADE
 );
 
 CREATE TABLE test.firefighter_incident (
