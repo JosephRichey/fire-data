@@ -13,6 +13,14 @@ box::use(
 UI <- function(id) {
   ns <- NS(id)
   tagList(
+    selectInput(
+      ns('firefighter'), 
+      'Firefighter', 
+      choices = c("Select Firefighter",
+                  app_data$Firefighter$full_name |> unique()),
+      selected = "Select Firefighter",
+      multiple = FALSE
+    ),
     pickerInput(
       ns('type'), 
       'Equipment Type', 
@@ -26,18 +34,18 @@ UI <- function(id) {
       multiple = TRUE
     ),
     checkboxInput(
-      ns('due-soon-filter'),
+      ns('due_soon_filter'),
       'Due Soon',
       value = FALSE
     ),
     checkboxInput(
-      ns('overdue-filter'),
+      ns('overdue_filter'),
       'Overdue',
       value = FALSE
     ),
     actionButton(
-      ns('check_all'),
-      'Check All',
+      ns('check_selected'),
+      'Check Selected',
       icon = icon('check'),
       class = 'btn-primary'
     ),
@@ -64,28 +72,30 @@ Server <- function(id) {
     id,
     function(input, output, session) {
       
-      r_Equipment <- reactiveVal(app_data$Equipment)
-      
-      r_Equipment_Type <- reactiveVal(app_data$Equipment_Type)
-      
-      r_Equipment_Log <- reactiveVal(app_data$Equipment_Log)
-      
-      r_Data <- reactive({
-        
-        # browser()
-        data <- r_Equipment() |> 
-          left_join(r_Equipment_Type(), by = c('type_id' = 'equipment_type_id')) |>
-          left_join(app_data$Firefighter, by = c('firefighter_id' = 'firefighter_id'))
-        return(data)
+      Base_Data <- reactive({
+        app_data$Base_Data
       })
       
       output$equipment <- renderDataTable({
         # browser()
-        r_Data() |> 
-          select(equipment_name, next_check_date, full_name, equipment_type) |>
-          filter(equipment_type %in% input$type) |>
+        A <- Base_Data() |> 
+          select(equipment_id, icon, equipment_name, date, 
+                 full_name, equipment_type, button, flag_type) |>
+          filter(equipment_type %in% input$type)
+        
+        if(input$due_soon_filter) {
+          A <- A |> filter(flag_type == "Check")
+        }
+        
+        if(input$overdue_filter) {
+          A <- A |> filter(date < app_data$Current_Local_Date)
+        }
+          
+        
           datatable(
-            extensions = 'Buttons'
+            A,
+            extensions = 'Buttons',
+            escape = FALSE
           )
       })
       

@@ -277,12 +277,12 @@ equipment <- data.frame(
   equipment_id = 1:10,
   equipment_name = c("Battery 1", "Battery 2", "Battery 3", "Engine 1", "Ladder 2",
                      "Turnouts", "Turnouts", "Turnouts", "Misc.", "Misc."),
-  type_id = c(1,1,1,2,2,3,3,3,4,4),
+  equipment_type_id = c(1,1,1,2,2,3,3,3,4,4),
   firefighter_id = c(NA,NA,NA,NA,NA,1,3,10,3,10),
   next_check_date = c(
     Sys.Date() + 3,
-    Sys.Date() + 3,
-    Sys.Date() + 8,
+    Sys.Date() + 10,
+    Sys.Date() + 17,
     Sys.Date() + 3,
     Sys.Date() + 8,
     Sys.Date() + 180,
@@ -292,28 +292,28 @@ equipment <- data.frame(
     Sys.Date() + 180
   ),
   expiration_date = c(
-    Sys.Date() + 100,
+    Sys.Date() - 100,
     Sys.Date() + 365,
     Sys.Date() + 800,
-    Sys.Date() + 3000,
-    NA,
+    Sys.Date() + 300,
+    as.Date(NA),
     Sys.Date() + 180,
     Sys.Date() + 180,
     Sys.Date() + 720,
-    Sys.Date() + 180,
-    NA
+    Sys.Date() - 180,
+    as.Date(NA)
   ),
   snooze_expires = c(
-    Sys.Date() + 100,
-    Sys.Date() + 365,
-    Sys.Date() + 800,
-    NA,
-    NA,
+    as.Date(NA),
+    as.Date(NA),
+    as.Date(NA),
+    as.Date(NA),
+    as.Date(NA),
     Sys.Date() + 180,
     Sys.Date() + 180,
     Sys.Date() + 720,
     Sys.Date() + 180,
-    NA
+    as.Date(NA)
   )
 )
 

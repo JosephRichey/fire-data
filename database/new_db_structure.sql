@@ -122,13 +122,13 @@ CREATE TABLE test.equipment_type (
 CREATE TABLE test.equipment (
 	equipment_id INT PRIMARY KEY AUTO_INCREMENT,
     equipment_name VARCHAR(255),
-    type_id INT,
+    equipment_type_id INT,
     firefighter_id INT,
     next_check_date VARCHAR(15),
     expiration_date VARCHAR(15),
     snooze_expires VARCHAR(15),
     expire_equipment VARCHAR(15),
-    foreign key (type_id) references test.equipment_type(equipment_type_id),
+    foreign key (equipment_type_id) references test.equipment_type(equipment_type_id),
     foreign key (firefighter_id) references test.firefighter(firefighter_id)
 );
 
