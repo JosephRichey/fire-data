@@ -15,7 +15,7 @@ UI <- function(id) {
   tagList(
     selectInput(
       ns('firefighter'), 
-      'Firefighter', 
+      'Firefighter Performing Check', 
       choices = c("Select Firefighter",
                   app_data$Firefighter$full_name |> unique()),
       selected = "Select Firefighter",
@@ -25,7 +25,7 @@ UI <- function(id) {
       ns('type'), 
       'Equipment Type', 
       choices = c(app_data$Equipment_Type$equipment_type |> unique()),
-      selected = NULL,
+      selected = c(app_data$Equipment_Type$equipment_type |> unique()),
       options = list(
         `actions-box` = TRUE,
         `live-search` = TRUE,
@@ -33,16 +33,13 @@ UI <- function(id) {
       ),
       multiple = TRUE
     ),
-    checkboxInput(
-      ns('due_soon_filter'),
-      'Due Soon',
-      value = FALSE
+    checkboxGroupInput(
+      ns('due_filter'),
+      label = '',
+      choices = c('Approaching', 'Due'),
+      selected = c('Approaching', 'Due')
     ),
-    checkboxInput(
-      ns('overdue_filter'),
-      'Overdue',
-      value = FALSE
-    ),
+    
     actionButton(
       ns('check_selected'),
       'Check Selected',
@@ -59,13 +56,13 @@ UI <- function(id) {
   )
 }
 
-Output <- function(id) {
-  ns <- NS(id)
-  tagList(
-    DT::renderDataTable(ns('due_soon')),
-    DT::renderDataTable(ns('overdue'))
-  )
-}
+# Output <- function(id) {
+#   ns <- NS(id)
+#   tagList(
+#     DT::renderDataTable(ns('due_soon')),
+#     DT::renderDataTable(ns('overdue'))
+#   )
+# }
 
 Server <- function(id) {
   moduleServer(
@@ -79,44 +76,66 @@ Server <- function(id) {
       output$equipment <- renderDataTable({
         # browser()
         A <- Base_Data() |> 
-          select(equipment_id, icon, equipment_name, date, 
-                 full_name, equipment_type, button, flag_type) |>
+          select(equipment_id, icon, equipment_name, next_check_date, 
+                 full_name, equipment_type, flag_type, check, snooze) |>
           filter(equipment_type %in% input$type)
         
-        if(input$due_soon_filter) {
-          A <- A |> filter(flag_type == "Check")
+        print(input$due_filter)
+        
+        if(is.null(input$due_filter)) {
+         print('Do nothing') 
+        } else if('Approaching' %in% input$due_filter & 'Due' %in% input$due_filter) {
+          A <- A |> 
+            filter(flag_type == 'Approaching' | flag_type == 'Due')
+        } else if('Approaching' %in% input$due_filter) {
+          A <- A |> 
+            filter(flag_type == 'Approaching')
+        } else if('Due' %in% input$due_filter) {
+          A <- A |> 
+            filter(flag_type == 'Due')
         }
         
-        if(input$overdue_filter) {
-          A <- A |> filter(date < app_data$Current_Local_Date)
-        }
-          
+        colnames(A) <- c('ID', 'Icon', 'Equipment Name', 'Next Check Date', 
+                         'Assigned To', 'Equipment Type', 'Flag Type', 'Check', 'Snooze')
         
           datatable(
             A,
             extensions = 'Buttons',
-            escape = FALSE
+            escape = FALSE,
+            options = list(
+              columnDefs = list(
+                list(
+                  targets = 1,
+                  visible = FALSE
+                ),
+                list(
+                  targets = 7,
+                  visible = FALSE
+                )
+              ),
+              order = list(7, 'desc')
+            )
           )
       })
       
-      output$due_soon <- renderDataTable({
-        browser()
-        r_Data() |> 
-          filter(next_check_date < Sys.Date() + 30) |>
-          select(equipment_name, next_check_date, full_name, equipment_type) |>
-          datatable(
-            extensions = 'Buttons'
-          )
-      })
-      
-      output$overdue <- renderDataTable({
-        r_Data() |> 
-          filter(next_check_date < Sys.Date()) |>
-          select(equipment_name, next_check_date, full_name, equipment_type) |>
-          datatable(
-            extensions = 'Buttons'
-          )
-      })
+      # output$due_soon <- renderDataTable({
+      #   browser()
+      #   r_Data() |> 
+      #     filter(next_check_date < Sys.Date() + 30) |>
+      #     select(equipment_name, next_check_date, full_name, equipment_type) |>
+      #     datatable(
+      #       extensions = 'Buttons'
+      #     )
+      # })
+      # 
+      # output$overdue <- renderDataTable({
+      #   r_Data() |> 
+      #     filter(next_check_date < Sys.Date()) |>
+      #     select(equipment_name, next_check_date, full_name, equipment_type) |>
+      #     datatable(
+      #       extensions = 'Buttons'
+      #     )
+      # })
       
     }
   )

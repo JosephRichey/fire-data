@@ -34,13 +34,13 @@ ui <- function(id) {
         )
       ),
       
-      card(
-        card_body(
-          bslib::card_title("Current Status"),
-          equipment_management$Output(ns('equipment_management'))
-        ),
-        min_height = "1200px"
-      ),
+      # card(
+      #   card_body(
+      #     bslib::card_title("Current Status"),
+      #     equipment_management$Output(ns('equipment_management'))
+      #   ),
+      #   min_height = "1200px"
+      # ),
       
       col_widths = c(12, 12)
     ),

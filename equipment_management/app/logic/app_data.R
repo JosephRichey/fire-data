@@ -49,42 +49,36 @@ Current_Local_Date <- Sys.time() |>
 Base_Data <- Equipment |> 
   left_join(Equipment_Type, by = "equipment_type_id") |> 
   left_join(Firefighter, by = "firefighter_id") |> 
-  mutate(check_threshold = functions$GenerateThreshold(next_check_date, check_lead_time, check_lead_time_unit),
-         expire_threshold = functions$GenerateThreshold(expiration_date, expire_lead_time, expire_lead_time_unit)) |> 
+  mutate(check_threshold = functions$GenerateThreshold(next_check_date, check_lead_time, check_lead_time_unit)) |> 
   select(equipment_id, equipment_name, equipment_type,
-         full_name, next_check_date, expiration_date,
-         snooze_expires,  check_threshold, expire_threshold) |> 
-  pivot_longer(cols = c(check_threshold, expire_threshold),
-               names_to = "date_type", values_to = "date") |>
+         full_name, next_check_date,
+         snooze_expires,  check_threshold) |> 
   mutate(flag_type = case_when(
-    date_type == "check_threshold" & date <= Current_Local_Date ~ "Check",
-    date_type == "expire_threshold" & snooze_expires >= Current_Local_Date ~ "Snooze",
-    date_type == "expire_threshold" & date <= Current_Local_Date ~ "Expire",
+    snooze_expires <= Current_Local_Date ~ "Snooze",
+    next_check_date <= Current_Local_Date ~ "Due",
+    check_threshold <= Current_Local_Date ~ "Approaching",
     TRUE ~ 'Normal'),
     icon = case_when(
-      flag_type == "Check" ~ "✔️",  
-      flag_type == "Expire" ~ "☠️",
-      TRUE ~ ""
+      flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = "red"),  
+      flag_type == "Approaching" ~ bsicons::bs_icon("check-circle", fill = "yellow"),
+      TRUE ~ bsicons::bs_icon("app", fill = "green")
     ),
-    if_else(is.na(full_name), "", full_name) |> as.character(),
-    button = case_when(
-      flag_type == "Check" ~ sprintf('<button id="check" 
+    full_name = if_else(is.na(full_name), "", full_name) |> as.character(),
+    check = sprintf('<button id="check" 
                         onclick = "shinyjs.check(%s)" 
                         class="btn btn-primary" 
                         data-toggle="modal" 
                         data-target="#editModal">Check</button>',
             equipment_id),
-      flag_type == "Expire" ~ sprintf('<button id="snooze" 
+    snooze = sprintf('<button id="snooze" 
                         onclick = "shinyjs.snooze(%s)" 
                         class="btn btn-primary" 
                         data-toggle="modal" 
                         data-target="#editModal">Snooze</button>',
-            equipment_id),
-      TRUE ~ ""
-    )
+            equipment_id)
     ) |> 
   select(equipment_id, icon, equipment_name, 
-         equipment_type, full_name, date, flag_type, button)
+         equipment_type, full_name, next_check_date, flag_type, check, snooze)
   
 
 
