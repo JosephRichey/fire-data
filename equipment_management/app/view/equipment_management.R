@@ -3,10 +3,12 @@ box::use(
   dplyr[...],
   shinyWidgets[...],
   DT[...],
+  shinyalert[...],
 )
 
 box::use(
   ../logic/app_data,
+  ../logic/functions,
 )
 
 
@@ -33,13 +35,15 @@ UI <- function(id) {
       ),
       multiple = TRUE
     ),
+    hr(),
     checkboxGroupInput(
       ns('due_filter'),
       label = '',
       choices = c('Approaching', 'Due'),
-      selected = c('Approaching', 'Due')
+      selected = c('Approaching', 'Due'),
+      inline = TRUE
     ),
-    
+    hr(),
     actionButton(
       ns('check_selected'),
       'Check Selected',
@@ -47,43 +51,68 @@ UI <- function(id) {
       class = 'btn-primary'
     ),
     actionButton(
+      ns('snooze_selected'),
+      'Snooze Selected',
+      icon = icon('clock'),
+      class = 'btn-secondary'
+    ),
+    br(),
+    br(),
+    actionButton(
       ns('refresh'), 
       'Refresh', 
       icon = icon('refresh'),
-      class = 'btn-light'
+      class = 'btn-light',
+      width = '100%'
     ),
     DT::dataTableOutput(ns('equipment'))
   )
 }
-
-# Output <- function(id) {
-#   ns <- NS(id)
-#   tagList(
-#     DT::renderDataTable(ns('due_soon')),
-#     DT::renderDataTable(ns('overdue'))
-#   )
-# }
 
 Server <- function(id) {
   moduleServer(
     id,
     function(input, output, session) {
       
-      Base_Data <- reactive({
+      Base_Data <- reactiveVal({
+        # browser()
         app_data$Base_Data
       })
       
-      output$equipment <- renderDataTable({
+      With_Icons <- reactive({
         # browser()
-        A <- Base_Data() |> 
+        Base_Data() |> 
+          mutate(check_threshold = functions$GenerateThreshold(next_check_date, check_lead_time, check_lead_time_unit)) |> 
+          select(equipment_id, equipment_name, equipment_type,
+                 full_name, next_check_date,
+                 snooze_expires,  check_threshold) |> 
+          mutate(flag_type = case_when(
+            snooze_expires <= app_data$Current_Local_Date ~ "Snooze",
+            next_check_date <= app_data$Current_Local_Date ~ "Due",
+            check_threshold <= app_data$Current_Local_Date ~ "Approaching",
+            TRUE ~ 'Normal'),
+            icon = case_when(
+              flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = "red"),  
+              flag_type == "Approaching" ~ bsicons::bs_icon("check-circle", fill = "yellow"),
+              TRUE ~ bsicons::bs_icon("app", fill = "green")
+            ),
+            full_name = if_else(is.na(full_name), "", full_name) |> as.character()
+          ) |> 
+          select(equipment_id, icon, equipment_name, 
+                 equipment_type, full_name, next_check_date, flag_type)
+      })
+      
+      Equipment_Table <- reactive({
+        # browser()
+        A <- With_Icons() |> 
           select(equipment_id, icon, equipment_name, next_check_date, 
-                 full_name, equipment_type, flag_type, check, snooze) |>
+                 full_name, equipment_type, flag_type) |>
           filter(equipment_type %in% input$type)
         
         print(input$due_filter)
         
         if(is.null(input$due_filter)) {
-         print('Do nothing') 
+          print('Do nothing') 
         } else if('Approaching' %in% input$due_filter & 'Due' %in% input$due_filter) {
           A <- A |> 
             filter(flag_type == 'Approaching' | flag_type == 'Due')
@@ -95,47 +124,75 @@ Server <- function(id) {
             filter(flag_type == 'Due')
         }
         
-        colnames(A) <- c('ID', 'Icon', 'Equipment Name', 'Next Check Date', 
-                         'Assigned To', 'Equipment Type', 'Flag Type', 'Check', 'Snooze')
+        colnames(A) <- c('equipment_id', 'Icon', 'Equipment Name', 'Next Check Date', 
+                         'Assigned To', 'Equipment Type', 'Flag Type')
         
+        return(A)
+      })
+      
+      
+      output$equipment <- renderDataTable({
           datatable(
-            A,
+            Equipment_Table(),
             extensions = 'Buttons',
-            escape = FALSE,
             options = list(
               columnDefs = list(
                 list(
-                  targets = 1,
-                  visible = FALSE
-                ),
-                list(
-                  targets = 7,
+                  targets = c(0,3,5,6),
                   visible = FALSE
                 )
               ),
-              order = list(7, 'desc')
-            )
+              order = list(3, 'asc')
+            ),
+            escape = FALSE,
+            fillContainer = FALSE,
+            rownames = FALSE
           )
       })
       
-      # output$due_soon <- renderDataTable({
-      #   browser()
-      #   r_Data() |> 
-      #     filter(next_check_date < Sys.Date() + 30) |>
-      #     select(equipment_name, next_check_date, full_name, equipment_type) |>
-      #     datatable(
-      #       extensions = 'Buttons'
-      #     )
-      # })
-      # 
-      # output$overdue <- renderDataTable({
-      #   r_Data() |> 
-      #     filter(next_check_date < Sys.Date()) |>
-      #     select(equipment_name, next_check_date, full_name, equipment_type) |>
-      #     datatable(
-      #       extensions = 'Buttons'
-      #     )
-      # })
+      observe({
+        # browser()
+        cat('Checking to see if equipment can be checked', file = stderr())
+        
+        if(is.null(input$equipment_rows_selected)) {
+          shinyalert(
+            title = 'Error',
+            type = 'error',
+            text = 'Please select equipment to perform the check'
+          )
+          return()
+        }
+        
+        if(input$firefighter == 'Select Firefighter') {
+          shinyalert(
+            title = 'Error',
+            type = 'error',
+            text = 'Please select a firefighter to perform the check'
+          )
+          return()
+        }
+        
+        Ids_to_check <- Equipment_Table()[input$equipment_rows_selected,1]
+        
+        New <- Base_Data() |>
+          mutate(
+            next_check_date = if_else(equipment_id %in% Ids_to_check, next_check_date + 365, next_check_date)
+          )
+        
+        Base_Data(New)
+        
+        for(x in Equipment_Table()[input$equipment_rows_selected,3]) {
+          showNotification(
+            paste(x, 'Checked'),
+            duration = 5,
+            type = 'message'
+          )
+        }
+        
+      }) |> 
+        bindEvent(input$check_selected)
+      
+
       
     }
   )

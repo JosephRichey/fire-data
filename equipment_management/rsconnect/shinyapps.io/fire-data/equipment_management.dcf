@@ -1,0 +1,12 @@
+name: equipment_management
+title: equipment_management
+username: fire-data
+account: fire-data
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13966626
+bundleId: 9783080
+url: https://fire-data.shinyapps.io/equipment_management/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

@@ -13,7 +13,7 @@ box::use(
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  page_fixed(
+  page_fillable(
     title = Sys.getenv('FD'),
     h1(Sys.getenv('FD')),
     h3("Equipment Management"),
@@ -28,21 +28,16 @@ ui <- function(id) {
                      bootswatch = "darkly"),
     layout_columns(
       card(
+        # min_height = 1250,
+        fill = FALSE,
         card_body(
-          min_height = "300px",
+          fillable = FALSE,
+          # min_height = "300px",
           equipment_management$UI(ns('equipment_management'))
         )
       ),
       
-      # card(
-      #   card_body(
-      #     bslib::card_title("Current Status"),
-      #     equipment_management$Output(ns('equipment_management'))
-      #   ),
-      #   min_height = "1200px"
-      # ),
-      
-      col_widths = c(12, 12)
+      col_widths = c(12)
     ),
     
     br(),
