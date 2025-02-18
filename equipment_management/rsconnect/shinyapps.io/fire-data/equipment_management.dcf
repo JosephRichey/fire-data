@@ -5,7 +5,7 @@ account: fire-data
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 13966626
-bundleId: 9813582
+bundleId: 9814933
 url: https://fire-data.shinyapps.io/equipment_management/
 version: 1
 asMultiple: FALSE
