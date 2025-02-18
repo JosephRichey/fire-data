@@ -1,16 +1,28 @@
 body {
       margin: 0;
     }
+
 .nav-icons {
       list-style: none;
       padding: 0;
       margin: 0;
       position: fixed;
-      top: 100px;
-      left: 30px;
+      top: 75px;
+      left: 10px;
       text-align: center;
       width: 60px; /* Adjust width to match your pseudo-sidebar */
     }
+
+.app-header {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background-color: var(--bs-primary);
+  color: white;
+  font-size: 36px;
+  font-weight: bold;
+}
+
 .nav-icons li {
       margin: 15px 0;
     }
@@ -23,14 +35,17 @@ body {
       color: #87292b;
     }
 
-.nav-icons a:active {
-      background-color: #ffffff;
-      color: 'black';
-      font-weight: bold;
+
+
+/* Change SVG color for the active tab */
+.nav-icons a.active svg {
+      color: #87292b;
 }
 
 
+
+
 .main-content {
-      margin-left: 100px; /* Offset to the right of the pseudo-sidebar */
-      padding: 20px;
+      margin-left: 60px; /* Offset to the right of the pseudo-sidebar */
+      padding: 10px;
     }

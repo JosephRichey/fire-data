@@ -19,7 +19,7 @@ box::use(
 
 menu <- tags$ul(
   class = "nav-icons",
-  tags$li(a(href = route_link("training"), fa("book-open", title = "Training"))),
+  tags$li(a(href = route_link("/"), fa("book-open", title = "Training"), class = 'active')),
   tags$li(a(href = route_link("incident"), fa("calendar-check", title = "Incident"))),
   tags$li(a(href = route_link("equipment"), fa("fire-extinguisher", title = "Equipment Management"))),
   tags$li(a(href = route_link("reports"), fa("chart-pie", title = "reports"))),
@@ -45,18 +45,32 @@ ui <- function(id) {
                      bootswatch = "darkly"),
     # Sidebar with icons
     div(class = "nav-icons", menu),
+    div(class = "app-header",
+        img(src = 'static/logo.png',
+            style = 'width: 60px; margin-right: 10px'),
+        span(Sys.getenv('FD'), " - Data Portal")),
     div(class = "main-content",
         router_ui(
-          route("training",
+          route("/",
                 layout_sidebar(
-                              sidebar = sidebar(
-                                width = 400,
-                                open = "desktop",
-                                training$UI(ns('training'))
-                              ),
-                              training$Output(ns('training'))
-                            )
+                  sidebar = sidebar(
+                    width = 400,
+                    open = "desktop",
+                    training$UI(ns('training'))
+                  ),
+                  training$Output(ns('training'))
+                )
           ),
+          # route("training",
+          #       layout_sidebar(
+          #                     sidebar = sidebar(
+          #                       width = 400,
+          #                       open = "desktop",
+          #                       training$UI(ns('training'))
+          #                     ),
+          #                     training$Output(ns('training'))
+          #                   )
+          # ),
           route("incident",
                 page_navbar(
                   title = "Incident",
