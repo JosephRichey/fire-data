@@ -8,6 +8,10 @@ box::use(
   DBI[dbDisconnect],
   shiny.router[...],
   fontawesome[...],
+  ggraph[...],
+  tidygraph[...],
+  bsicons[...],
+  ggplot2[...],
 )
 
 box::use(
@@ -27,6 +31,43 @@ menu <- tags$ul(
   tags$li(a(href = route_link("messaging"), fa("envelope", title = "Messaging"))),
   tags$li(a(href = route_link("settings"), fa("cogs", title = "Settings")))
 )
+
+
+# Define edges and nodes
+edges <- data.frame(
+  from = c(
+    "Alex", "Taylor", "Taylor",
+    "Jordan",  "Taylor",
+    "Pat", "Jordan", "Jordan",  "Jordan"
+  ),
+  to = c(
+    "Taylor", "Jordan", "Jordan",
+    "Chris",  "Pat",
+    "Jamie", "Morgan", "Blake", "Casey"
+  )
+)
+
+nodes <- data.frame(
+  name = c(
+    "Alex", "Taylor", "Jordan",
+    "Chris", "Pat", "Jamie",
+    "Morgan", "Blake", "Casey"
+  ),
+  role = c(
+    "Chief", "Assistant Chief", "Captain",
+    "FF", "Captain", "FF",
+    "FF", "FF", "FF"
+  ),
+  team = c(
+    "Admin", "Admin", "Crew A",
+    "Crew A", "Crew B", "Crew B",
+    "Crew A", "Crew A", "Crew A"
+  ),
+  rank = c(1, 2, 3, 4, 3, 4, 4, 4, 4)
+)
+
+# Convert to a tidygraph object
+graph <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
 
 
 #' @export
@@ -52,43 +93,142 @@ ui <- function(id) {
     div(class = "main-content",
         router_ui(
           route("/",
+                navset_pill(
+                  nav_panel(
+                    title = "Trainings",
+                    layout_sidebar(
+                      sidebar = sidebar(
+                        width = 400,
+                        open = "desktop",
+                        training$UI(ns('training'))
+                      ),
+                      training$Output(ns('training'))
+                    )
+                  ),
+
+                  nav_panel(
+                    title = "Attendance",
+                    layout_sidebar(
+                      sidebar = sidebar(
+                        width = 400,
+                        open = "desktop",
+                        actionButton("input1", "Select Training"),
+                        hr(),
+                        actionButton("input2", "Add Attendance"),
+                        actionButton("input3", "Modify Attendance"),
+                        actionButton("input4", "Delete Attendance"),
+                        actionButton("input5", "Excuse Attendee"),
+                      ),
+                     datatable(
+                       data.frame(
+                         ID = 1:10,
+                         Name = letters[1:10],
+                         Type = rep(c("A", "B"), 5)
+                       )
+
+                     )
+                    )
+                  )
+                )
+          ),
+          route("incident",
                 layout_sidebar(
                   sidebar = sidebar(
                     width = 400,
                     open = "desktop",
-                    training$UI(ns('training'))
+                    actionButton("input2", "Edit Incident ID"),
+                    actionButton("input3", "Delete Incident"),
+                    accordion(
+                      open = FALSE,
+                      bslib::accordion_panel(
+                        title = "Incident Filter",
+                      textInput("input4", "Incident Name", value = ""),
+                      textInput("input5", "Incident Type", value = ""),
+                      )
+                    )
                   ),
-                  training$Output(ns('training'))
+                    DT::datatable(
+                    data.frame(
+                      ID = 1:10,
+                      Name = letters[1:10],
+                      Type = rep(c("A", "B"), 5)
+                    )
+                  )
                 )
-          ),
-          # route("training",
-          #       layout_sidebar(
-          #                     sidebar = sidebar(
-          #                       width = 400,
-          #                       open = "desktop",
-          #                       training$UI(ns('training'))
-          #                     ),
-          #                     training$Output(ns('training'))
-          #                   )
-          # ),
-          route("incident",
-                page_navbar(
-                  title = "Incident",
-                  sidebar = sidebar(
-                    numericInput("input2", "Input 2", value = 0)
-                  )
-                )),
+                ),
           route("equipment",
-                page_navbar(
-                  title = "Equipment Management",
-                  sidebar = sidebar(
-                    textInput("input3", "Input 3", value = "")
+                navset_pill(
+                  nav_panel(
+                    title = "Equipment Checks",
+                    layout_sidebar(
+                      sidebar = sidebar(
+                        width = 400,
+                        open = "desktop",
+                        selectInput("input1", "Equipment Type", choices = c("A", "B", "C")),
+                        checkboxGroupInput("input2", "Equipment Status",
+                                           choices = c("Due", "Approaching", "Normal", "Snooze")),
+                      ),
+                      datatable(
+                        data.frame(
+                          ID = 1:10,
+                          Name = letters[1:10],
+                          Type = rep(c("A", "B"), 5)
+                        )
+                      )
+                    )
+                  ),
+
+                  nav_panel(
+                    title = "Equipment Expiration",
+                    layout_sidebar(
+                      sidebar = sidebar(
+                        width = 400,
+                        open = "desktop",
+                        selectInput("input1", "Equipment Type", choices = c("A", "B", "C")),
+                        checkboxGroupInput("input2", "Equipment Status",
+                                           choices = c("Due", "Approaching", "Normal", "Snooze")),
+                      ),
+                      datatable(
+                        data.frame(
+                          ID = 1:10,
+                          Name = letters[1:10],
+                          Type = rep(c("A", "B"), 5)
+                        )
+                      )
+                    )
+                  ),
+
+                  nav_panel(
+                    title = "Manage Equipment",
+                    layout_sidebar(
+                      sidebar = sidebar(
+                        width = 400,
+                        open = "desktop",
+                        actionButton("input1", "Add New Type"),
+                        actionButton("input2", "Add New Piece"),
+                        actionButton("input3", "Delete Type"),
+                        actionButton("input4", "Delete Piece"),
+                        hr(),
+                        selectInput("input5", "Equipment Type", choices = c("A", "B", "C")),
+                        selectInput("input6", "Firefighter Assigned", choices = c("A", "B", "C")),
+                      ),
+                      "A(n) [equipment type] needs to be checked every [time interval]. [Equipment piece] is an [equipment type]. Example: An apparatus needs to be checked every month. Engine 82 is an apparatus.",
+                      datatable(
+                        data.frame(
+                          ID = 1:10,
+                          Name = letters[1:10],
+                          Type = rep(c("A", "B"), 5)
+                        )
+
+                      )
+                    )
                   )
-                )),
+                )
+                ),
           route("reports",
             navset_pill(
               nav_panel(
-                title = "Individual",
+                title = "Trainings",
                 layout_sidebar(
                   sidebar = sidebar(
                     title = "Set Filters",
@@ -98,46 +238,129 @@ ui <- function(id) {
                   )
                 ),
 
-              nav_panel(title = "Department",
+              nav_panel(title = "Incidents",
                         layout_sidebar(
                           sidebar = sidebar(
                             title = "Set Filters",
-                            summary$UI(
-                              ns('dep_summary'),
-                              "Department")
+
                             ),
-                          summary$Output(
-                            ns('dep_summary'),
-                            "Department")
+                            value_box("Total EMS Incident Hours",
+                                      textOutput("1000"),
+                                      showcase = bs_icon('clock-fill',
+                                                         class = 'text-success')),
+                            value_box("Total Fire Incident Hours",
+                                      textOutput("1001"),
+                                      showcase = bs_icon('clock-fill',
+                                                         class = 'text-danger')),
+                        )
+              ),
+
+              nav_panel(title = "Equipment",
+                        layout_sidebar(
+                          sidebar = sidebar(
+                            title = "Set Filters"
+
+                          )
+                        )
+              ),
+
+              nav_panel(title = "Personnel",
+                        layout_sidebar(
+                          sidebar = sidebar(
+                            title = "Set Filters"
+
+                          )
+                        )
+              ),
+
+              nav_panel(title = "AI Reports",
+                        layout_sidebar(
+                          sidebar = sidebar(
+                            title = "Set Filters"
+
                           )
                         )
               )
-            ),
+            )
+          ),
           route("roster",
-                layout_sidebar(
-                              sidebar = sidebar(
-                                width = 400,
-                                open = "desktop",
-                                roster$UI(ns('roster')),
-                              ),
+                navset_pill(
+                  nav_panel(
+                    title = "Roster",
+                    layout_sidebar(
+                      sidebar = sidebar(
+                        width = 400,
+                        open = "desktop",
+                        roster$UI(ns('roster')),
+                      ),
 
-                              roster$Output(ns('roster'))
+                      roster$Output(ns('roster'))
 
-                            )
+                    )
+                  ),
+
+                  nav_panel(
+                    title = "Certifications",
+                    layout_sidebar(
+                      sidebar = sidebar(
+                        width = 400,
+                        open = "desktop",
+                        actionButton("input6", "Add Cert"),
+                        actionButton("input1", "Add Cert Type"),
+                        hr(),
+                        actionButton("input3", "Edit Cert"),
+                        actionButton("input2", "Edit Cert Type"),
+                        actionButton("input4", "Renew Cert"),
+                        hr(),
+                        actionButton("input5", "Delete Cert"),
+                        actionButton("input7", "Delete Cert Type"),
+                      ),
+                      datatable(
+                        data.frame(
+                          ID = 1:10,
+                          Name = letters[1:10],
+                          Type = rep(c("A", "B"), 5)
+                        )
+
+                      ),
+                      datatable(
+                        data.frame(
+                          ID = 1:10,
+                          Name = letters[1:10],
+                          Type = rep(c("A", "B"), 5)
+                        )
+
+                      )
+                    )
+                  ),
+                  nav_panel(
+                    title = 'Org Chart',
+
+                    plotOutput(ns("org_chart"))
+                  )
+
+                )
+
+
           ),
           route("messaging",
-                page_navbar(
-                  title = "Messaging",
+                layout_sidebar(
                   sidebar = sidebar(
-                    dateInput("input6", "Input 6", value = Sys.Date())
-                  )
-                )),
+                    width = 400,
+                    open = "desktop",
+                    actionButton("input1", "Copy Email Addresses"),
+                    actionButton("input2", "Copy Phone Numbers"),
+                  ),
+                    textInput("input1", "Recipient", value = ""),
+                    textInput("input2", "Subject", value = ""),
+                    textAreaInput("input3", "Message", value = ""),
+                    actionButton("input4", "Send Message")
+                )
+                ),
           route("settings",
-                page_navbar(
-                  title = "Settings",
-                  sidebar = sidebar(
-                    dateInput("input7", "Input 7", value = Sys.Date())
-                  )
+                tagList(
+                  actionButton("input1", "Change Password"),
+                  actionButton("input2", "Change Main Settings")
                 )
               )
           ),
@@ -164,6 +387,26 @@ server <- function(id) {
     summary$Server('dep_summary', 'Department')
 
     router_server()
+
+    output$org_chart <- renderPlot({
+      # Plot using ggraph
+      # browser()
+
+      return(ggraph(graph, layout = "tree") +
+        geom_edge_link() +  # No arrows specified
+        geom_node_point(ggplot2::aes(color = team), size = 6) +
+        geom_node_text(ggplot2::aes(label = paste(name, "\n", role), size = 5)) +
+        theme_minimal() +
+        theme(
+          axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          axis.title = element_blank(),
+          panel.grid = element_blank(),
+          legend.position = "bottom"
+        ) +
+        labs(color = "Team"))
+    })
 
     # Disconnect from the database on app close
     session$onSessionEnded(function() {
