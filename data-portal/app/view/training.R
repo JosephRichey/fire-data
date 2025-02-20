@@ -20,11 +20,11 @@ box::use(
 )
 
 training_trainers <- app_data$Firefighter |>
-  filter(firefighter_trainer == TRUE) |>
-  select(firefighter_full_name, firefighter_id) %>%
+  filter(trainer == TRUE) |>
+  select(full_name, firefighter_id) %>%
   # https://ivelasq.rbind.io/blog/understanding-the-r-pipe/
   # See "Getting to the solution" sect
-  (\(.) setNames(.$firefighter_id, .$firefighter_full_name))
+  (\(.) setNames(.$firefighter_id, .$full_name))
 
 
 
@@ -136,37 +136,37 @@ Server <- function(id) {
 
       r_Training <- reactiveVal(app_data$Training)
 
+      rv <- reactiveValues()
+
       ns <- session$ns
 
       updateReactiveValue <- function() {
-        r_Training(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM training")) |>
+        r_Training(DBI::dbGetQuery(app_data$CON, "SELECT * FROM training") |>
              mutate(
-               start_time = as.POSIXct(training_start_time, tz = 'UTC') |> with_tz(tzone = app_data$LOCAL_TZ),
-               end_time = as.POSIXct(training_end_time, tz = 'UTC') |> with_tz(tzone = app_data$LOCAL_TZ)
+               start_time = functions$ConvertLocalPosix(start_time),
+               end_time = functions$ConvertLocalPosix(end_time)
              )
         )
       }
 
-      # Display current trainings
+      # Display current training data
       output$view_trainings <- renderDT({
         # browser()
         Table_Data <- r_Training() |>
           mutate(
-            date = start_time |> functions$FormatLocalDate(),
-            date_to_filter = start_time |> functions$FormatLocalDate(asPosix = TRUE),
+            date = start_time |> functions$FormatLocalDate(asPosix = TRUE),
             start_time = start_time |> functions$FormatLocalTime(),
             end_time = end_time |> functions$FormatLocalTime()
             ) |>
           filter(
-            date_to_filter >= input$training_filter_range[1] &
-              date_to_filter <= input$training_filter_range[2] &
+            date >= input$training_filter_range[1] &
+              date <= input$training_filter_range[2] &
               training_type %in% input$filter_training_type &
               is.na(training_delete) &
               trainer %in% input$filter_training_officer
             ) |>
           select(training_id, training_type, topic, training_description,
                  trainer, date, start_time, end_time) |>
-          # Do fancy magic to replace the training officer key with the name.
           mutate(trainer = names(training_trainers)[match(trainer, training_trainers)])
 
         Table_Data <- functions$FixColNames(Table_Data)
@@ -190,22 +190,19 @@ Server <- function(id) {
             order = list(list(sort_col - 1, 'desc')),
             scrollX = TRUE
           )
-        )
+        ) |>
+          formatDate(columns = c("Date"), method = "toLocaleDateString")
 
 
       })
 
       # Update the add training topic based on the training type.
       observe({
-        # browser()
+        req(input$add_training_type)
         x <- input$add_training_type
 
-        if(is.null(x)) {
-          # Do nothing
-        }
-
-        # Can also set the label and select items
-        else if(x == "EMS") {
+        # FIXME This will be set by settings table
+        if(x == "EMS") {
           updateSelectInput(session,
                             "add_training_topic",
                             choices = c(
@@ -237,63 +234,23 @@ Server <- function(id) {
         }
       })
 
-      # Update the modify training topic based on the type input
-      observe({
-        # browser()
-        x <- input$modify_training_type
 
-        if(is.null(x)) {
-          # Do nothing
-        }
-
-        # Can also set the label and select items
-        else if(x == "EMS") {
-          updateSelectInput(session,
-                            "modify_training_topic",
-                            choices = c(
-                              "Airway/Respiratory/Ventilation",
-                              "Cardiovascular",
-                              "Trauma",
-                              "Medical",
-                              "Operations",
-                              "General",
-                              "Other"
-                            )
-          )
-        }
-
-        else if(x == "Fire") {
-          updateSelectInput(session,
-                            "modify_training_topic",
-                            choices = c(
-                              "Fire"
-                            )
-          )
-        } else if (x == "Wildland") {
-            updateSelectInput(session,
-                              "modify_training_topic",
-                              choices = c("Wildland")
-            )
-        } else if (x == "Other") {
-          updateSelectInput(session,
-                            "modify_training_topic",
-                            choices = c("General")
-          )
-        }
-      })
 
       # Enter information to create the training.
       observeEvent(input$add_training, {
         showModal(modalDialog(
           title = "Add Training",
           dateInput(ns('add_training_date'), 'Training Date', value = app_data$Local_Date),
+          # FIXME Default training time set by settings
           timeInput(ns('add_start_time'), "Start Time", value = "18:00:00", minute.steps = 5),
           timeInput(ns('add_end_time'), "End Time", value = "20:00:00", minute.steps = 5),
+          # FIXME Default training types and topics set by settings
           selectInput(ns('add_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland", "Other"), selected = "EMS"),
           selectInput(ns('add_training_topic'), 'Training Topic', choices = c()), # Update with above observe statement
           textAreaInput(ns('add_description'), 'Training Description'),
           selectInput(ns('add_training_trainer'), 'Training Led By', choices = training_trainers),
           footer = tagList(
+            modalButton("Cancel"),
             actionButton(ns("action_add_training"), "Add Training")
           ),
           easyClose = TRUE
@@ -306,29 +263,34 @@ Server <- function(id) {
         # browser()
         removeModal()
 
-        local_start_time <- as.POSIXct(paste0(input$add_training_date, " ", data.table::as.ITime(input$add_start_time))) |> force_tz(Sys.getenv('LOCAL_TZ')) + .01 # add hundredth of a second to prevent dumping hms, db stores in character
-        local_end_time <- as.POSIXct(paste0(input$add_training_date, " ", data.table::as.ITime(input$add_end_time))) |> force_tz(Sys.getenv('LOCAL_TZ')) + .01 # add hundredth of a second to prevent dumping hms, db stores in character
+        utc_start_time <- functions$BuiltDateTime(input$add_start_time, input$add_training_date, 'local')
+        utc_end_time <- functions$BuiltDateTime(input$add_end_time, input$add_training_date, 'local')
 
-        if(!functions$VerifyNoOverlap(input$add_start_time, input$add_end_time)) {
-          showModal(
-            modals$warningModal("Training times overlap with existing training. Please select a different time.")
-          )
-          return()
-        }
+        # FIXME Disabling this until final build
+        # if(!functions$VerifyNoOverlap(input$add_start_time, input$add_end_time)) {
+        #   showModal(
+        #     modals$warningModal("Training times overlap with existing training. Please select a different time.")
+        #   )
+        #   return()
+        # }
 
         # Use sqlInterpolate
-        sql_command <- "INSERT INTO ?training_table (training_type, training_topic, training_description, training_start_time, training_end_time, training_trainer, training_delete) VALUES (?training_type, ?training_topic, ?training_description, ?training_start_time, ?training_end_time, ?training_trainer, NULL);"
+        sql_command <- "INSERT INTO ?training_table
+        (training_type, topic, training_description,
+        start_time, end_time,
+        trainer, training_delete) VALUES
+        (?training_type, ?topic, ?training_description, ?start_time, ?end_time, ?trainer, NULL);"
 
         safe_sql <- sqlInterpolate(
           app_data$CON,
           sql_command,
-          training_table = SQL(Sys.getenv("TRAINING_TABLE")),
+          training_table = SQL('training'),
           training_type = input$add_training_type,
-          training_topic = input$add_training_topic,
+          topic = input$add_training_topic,
           training_description = input$add_description,
-          training_start_time = local_start_time |> with_tz(),
-          training_end_time = local_end_time |> with_tz(),
-          training_trainer = input$add_training_trainer
+          start_time = utc_start_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
+          end_time = utc_end_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
+          trainer = input$add_training_trainer
         )
 
         # Execute the safely interpolated SQL command
@@ -349,7 +311,6 @@ Server <- function(id) {
           )
         }
 
-        # browser()
         updateReactiveValue()
 
 

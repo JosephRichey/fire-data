@@ -6,6 +6,10 @@ box::use(
   hms[as_hms],
 )
 
+box::use(
+  ./functions
+)
+
 #' @export
 CON <- dbConnect(RMySQL::MySQL(),
                 dbname = "test",
@@ -15,21 +19,16 @@ CON <- dbConnect(RMySQL::MySQL(),
                 password = Sys.getenv("DB_PASSWORD"))
 
 #' @export
-LOCAL_TZ <- Sys.getenv('LOCAL_TZ')
-
-#' @export
 Training <- dbGetQuery(CON,
                        "SELECT * FROM training") |>
   mutate(
-    start_time = as.POSIXct(start_time, tz = 'UTC') |> with_tz(tzone = LOCAL_TZ),
-    end_time = as.POSIXct(end_time, tz = 'UTC') |> with_tz(tzone = LOCAL_TZ)
+    start_time = functions$ConvertLocalPosix(start_time),
+    end_time = functions$ConvertLocalPosix(end_time)
   )
 
 #' @export
-Firefighter <- dbGetQuery(CON,
-                     paste0("SELECT * FROM ", Sys.getenv("FIREFIGHTER_TABLE"))) |>
-  mutate(firefighter_start_date = as.Date(firefighter_start_date),
-         firefighter_deactive_date = as.Date(firefighter_deactive_date))
+Firefighter <- dbGetQuery(CON, "SELECT * FROM firefighter") |>
+  mutate(start_date = functions$FormatLocalDate(start_date, TRUE))
 
 #' @export
 Attendance <- dbGetQuery(CON,
