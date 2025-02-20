@@ -1,6 +1,3 @@
-# An app that allows officers to add, manage, and record training
-# and roster information. This also includes an analysis pane.
-
 box::use(
   shiny[...],
   bslib[...],
@@ -75,6 +72,8 @@ ui <- function(id) {
   ns <- NS(id)
   page_fillable(
     title = paste0(Sys.getenv('FD'), " - Data Portal"),
+
+    # Theme
     theme = bs_theme(version = 5,
                      primary = "#87292b",
                      secondary = '#a05050',
@@ -83,26 +82,33 @@ ui <- function(id) {
                      warning = "#D76F33",
                      danger = "#640064",
                      light = "#565656",
+                     "accordion-button-active-bg" = "#87292b",
+                     "accordion-button-active-color" = "white",
                      bootswatch = "darkly"),
+
     # Sidebar with icons
     div(class = "nav-icons", menu),
+
+    # Header
     div(class = "app-header",
         img(src = 'static/logo.png',
-            style = 'width: 60px; margin-right: 10px'),
+            style = 'width: 40px; margin-right: 10px'),
         span(Sys.getenv('FD'), " - Data Portal")),
+
+    # Main content
     div(class = "main-content",
         router_ui(
+
           route("/",
                 navset_pill(
                   nav_panel(
                     title = "Trainings",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 200,
                         open = "desktop",
-                        training$UI(ns('training'))
+                        training$TrainingUI(ns('training_page'))
                       ),
-                      training$Output(ns('training'))
+                      training$TrainingOutput(ns('training_page'))
                     )
                   ),
 
@@ -110,28 +116,10 @@ ui <- function(id) {
                     title = "Attendance",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 200,
                         open = "desktop",
-                        actionButton("input1", "Select Training"),
-                        hr(),
-                        actionButton("input2", "Add Attendance"),
-                        actionButton("input3", "Modify Attendance"),
-                        actionButton("input4", "Delete Attendance"),
-                        actionButton("input5", "Excuse Attendee"),
+                        training$AttendanceUI(ns('training_page'))
                       ),
-                      card(
-                        fill = FALSE,
-                        card_body(
-                          fillable = FALSE,
-                          DT::datatable(
-                            data.frame(
-                              ID = 1:10,
-                              Name = letters[1:10],
-                              Type = rep(c("A", "B"), 5)
-                            )
-                          )
-                        )
-                      )
+                      training$AttendanceOutput(ns('training_page'))
                     )
                   )
                 )
@@ -139,7 +127,7 @@ ui <- function(id) {
           route("incident",
                 layout_sidebar(
                   sidebar = sidebar(
-                    width = 200,
+
                     open = "desktop",
                     actionButton("input2", "Edit Incident ID"),
                     actionButton("input3", "Delete Incident"),
@@ -167,7 +155,7 @@ ui <- function(id) {
                     title = "Equipment Checks",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 200,
+
                         open = "desktop",
                         selectInput("input1", "Equipment Type", choices = c("A", "B", "C")),
                         checkboxGroupInput("input2", "Equipment Status",
@@ -187,7 +175,7 @@ ui <- function(id) {
                     title = "Equipment Expiration",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 200,
+
                         open = "desktop",
                         selectInput("input1", "Equipment Type", choices = c("A", "B", "C")),
                         checkboxGroupInput("input2", "Equipment Status",
@@ -207,7 +195,7 @@ ui <- function(id) {
                     title = "Manage Equipment",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 200,
+
                         open = "desktop",
                         actionButton("input1", "Add New Type"),
                         actionButton("input2", "Add New Piece"),
@@ -294,7 +282,7 @@ ui <- function(id) {
                     title = "Roster",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 200,
+
                         open = "desktop",
                         roster$UI(ns('roster')),
                       ),
@@ -308,7 +296,7 @@ ui <- function(id) {
                     title = "Certifications",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 200,
+
                         open = "desktop",
                         actionButton("input6", "Add Cert"),
                         actionButton("input1", "Add Cert Type"),
@@ -351,7 +339,7 @@ ui <- function(id) {
           route("messaging",
                 layout_sidebar(
                   sidebar = sidebar(
-                    width = 200,
+
                     open = "desktop",
                     actionButton("input1", "Copy Email Addresses"),
                     actionButton("input2", "Copy Phone Numbers"),
@@ -383,13 +371,13 @@ server <- function(id) {
     ##### Global Stuff #####
     ns <- session$ns
 
-    training$Server('training')
+    training$Server('training_page')
 
     roster$Server('roster')
 
-    summary$Server('ind_summary', 'Individual')
+    # summary$Server('ind_summary', 'Individual')
 
-    summary$Server('dep_summary', 'Department')
+    # summary$Server('dep_summary', 'Department')
 
     router_server()
 

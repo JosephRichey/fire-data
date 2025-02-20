@@ -56,3 +56,42 @@ VerifyNoOverlap <- function(start_time, end_time) {
   }
 
 }
+
+
+#' @export
+FormatLocalDate <- function(dt, asPosix = FALSE) {
+
+  if (asPosix) {
+    dt |>
+      as.Date(tz = Sys.getenv('LOCAL_TZ'))
+  } else {
+    dt |>
+      format('%m-%d-%Y',
+             tz = Sys.getenv('LOCAL_TZ'),
+             usetz = FALSE)
+  }
+}
+
+#' @export
+FormatLocalTime <- function(dt, seconds = FALSE) {
+  if (seconds) {
+    dt |>
+      format('%H:%M:%S',
+             tz = Sys.getenv('LOCAL_TZ'),
+             usetz = FALSE)
+  } else {
+    dt |>
+      format('%H:%M',
+             tz = Sys.getenv('LOCAL_TZ'),
+             usetz = FALSE)
+  }
+}
+
+#' @export
+FormatLocalDateTime <- function(dt) {
+  dt |>
+    format('%m-%d-%Y %H:%M:%S',
+           tz = Sys.getenv('LOCAL_TZ'),
+           usetz = FALSE)
+}
+

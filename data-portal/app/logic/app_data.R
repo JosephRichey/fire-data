@@ -8,17 +8,22 @@ box::use(
 
 #' @export
 CON <- dbConnect(RMySQL::MySQL(),
-                dbname = "cfddb",
+                dbname = "test",
                 host = Sys.getenv("DB_HOST"),
                 port = 3306,
                 user = "admin",
                 password = Sys.getenv("DB_PASSWORD"))
 
 #' @export
+LOCAL_TZ <- Sys.getenv('LOCAL_TZ')
+
+#' @export
 Training <- dbGetQuery(CON,
-                       paste0("SELECT * FROM ", Sys.getenv("TRAINING_TABLE"))) |>
-  mutate(training_start_time = as.POSIXct(training_start_time, format = "%Y-%m-%d %H:%M:%OS"),
-         training_end_time = as.POSIXct(training_end_time, format = "%Y-%m-%d %H:%M:%OS"))
+                       "SELECT * FROM training") |>
+  mutate(
+    start_time = as.POSIXct(start_time, tz = 'UTC') |> with_tz(tzone = LOCAL_TZ),
+    end_time = as.POSIXct(end_time, tz = 'UTC') |> with_tz(tzone = LOCAL_TZ)
+  )
 
 #' @export
 Firefighter <- dbGetQuery(CON,

@@ -10,6 +10,7 @@ box::use(
   DBI[...],
   tibble[...],
   hms[...],
+  bsicons[...],
 )
 
 box::use(
@@ -28,7 +29,7 @@ training_trainers <- app_data$Firefighter |>
 
 
 
-UI <- function(id) {
+TrainingUI <- function(id) {
   ns <- NS(id)
 
   tagList(
@@ -40,35 +41,44 @@ UI <- function(id) {
       accordion_panel(
         title = "Filter Trainings",
         open = FALSE,
-        card(
-          min_height = '600px',
-          helpText("Filter by training date"),
-          dateRangeInput(ns('training_filter_range'),
-                         "Show trainings between:",
-                         start = as.Date(app_data$Local_Date - dyears(1) + ddays(1)),
-                         end = app_data$Local_Date
-                         ),
-          helpText("Filter by training type"),
-          pickerInput(ns('filter_training_type'),
-                      'Training Type',
-                      choices = unique(app_data$Training$training_type),
-                      selected = unique(app_data$Training$training_type),
-                      options = list(`actions-box` = TRUE),
-                      multiple = TRUE
-          ),
-          helpText("Filter by training officer"),
+        icon = bsicons::bs_icon("funnel-fill"),
+        dateRangeInput(ns('training_filter_range'),
+                       "Show trainings between:",
+                       start = as.Date(app_data$Local_Date - dyears(1) + ddays(1)),
+                       end = app_data$Local_Date
+                       ),
+        pickerInput(ns('filter_training_type'),
+                    'Training Type',
+                    choices = unique(app_data$Training$training_type),
+                    selected = unique(app_data$Training$training_type),
+                    options = list(`actions-box` = TRUE),
+                    multiple = TRUE
+        ),
 
-          pickerInput(ns('filter_training_officer'),
-                      'Training Officer',
-                      choices = training_trainers,
-                      selected = training_trainers,
-                      options = list(`actions-box` = TRUE),
-                      multiple = TRUE
-          )
+        pickerInput(ns('filter_training_officer'),
+                    'Training Officer',
+                    choices = training_trainers,
+                    selected = training_trainers,
+                    options = list(`actions-box` = TRUE),
+                    multiple = TRUE
         )
       )
     )
   )
+}
+
+TrainingOutput <- function(id) {
+  ns <- NS(id)
+  tagList(
+    card(
+      fill = FALSE,
+      card_body(
+        fillable = FALSE,
+        DTOutput(ns('view_trainings'))
+      )
+    )
+  )
+
 }
 
 AttendanceUI <- function(id) {
@@ -83,31 +93,26 @@ AttendanceUI <- function(id) {
       accordion_panel(
         title = "Filter Attendance",
         open = FALSE,
-        card(
-          min_height = '600px',
-          helpText("Filter by training date"),
-          dateRangeInput(ns('attendance_filter_range'),
-                         "Show trainings between:",
-                         start = as.Date(app_data$Local_Date - dyears(1) + ddays(1)),
-                         end = app_data$Local_Date
-          ),
-          helpText("Filter by training type"),
-          pickerInput(ns('filter_attendance_type'),
-                      'Training Type',
-                      choices = unique(app_data$Training$training_type),
-                      selected = unique(app_data$Training$training_type),
-                      options = list(`actions-box` = TRUE),
-                      multiple = TRUE
-          ),
-          helpText("Filter by training officer"),
+        icon = bsicons::bs_icon("funnel-fill"),
+        dateRangeInput(ns('attendance_filter_range'),
+                       "Show trainings between:",
+                       start = as.Date(app_data$Local_Date - dyears(1) + ddays(1)),
+                       end = app_data$Local_Date
+        ),
+        pickerInput(ns('filter_attendance_type'),
+                    'Training Type',
+                    choices = unique(app_data$Training$training_type),
+                    selected = unique(app_data$Training$training_type),
+                    options = list(`actions-box` = TRUE),
+                    multiple = TRUE
+        ),
 
-          pickerInput(ns('filter_attendance_officer'),
-                      'Training Officer',
-                      choices = training_trainers,
-                      selected = training_trainers,
-                      options = list(`actions-box` = TRUE),
-                      multiple = TRUE
-          )
+        pickerInput(ns('filter_attendance_officer'),
+                    'Training Officer',
+                    choices = training_trainers,
+                    selected = training_trainers,
+                    options = list(`actions-box` = TRUE),
+                    multiple = TRUE
         )
       )
     )
@@ -121,19 +126,7 @@ AttendanceOutput <- function(id) {
   )
 }
 
-Output <- function(id) {
-  ns <- NS(id)
-  tagList(
-    card(
-      fill = FALSE,
-      card_body(
-        fillable = FALSE,
-        DTOutput(ns('view_trainings'))
-      )
-    )
-  )
 
-}
 
 
 Server <- function(id) {
@@ -141,41 +134,52 @@ Server <- function(id) {
     id,
     function(input, output, session) {
 
-      rv <- reactiveVal(app_data$Training)
+      r_Training <- reactiveVal(app_data$Training)
 
       ns <- session$ns
 
       updateReactiveValue <- function() {
-        rv(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("TRAINING_TABLE"),"
-                       WHERE training_delete IS NULL")) |>
-             mutate(training_start_time = as.POSIXct(training_start_time),
-                    training_end_time = as.POSIXct(training_end_time)))
+        r_Training(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM training")) |>
+             mutate(
+               start_time = as.POSIXct(training_start_time, tz = 'UTC') |> with_tz(tzone = app_data$LOCAL_TZ),
+               end_time = as.POSIXct(training_end_time, tz = 'UTC') |> with_tz(tzone = app_data$LOCAL_TZ)
+             )
+        )
       }
 
       # Display current trainings
       output$view_trainings <- renderDT({
         # browser()
-        Table_Data <- rv() |>
-          mutate(training_date = training_start_time |> as.Date(Sys.getenv('LOCAL_TZ')),
-                 training_start_time = training_start_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> format("%H:%M"),
-                 training_end_time = training_end_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> format("%H:%M")) |>
-          filter(training_date >= input$training_filter_range[1] &
-                   training_date <= input$training_filter_range[2] &
-                   training_type %in% input$filter_training_type &
-                   is.na(training_delete) &
-                   training_trainer %in% input$filter_training_officer
-                   ) |>
-          select(-training_delete) |>
+        Table_Data <- r_Training() |>
+          mutate(
+            date = start_time |> functions$FormatLocalDate(),
+            date_to_filter = start_time |> functions$FormatLocalDate(asPosix = TRUE),
+            start_time = start_time |> functions$FormatLocalTime(),
+            end_time = end_time |> functions$FormatLocalTime()
+            ) |>
+          filter(
+            date_to_filter >= input$training_filter_range[1] &
+              date_to_filter <= input$training_filter_range[2] &
+              training_type %in% input$filter_training_type &
+              is.na(training_delete) &
+              trainer %in% input$filter_training_officer
+            ) |>
+          select(training_id, training_type, topic, training_description,
+                 trainer, date, start_time, end_time) |>
           # Do fancy magic to replace the training officer key with the name.
-          mutate(training_trainer = names(training_trainers)[match(training_trainer, training_trainers)])
+          mutate(trainer = names(training_trainers)[match(trainer, training_trainers)])
 
         Table_Data <- functions$FixColNames(Table_Data)
         colnames(Table_Data) <- gsub("Training ", "", colnames(Table_Data))
+        rownames(Table_Data) <- Table_Data$Id
+        Table_Data$Id <- NULL
+
+        sort_col <- which(names(Table_Data) == "Date")
 
         DT::datatable(
           Table_Data,
           selection = 'single',
-          rownames = Table_Data$training_id,
+          rownames = FALSE,
           height = "100%",
           options = list(
             lengthMenu = list(c(10, 25, -1), c('10', '25', 'All')),
@@ -183,8 +187,7 @@ Server <- function(id) {
             columnDefs = list(
               list(className = 'dt-center', targets = "_all")
             ),
-            order = list(list(7, 'desc')),
-            #scrollY = "75vh",
+            order = list(list(sort_col - 1, 'desc')),
             scrollX = TRUE
           )
         )
