@@ -19,7 +19,7 @@ body {
   padding: 10px;
   background-color: var(--bs-primary);
   color: white;
-  font-size: 36px;
+  font-size: 24px;
   font-weight: bold;
 }
 
@@ -44,6 +44,7 @@ body {
 
 .datatables {
   color: white !important;
+  background: #2D2D2D !important;
 }
 
 
@@ -51,3 +52,78 @@ body {
       margin-left: 60px; /* Offset to the right of the pseudo-sidebar */
       padding: 10px;
     }
+
+
+
+// All DT table styling
+// This changes all text in the table to white. Native tables don't naturally pick up the white.
+div.datatables {
+  color: white;
+}
+
+// This prevents borders from showing up. They only show up when rendering with renderDT.
+thead, tbody, tfoot, tr, td, th {
+    border-style: none;
+}
+
+// This changes the default striping of the table to more distinct colors.
+.table {
+  --bs-table-bg-type: #333;
+  --bs-table-bg: #555;
+}
+
+// This changes the color of the hover and selected colors.
+table.dataTable>tbody>tr.selected>* {
+    box-shadow: inset 0 0 0 9999px #2b8764 !important;
+    color: white !important;
+}
+
+.table-hover tbody tr:hover td {
+  background-color: #81D7B6 !important;
+  color: white !important;
+}
+
+
+// This changes the color of the hover of the selected rows.
+table.dataTable.hover>tbody>tr.selected:hover>*, table.dataTable.display>tbody>tr.selected:hover>* {
+    box-shadow: inset 0 0 0 9999px #81D7B6 !important;
+    color: white !important;
+}
+
+// This outlines selected rows in black.
+table.dataTable tbody tr.selected,
+table.dataTable tbody tr.selected:focus,
+table.dataTable tbody tr:focus {
+  outline: 1px solid black !important;
+  border: 1px solid black !important;
+}
+
+
+
+// This is for the paginaion links. For them to apply properly, it must be run through a renerDT. Otherwise, it will do the default.
+
+// Normal color
+.dataTables_paginate .pagination .page-link {
+  background-color: #444;  /* desired color */
+  color: #fff;
+  border: 1px solid #666;  /* if you want a custom border */
+}
+
+/* Hover state */
+.dataTables_paginate .pagination .page-link:hover {
+  background-color: #a05050;
+  color: #fff;
+}
+
+/* Active page */
+.dataTables_paginate .pagination .page-item.active .page-link {
+  background-color: #87292b;
+  border-color: #87292b;
+  color: #fff;
+}
+
+// This sets the drop down to have a dark background and white text.
+.dataTables_wrapper .dataTables_length select {
+  background-color: #444;
+  color: white;
+}

@@ -98,7 +98,7 @@ ui <- function(id) {
                     title = "Trainings",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 400,
+                        width = 200,
                         open = "desktop",
                         training$UI(ns('training'))
                       ),
@@ -110,7 +110,7 @@ ui <- function(id) {
                     title = "Attendance",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 400,
+                        width = 200,
                         open = "desktop",
                         actionButton("input1", "Select Training"),
                         hr(),
@@ -119,14 +119,19 @@ ui <- function(id) {
                         actionButton("input4", "Delete Attendance"),
                         actionButton("input5", "Excuse Attendee"),
                       ),
-                     datatable(
-                       data.frame(
-                         ID = 1:10,
-                         Name = letters[1:10],
-                         Type = rep(c("A", "B"), 5)
-                       )
-
-                     )
+                      card(
+                        fill = FALSE,
+                        card_body(
+                          fillable = FALSE,
+                          DT::datatable(
+                            data.frame(
+                              ID = 1:10,
+                              Name = letters[1:10],
+                              Type = rep(c("A", "B"), 5)
+                            )
+                          )
+                        )
+                      )
                     )
                   )
                 )
@@ -134,7 +139,7 @@ ui <- function(id) {
           route("incident",
                 layout_sidebar(
                   sidebar = sidebar(
-                    width = 400,
+                    width = 200,
                     open = "desktop",
                     actionButton("input2", "Edit Incident ID"),
                     actionButton("input3", "Delete Incident"),
@@ -162,7 +167,7 @@ ui <- function(id) {
                     title = "Equipment Checks",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 400,
+                        width = 200,
                         open = "desktop",
                         selectInput("input1", "Equipment Type", choices = c("A", "B", "C")),
                         checkboxGroupInput("input2", "Equipment Status",
@@ -182,7 +187,7 @@ ui <- function(id) {
                     title = "Equipment Expiration",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 400,
+                        width = 200,
                         open = "desktop",
                         selectInput("input1", "Equipment Type", choices = c("A", "B", "C")),
                         checkboxGroupInput("input2", "Equipment Status",
@@ -202,7 +207,7 @@ ui <- function(id) {
                     title = "Manage Equipment",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 400,
+                        width = 200,
                         open = "desktop",
                         actionButton("input1", "Add New Type"),
                         actionButton("input2", "Add New Piece"),
@@ -289,7 +294,7 @@ ui <- function(id) {
                     title = "Roster",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 400,
+                        width = 200,
                         open = "desktop",
                         roster$UI(ns('roster')),
                       ),
@@ -303,7 +308,7 @@ ui <- function(id) {
                     title = "Certifications",
                     layout_sidebar(
                       sidebar = sidebar(
-                        width = 400,
+                        width = 200,
                         open = "desktop",
                         actionButton("input6", "Add Cert"),
                         actionButton("input1", "Add Cert Type"),
@@ -346,7 +351,7 @@ ui <- function(id) {
           route("messaging",
                 layout_sidebar(
                   sidebar = sidebar(
-                    width = 400,
+                    width = 200,
                     open = "desktop",
                     actionButton("input1", "Copy Email Addresses"),
                     actionButton("input2", "Copy Phone Numbers"),

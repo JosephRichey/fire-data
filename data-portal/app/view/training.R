@@ -71,11 +71,65 @@ UI <- function(id) {
   )
 }
 
+AttendanceUI <- function(id) {
+  ns <- NS(id)
+
+  tagList(
+    actionButton(ns('add_attendance'), "Add Attendance"),
+    actionButton(ns('modify_attendance'), "Modify Attendance"),
+    actionButton(ns("delete_attendance"), "Delete Attendance"),
+    accordion(
+      open = FALSE,
+      accordion_panel(
+        title = "Filter Attendance",
+        open = FALSE,
+        card(
+          min_height = '600px',
+          helpText("Filter by training date"),
+          dateRangeInput(ns('attendance_filter_range'),
+                         "Show trainings between:",
+                         start = as.Date(app_data$Local_Date - dyears(1) + ddays(1)),
+                         end = app_data$Local_Date
+          ),
+          helpText("Filter by training type"),
+          pickerInput(ns('filter_attendance_type'),
+                      'Training Type',
+                      choices = unique(app_data$Training$training_type),
+                      selected = unique(app_data$Training$training_type),
+                      options = list(`actions-box` = TRUE),
+                      multiple = TRUE
+          ),
+          helpText("Filter by training officer"),
+
+          pickerInput(ns('filter_attendance_officer'),
+                      'Training Officer',
+                      choices = training_trainers,
+                      selected = training_trainers,
+                      options = list(`actions-box` = TRUE),
+                      multiple = TRUE
+          )
+        )
+      )
+    )
+  )
+}
+
+AttendanceOutput <- function(id) {
+  ns <- NS(id)
+  tagList(
+
+  )
+}
+
 Output <- function(id) {
   ns <- NS(id)
   tagList(
     card(
-        div(DTOutput(ns('view_trainings')), style = 'background: #2D2D2D')
+      fill = FALSE,
+      card_body(
+        fillable = FALSE,
+        DTOutput(ns('view_trainings'))
+      )
     )
   )
 
