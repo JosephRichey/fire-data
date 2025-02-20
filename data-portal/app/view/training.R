@@ -11,6 +11,7 @@ box::use(
   tibble[...],
   hms[...],
   bsicons[...],
+  shinyalert[...],
 )
 
 box::use(
@@ -47,6 +48,7 @@ TrainingUI <- function(id) {
                        start = as.Date(app_data$Local_Date - dyears(1) + ddays(1)),
                        end = app_data$Local_Date
                        ),
+        #FIXME Set by settings
         pickerInput(ns('filter_training_type'),
                     'Training Type',
                     choices = unique(app_data$Training$training_type),
@@ -149,22 +151,20 @@ Server <- function(id) {
         )
       }
 
-      # Display current training data
-      output$view_trainings <- renderDT({
-        # browser()
+      displayedTrainings <- reactive({
         Table_Data <- r_Training() |>
           mutate(
             date = start_time |> functions$FormatLocalDate(asPosix = TRUE),
             start_time = start_time |> functions$FormatLocalTime(),
             end_time = end_time |> functions$FormatLocalTime()
-            ) |>
+          ) |>
           filter(
             date >= input$training_filter_range[1] &
               date <= input$training_filter_range[2] &
               training_type %in% input$filter_training_type &
               is.na(training_delete) &
               trainer %in% input$filter_training_officer
-            ) |>
+          ) |>
           select(training_id, training_type, topic, training_description,
                  trainer, date, start_time, end_time) |>
           mutate(trainer = names(training_trainers)[match(trainer, training_trainers)])
@@ -173,6 +173,14 @@ Server <- function(id) {
         colnames(Table_Data) <- gsub("Training ", "", colnames(Table_Data))
         rownames(Table_Data) <- Table_Data$Id
         Table_Data$Id <- NULL
+        return(Table_Data)
+      })
+
+      # Display current training data
+      output$view_trainings <- renderDT({
+        # browser()
+
+        Table_Data <- displayedTrainings()
 
         sort_col <- which(names(Table_Data) == "Date")
 
@@ -198,13 +206,15 @@ Server <- function(id) {
 
       # Update the add training topic based on the training type.
       observe({
-        req(input$add_training_type)
-        x <- input$add_training_type
+        #FIXME For some reason, this isn't alwasy updating, especially when doing repeated updates.
+        # It probably has to do with the fact that there's not change in the input, so the observe isn't triggering.
+        req(input$training_type)
+        x <- input$training_type
 
         # FIXME This will be set by settings table
         if(x == "EMS") {
           updateSelectInput(session,
-                            "add_training_topic",
+                            "topic",
                             choices = c(
                               "Airway/Respiraroty/Ventilation",
                               "Cardiovascular",
@@ -217,18 +227,18 @@ Server <- function(id) {
 
         else if(x == "Fire") {
           updateSelectInput(session,
-                            "add_training_topic",
+                            "topic",
                             choices = c(
                               "Fire"
                             ))
         } else if (x == "Wildland") {
           updateSelectInput(session,
-                            "add_training_topic",
+                            "topic",
                             choices = c( "Wildland")
           )
         } else if (x == "Other") {
           updateSelectInput(session,
-                            "add_training_topic",
+                            "topic",
                             choices = c("General")
           )
         }
@@ -238,33 +248,32 @@ Server <- function(id) {
 
       # Enter information to create the training.
       observeEvent(input$add_training, {
-        showModal(modalDialog(
-          title = "Add Training",
-          dateInput(ns('add_training_date'), 'Training Date', value = app_data$Local_Date),
-          # FIXME Default training time set by settings
-          timeInput(ns('add_start_time'), "Start Time", value = "18:00:00", minute.steps = 5),
-          timeInput(ns('add_end_time'), "End Time", value = "20:00:00", minute.steps = 5),
-          # FIXME Default training types and topics set by settings
-          selectInput(ns('add_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland", "Other"), selected = "EMS"),
-          selectInput(ns('add_training_topic'), 'Training Topic', choices = c()), # Update with above observe statement
-          textAreaInput(ns('add_description'), 'Training Description'),
-          selectInput(ns('add_training_trainer'), 'Training Led By', choices = training_trainers),
-          footer = tagList(
-            modalButton("Cancel"),
-            actionButton(ns("action_add_training"), "Add Training")
-          ),
-          easyClose = TRUE
-        ))
+        # browser()
+
+        showModal(
+          modals$trainingModal(ns,
+                               edit = FALSE,
+                               training_date = app_data$Local_Date,
+                               start_time = "18:00:00",
+                               end_time = "20:00:00",
+                               type_choices = c("EMS", "Fire", "Wildland", "Other"), #FIXME
+                               type = NULL,
+                               topic = NULL,
+                               training_description = NULL,
+                               training_trainers = training_trainers,
+                               trainer = NULL
+                               )
+        )
 
       })
 
       # # Create the training
-      observeEvent(input$action_add_training, {
+      observeEvent(input$submit_add_training, {
         # browser()
         removeModal()
 
-        utc_start_time <- functions$BuiltDateTime(input$add_start_time, input$add_training_date, 'local')
-        utc_end_time <- functions$BuiltDateTime(input$add_end_time, input$add_training_date, 'local')
+        utc_start_time <- functions$BuiltDateTime(input$start_time, input$training_date, 'local')
+        utc_end_time <- functions$BuiltDateTime(input$end_time, input$training_date, 'local')
 
         # FIXME Disabling this until final build
         # if(!functions$VerifyNoOverlap(input$add_start_time, input$add_end_time)) {
@@ -285,12 +294,12 @@ Server <- function(id) {
           app_data$CON,
           sql_command,
           training_table = SQL('training'),
-          training_type = input$add_training_type,
-          topic = input$add_training_topic,
-          training_description = input$add_description,
+          training_type = input$training_type,
+          topic = input$topic,
+          training_description = input$training_description,
           start_time = utc_start_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
           end_time = utc_end_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
-          trainer = input$add_training_trainer
+          trainer = input$trainer
         )
 
         # Execute the safely interpolated SQL command
@@ -318,147 +327,173 @@ Server <- function(id) {
 
 
       # Modify the training
-      observeEvent(input$modify_training, {
+      observe({
         # browser()
-
-        #FIXME - Currently, the modify training button is not working.
-        # The cell_click is not identifying the correct row.
+        cat("Modify Training", file = stderr())
         #####################################################
-        cell_click <- input$view_trainings_cell_clicked
+        cell_click <- input$view_trainings_rows_selected
         # Make sure a row was clicked
         if (length(cell_click) != 0) {
 
-          showModal(modals$warningModal("This functionality currently isn't working."))
-          # showModal(modalDialog(
-          #   title = "Modify Training",
-          #   strong("Please double check the training type and topic before submitting."),
-          #   dateInput(ns('modify_training_date'), 'Training Date', value = rv()[cell_click$row,]$training_date),
-          #   timeInput(ns('modify_start_time'), "Start Time", value = rv()[cell_click$row,]$training_start_time, minute.steps = 5),
-          #   timeInput(ns('modify_end_time'), "End Time", value = rv()[cell_click$row,]$training_end_time, minute.steps = 5),
-          #   selectInput(ns('modify_training_type'), 'Training Type', choices = c("EMS", "Fire", "Wildland"), selected = rv()[cell_click$row,]$training_type),
-          #   selectInput(ns('modify_training_topic'), 'Training Topic', choices = c(), selected = rv()[cell_click$row,]$training_topic),
-          #   textAreaInput(ns('modify_description'), 'Training Description', value = rv()[cell_click$row,]$training_description),
-          #   selectInput(ns('modify_training_trainer'), 'Training Led By', choices = training_trainers, selected = rv()[cell_click$row,]$training_officer),
-          #   footer = tagList(
-          #     actionButton(ns("action_modify_training"), "Modify Training")
-          #   ),
-          #   easyClose = TRUE
-          # ))
-        } else {
+          Modify_ID <- row.names(displayedTrainings()[cell_click,])
+          To_Modify <- r_Training() |>
+            filter(training_id == Modify_ID) |>
+            mutate(
+              date = start_time |> functions$FormatLocalDate(asPosix = TRUE),
+              start_time = start_time |> functions$FormatLocalTime(),
+              end_time = end_time |> functions$FormatLocalTime()
+            )
+
           showModal(
-            modals$warningModal("Please select a training to modify.")
+            modals$trainingModal(ns,
+                                 edit = TRUE,
+                                 training_date = To_Modify$date,
+                                 start_time = paste0(To_Modify$start_time, ":00"), #FIXME Workaround to get input to render correctly
+                                 end_time = paste0(To_Modify$end_time, ":00"),
+                                 type_choices = c("EMS", "Fire", "Wildland", "Other"), #FIXME
+                                 type = To_Modify$training_type,
+                                 topic = To_Modify$topic,
+                                 training_description = To_Modify$training_description,
+                                 training_trainers = training_trainers,
+                                 trainer = To_Modify$trainer
+            )
           )
+
+        } else {
+          shinyalert(
+            title = "Warning",
+            type = "warning",
+            text = "Please select a training to modify."
+            )
         }
         ############################################################
+      }) |>
+        bindEvent(input$modify_training)
+
+
+      observeEvent(input$submit_edit_training, {
+        # browser()
+        removeModal()
+
+        Modify_ID <- row.names(displayedTrainings()[input$view_trainings_rows_selected,])
+
+        # FIXME Disabling this until final build
+        # if(!functions$VerifyNoOverlap(input$add_start_time, input$add_end_time)) {
+        #   showModal(
+        #     modals$warningModal("Training times overlap with existing training. Please select a different time.")
+        #   )
+        #   return()
+        # }
+
+        utc_start_time <- functions$BuiltDateTime(input$start_time, input$training_date, 'local')
+        utc_end_time <- functions$BuiltDateTime(input$end_time, input$training_date, 'local')
+
+        # Use sqlInterpolate
+        sql_command <- "UPDATE ?training_table
+        SET training_type = ?training_type,
+        topic = ?topic,
+        training_description = ?training_description,
+        start_time = ?start_time,
+        end_time = ?end_time,
+        trainer = ?trainer
+        WHERE training_id = ?training_id;"
+
+        safe_sql <- sqlInterpolate(
+          app_data$CON,
+          sql_command,
+          training_table = SQL('training'),
+          training_type = input$training_type,
+          topic = input$topic,
+          training_description = input$training_description,
+          start_time = utc_start_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
+          end_time = utc_end_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
+          trainer = input$trainer,
+          training_id = Modify_ID
+        )
+
+        write_result <- DBI::dbExecute(app_data$CON, safe_sql)
+
+        if(write_result == 1) {
+          showModal(
+            modalDialog(
+              title = "Success",
+              "Your training has been successfully modified. You may now close this window.",
+              easyClose = TRUE
+            )
+          )
+        } else {
+          showModal(
+            modals$errorModal(paste("Training modify failed with write result equal to", write_result))
+          )
+        }
+
+        updateReactiveValue()
+
       })
-
-
-      # observeEvent(input$action_modify_training, {
-      #   # browser()
-      #   removeModal()
-      #
-      #   cell_click <- input$view_trainings_cell_clicked
-      #   modify_training_id <- row.names(rv()[cell_click$row,])
-      #
-      #
-      #   sql_command <- paste0(
-      #     "UPDATE ", Sys.getenv("TRAINING_TABLE")," SET training_type = '", input$modify_training_type,
-      #     "', training_topic = '", input$modify_training_topic,
-      #     "', training_description = '", input$modify_description,
-      #     "', training_date = '", input$modify_training_date,
-      #     "', training_start_time = '", input$modify_start_time |> strftime(format = "%T"),
-      #     "', training_end_time = '", input$modify_end_time |> strftime(format = "%T"),
-      #     "', training_trainer = '", input$modify_training_trainer,
-      #     "' WHERE training_id = ", modify_training_id, ";"
-      #   )
-      #
-      #   write_result <- DBI::dbExecute(app_data$CON, sql_command)
-      #
-      #   if(write_result == 1) {
-      #     showModal(
-      #       modalDialog(
-      #         title = "Success",
-      #         "Your training has been successfully modified. You may now close this window.",
-      #         easyClose = TRUE
-      #       )
-      #     )
-      #   } else {
-      #     showModal(
-      #       modals$errorModal(paste("Training modify failed with write result equal to", write_result))
-      #     )
-      #   }
-      #
-      #   updateReactiveValue()
-      #
-      # })
 
       observeEvent(input$delete_training, {
         # browser()
-
-        #FIXME - Currently, the delete training button is not working.
-        # The cell_click is not identifying the correct row.
-        ##################
-        cell_click <- input$view_trainings_cell_clicked
-
+        cat("Delete Training", file = stderr())
+        #####################################################
+        cell_click <- input$view_trainings_rows_selected
+        # Make sure a row was clicked
         if (length(cell_click) != 0) {
-          showModal(modals$warningModal("This functionality currently isn't working."))
-          # showModal(modalDialog(
-          #   title = "Confirm Deletion",
-          #   "Are you sure you want to delete this training? If you're sure, please type \"Delete\"",
-          #   textInput(ns("confirm_deletion"), ""),
-          #   footer = tagList(
-          #     actionButton(ns("action_delete_training"), "Delete Training")
-          #   ),
-          #   easyClose = TRUE
-          # ))
-        } else {
+
+          Delete_ID <- row.names(displayedTrainings()[cell_click,])
+
           showModal(
-            modals$warningModal("Please select a training to delete.")
+            modalDialog(
+              title = "Warning",
+              "Are you sure you want to delete this training?",
+              footer = tagList(
+                modalButton("Cancel"),
+                actionButton(ns("confirm_deletion"), "Delete", class = "btn-danger")
+              )
+            )
+          )
+
+        } else {
+          shinyalert(
+            title = "Warning",
+            type = "warning",
+            text = "Please select a training to delete."
           )
         }
         ##################
       })
 
-      # observeEvent(input$action_delete_training, {
-      #   # browser()
-      #   removeModal()
-      #
-      #   if(input$confirm_deletion == "Delete") {
-      #
-      #     cell_click <- input$view_trainings_cell_clicked
-      #     modify_training_id <- row.names(rv()[cell_click$row,])
-      #
-      #     sql_command <- paste0(
-      #       "UPDATE ", Sys.getenv("TRAINING_TABLE")," SET training_delete = NOW() WHERE training_id = ", modify_training_id, ";"
-      #     )
-      #
-      #     write_result <- DBI::dbExecute(app_data$CON, sql_command)
-      #
-      #     if(write_result == 1) {
-      #       showModal(
-      #         modalDialog(
-      #           title = "Success!",
-      #           "Your training has been successfully deleted. You may now close this window.",
-      #           easyClose = TRUE
-      #         )
-      #       )
-      #     } else {
-      #       showModal(
-      #         modals$errorModal(paste("Training delete failed with write result equal to", write_result))
-      #       )
-      #     }
-      #
-      #
-      #   } else {
-      #     showModal(modalDialog("Records will not be deleted.", title = "Delete Failed"))
-      #   }
-      #
-      #
-      #
-      #   updateReactiveValue()
-      #
-      #
-      # })
+      observe({
+        removeModal()
+
+        Delete_ID <- row.names(displayedTrainings()[input$view_trainings_rows_selected,])
+
+        sql_command <- paste0(
+          "UPDATE training SET training_delete = NOW() WHERE training_id = ", Delete_ID, ";"
+        )
+
+        #FIXME This should be in a try catch
+        write_result <- DBI::dbExecute(app_data$CON, sql_command)
+
+        if(write_result == 1) {
+          showModal(
+            modalDialog(
+              title = "Success!",
+              "Your training has been successfully deleted. You may now close this window.",
+              easyClose = TRUE
+            )
+          )
+        } else {
+          showModal(
+            modals$errorModal(paste("Training delete failed with write result equal to", write_result))
+          )
+        }
+
+
+        updateReactiveValue()
+
+
+      }) |>
+        bindEvent(input$confirm_deletion)
 
     }
   )
