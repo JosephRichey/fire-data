@@ -127,3 +127,17 @@ table.dataTable tbody tr:focus {
   background-color: #444;
   color: white;
 }
+
+// This sets the background color of the hot table to gray, so text is visibility:
+.handsontable td {
+  background-color: #333;
+}
+
+// We don't want non editable to be dimmed too much
+.handsontable .htDimmed {
+    color: #aaa;
+}
+
+.handsontable input, .handsontable textarea {
+    width: auto !important;
+}

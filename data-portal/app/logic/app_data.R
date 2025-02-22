@@ -32,9 +32,9 @@ Firefighter <- dbGetQuery(CON, "SELECT * FROM firefighter") |>
 
 #' @export
 Attendance <- dbGetQuery(CON,
-                         paste0("SELECT * FROM ", Sys.getenv("ATTENDANCE_TABLE"))) |>
-  mutate(check_in = as.POSIXct(check_in),
-         check_out = as.POSIXct(check_out))
+                         paste0("SELECT * FROM attendance")) |>
+  mutate(check_in = functions$ConvertLocalPosix(check_in),
+         check_out = functions$ConvertLocalPosix(check_out))
 
 #' @export
 Local_Date <- as.Date(Sys.time() |> with_tz(tzone = Sys.getenv('LOCAL_TZ')), tz = Sys.getenv('LOCAL_TZ'))

@@ -80,7 +80,7 @@ ui <- function(id) {
                      success = "#2b8764",
                      info = "#377eb8",
                      warning = "#D76F33",
-                     danger = "#640064",
+                     danger = "#9933CC",
                      light = "#565656",
                      "accordion-button-active-bg" = "#87292b",
                      "accordion-button-active-color" = "white",
@@ -121,7 +121,18 @@ ui <- function(id) {
                       ),
                       training$AttendanceOutput(ns('training_page'))
                     )
-                  )
+                  ),
+
+                  # nav_panel(
+                  #   title = "Attendance 2",
+                  #   layout_sidebar(
+                  #     sidebar = sidebar(
+                  #       open = "desktop",
+                  #       training$AttendanceUITest(ns('training_page'))
+                  #     ),
+                  #     training$AttendanceOutputTest(ns('training_page'))
+                  #   )
+                  # )
                 )
           ),
           route("incident",

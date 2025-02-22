@@ -8,7 +8,10 @@ errorModal <- function(message) {
   modalDialog(
     title = "Application Error",
     "There has been an error. ",
-    message
+    message,
+    footer = tagList(
+      modalButton("Close")
+    )
   )
 }
 
@@ -17,7 +20,10 @@ warningModal <- function(message) {
   modalDialog(
     title = "Warning",
     message,
-    easyClose = TRUE
+    easyClose = TRUE,
+    footer = tagList(
+      modalButton("Close")
+    )
   )
 }
 
@@ -26,7 +32,10 @@ successModal <- function(message) {
   modalDialog(
             title = "Success!",
             message,
-            easyClose = TRUE
+            easyClose = TRUE,
+            footer = tagList(
+              modalButton("Close")
+            )
             )
 }
 
@@ -62,6 +71,77 @@ trainingModal <- function(ns,
       } else {
         actionButton(ns("submit_add_training"), "Add Training")
       }
+    ),
+    easyClose = TRUE
+  )
+}
+
+#' @export
+attendanceModal <- function(ns,
+                            firefighter_choices,
+                            check_in,
+                            check_out) {
+
+  modalDialog(
+    title = "Add Attendance",
+    selectInput(ns('add_attendance_firefighters'),
+                'Select Attendee',
+                choices = firefighter_choices,
+                multiple = TRUE),
+    timeInput(ns('add_attendance_check_in'),
+              "Check In Time",
+              value = check_in,
+              minute.steps = 1),
+    timeInput(ns('add_attendance_check_out'),
+              "Check Out Time",
+              value = check_out,
+              minute.steps = 1),
+    radioButtons(ns('add_attendance_attendance_credit'),
+                 'Attendance Status',
+                 choices = c('Credit', 'No Credit'),
+                 selected = 'Credit'),
+
+
+
+    footer = tagList(
+      modalButton("Cancel"),
+      actionButton(ns("submit_add_attendance"), "Submit Attendance")
+    ),
+    easyClose = TRUE
+  )
+}
+
+#' @export
+deleteAttendanceModal <- function(ns,
+                                  firefighter_choices
+                                  ) {
+  modalDialog(
+    title = "Delete Attendance",
+    selectInput(ns('delete_attendance_firefighters'),
+                'Select Attendee',
+                choices = firefighter_choices,
+                multiple = TRUE),
+    footer = tagList(
+      modalButton("Cancel"),
+      actionButton(ns("submit_delete_attendance"), "Delete Attendance")
+    ),
+    easyClose = TRUE
+  )
+}
+
+#' @export
+excuseAttendanceModal <- function(ns,
+                                  firefighter_choices
+) {
+  modalDialog(
+    title = "Excuse Attendance",
+    selectInput(ns('excuse_attendance_firefighters'),
+                'Select Attendee',
+                choices = firefighter_choices,
+                multiple = TRUE),
+    footer = tagList(
+      modalButton("Cancel"),
+      actionButton(ns("submit_excuse_attendance"), "Excuse Attendance")
     ),
     easyClose = TRUE
   )
