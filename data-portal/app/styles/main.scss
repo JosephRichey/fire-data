@@ -141,3 +141,15 @@ table.dataTable tbody tr:focus {
 .handsontable input, .handsontable textarea {
     width: auto !important;
 }
+
+// Custom check marks and X's for info modal on incidents
+.checkmark {
+  color: #2b8764;
+  font-weight: bold;
+
+}
+
+.xmark {
+  color: #87292b;
+  font-weight: bold;
+}

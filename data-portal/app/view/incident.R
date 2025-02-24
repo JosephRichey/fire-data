@@ -5,12 +5,32 @@ box::use(
   shiny[...],
   bslib[...],
   shinyWidgets[...],
+  reactable.extras[...],
 )
 
 box::use(
   ../logic/functions,
   ../logic/app_data,
 )
+
+# This theme follows the other DT themes.This is the global setting.
+options(reactable.theme = reactableTheme(
+  color = 'white',
+  backgroundColor = '#333',
+  borderColor = 'black',
+  borderWidth = '1px',
+  stripedColor = '#555',
+  highlightColor = '#81D7B6',
+  pageButtonHoverStyle = list(
+    color = 'white',
+    backgroundColor = '#a05050'
+  ),
+  pageButtonActiveStyle = list(
+    color = 'white',
+    backgroundColor = '#87292b'
+  ),
+))
+
 
 UI <- function(id) {
   ns <- NS(id)
@@ -29,13 +49,19 @@ UI <- function(id) {
                        start = as.Date(app_data$Local_Date - ddays(30)), #FIXME Set by settings
                        end = app_data$Local_Date
         ),
-        pickerInput(ns('incident_filter_reason'),
-                    'Dispatch Code',
-                    choices = c('Chest Pain', 'Choking'),#app_data$Dispatch_Codes, #FIXME Have in doc the risks of removing from this list.
-                    selected = c('Chest Pain', 'Choking'),#app_data$Dispatch_Codes,
-                    options = list(`actions-box` = TRUE),
-                    multiple = TRUE
-        ),
+        # FIXME Don't know if this filter is worth it.... Also having trouble with wrapping the inputs
+        # pickerInput(ns('incident_filter_reason'),
+        #             'Dispatch Code',
+        #             choices = app_data$Dispatch_Codes, #FIXME Have in doc the risks of removing from this list.
+        #             selected = app_data$Dispatch_Codes,
+        #             width = 'fit',
+        #             options = list(`actions-box` = TRUE),
+        #             multiple = TRUE,
+        #             choicesOpt = list(
+        #               content = stringr::str_wrap(app_data$Dispatch_Codes, 30) |>
+        #                 stringr::str_replace_all('\\n', '<br>')
+        #             )
+        # ),
 
         pickerInput(ns('incident_filter_response_type'),
                     'Response Type',
@@ -52,8 +78,10 @@ UI <- function(id) {
 Output <- function(id) {
   ns <- NS(id)
   tagList(
+    HTML("<span>To edit incidents, please navigate to the <a href='https://fire-data.shinyapps.io/incident-response/' target='_blank'>Incident Response App</a>. Unfinalized incidents are editable.</span>"),
     reactableOutput(ns("incident_table"))
   )
+
 }
 
 Server <- function(id) {
@@ -82,10 +110,18 @@ Server <- function(id) {
             )) |>
           filter(dispatch_time >= input$incident_filter_range[1],
                  dispatch_time <= input$incident_filter_range[2],
-                 dispatch_reason %in% input$incident_filter_reason,
+                 # dispatch_reason %in% input$incident_filter_reason,
                  grepl(paste(input$incident_filter_response_type, collapse = '|'), units)
         ) |>
-          select(-units)
+          select(-units) |>
+          mutate(across(c(ems_units, fire_units, wildland_units, canceled, dropped),
+                        ~ as.character(if_else(.x == 1, bsicons::bs_icon('check', class = 'text-success fs-3'), bsicons::bs_icon('x', class = 'text-primary fs-3'))))) |>
+          mutate(
+            info = '',
+            finalized = as.character(if_else(finalized == 1, bsicons::bs_icon('check-square-fill', class = 'text-success fs-3'), bsicons::bs_icon('x-circle-fill', class = 'text-primary fs-3'))),
+            toggle = '') |>
+          relocate(info, .before = finalized)
+
 
 
         cat("Filtered Rows:", nrow(df), "\n", file = stderr())
@@ -93,6 +129,172 @@ Server <- function(id) {
         return(df)
       })
 
+
+
+
+
+
+      output$incident_table <- renderReactable({
+        # browser()
+
+        print('Rendering table')
+        reactable(r_Displayed_Incidents(),
+                  striped = TRUE,
+                  highlight = TRUE,
+                  defaultSorted = "dispatch_time",
+                  defaultSortOrder = "desc",
+                  defaultColDef = colDef(
+                    header = function(value) gsub("_", " ", value, fixed = TRUE) |> stringr::str_to_title(),
+                    align = "center"
+                  ),
+                  columns = list(
+                    dispatch_time = colDef(
+                      name = "Dispatch Time",
+                      format = colFormat(datetime = T, hour12 = F)
+                    ),
+                    end_time = colDef(
+                      name = "End Time",
+                      format = colFormat(datetime = T, hour12 = F)
+                    ),
+
+                    toggle = colDef(
+                      cell = function(value, index) {
+                        htmltools::tags$button(
+                          'Switch',
+                          onclick = sprintf("App.finalize_incident('%s', '%s')",
+                                            ns(""),
+                                            r_Displayed_Incidents()$incident_id[index] |> as.character()),
+                          class = "btn btn-primary"
+                        )
+                      },
+                      html = TRUE  # Important for rendering HTML inside reactable
+                    ),
+
+                    finalized = colDef(
+                      name = "Finalized",
+                      html = TRUE
+                    ),
+
+
+
+                    info = colDef(
+                      cell = function(value, index) {
+                        htmltools::tags$button(
+                          htmltools::tags$span('\U1F6C8'),
+                          class = "btn btn-info fs3",
+                          onclick = sprintf("App.show_details('%s', '%s')",
+                                            ns(""),
+                                            r_Displayed_Incidents()$incident_id[index] |> as.character()),
+                        )
+                      },
+                      html = TRUE  # Important for rendering HTML inside reactable
+                    ),
+
+
+                    id = colDef(
+                      show = FALSE
+                    ),
+                    #FIXME This table is too wide. Will have to figure out how to summarise better.
+                    ems_units = colDef(
+                      show = FALSE
+                    ),
+                    fire_units = colDef(
+                      show = FALSE
+                    ),
+                    wildland_units = colDef(
+                      show = FALSE
+                    ),
+                    canceled = colDef(
+                      show = FALSE
+                    ),
+                    dropped = colDef(
+                      show = FALSE
+                    )
+
+                  ),
+                  details = function(index) {
+                    target_id <- r_Displayed_Incidents()$incident_id[index]
+                    ff_data <- app_data$Firefighter_Incident |>
+                      filter(incident_id == target_id) |>
+                      left_join(app_data$Firefighter, by = 'firefighter_id') |>
+                      left_join(app_data$Firefighter_Apparatus, by = c('incident_id', 'firefighter_id')) |>
+                      left_join(app_data$Apparatus, by = 'apparatus_id') |>
+                      select(full_name, apparatus_name, time_adjustment)
+
+                    htmltools::div(style = "padding: 1rem",
+                                   reactable(ff_data,
+                                             striped = TRUE,
+                                             highlight = TRUE,
+                                             defaultSorted = 'apparatus_name',
+                                             defaultColDef = colDef(
+                                               header = function(value) gsub("_", " ", value, fixed = TRUE) |> stringr::str_to_title(),
+                                               align = "center"
+                                             ),
+                                             theme = reactableTheme(
+                                               backgroundColor = '#999',
+                                               stripedColor = '#bbb',
+                                               color = 'black'
+                                             ),
+                                             columns = list(
+                                               full_name = colDef(
+                                                 name = "Firefighter",
+                                                 footer = function(values) sprintf("Total: %s", length(values))
+                                               )
+
+                                             ),
+                                             outlined = TRUE
+                                             )
+                                   )
+
+                    }
+        )
+      })
+
+        observe({
+          # Toggle the state of the finalized column
+          #FIXME Write change to DB
+          r_Incident_Data() |>
+            mutate(finalized = if_else(incident_id == input$finalize_incident, !finalized, finalized)) |>
+            r_Incident_Data()
+
+        }) |>
+          bindEvent(input$finalize_incident)
+
+        observe({
+          # Show a modal with all info from call
+          #FIXME Write change to DB
+          browser()
+          details <- r_Incident_Data() |>
+            filter(incident_id == input$show_details)
+
+          showModal(
+            modalDialog(
+              title = "Incident Details",
+                HTML(
+                  paste(
+                    '<strong>', details$area, " | ", details$address, '</strong>', '<br>',
+                    if_else(details$ems_units == 1, 'EMS: <span class = checkmark>\U2713</span>', 'EMS: <span class = xmark>X</span>'), '<br>',
+                    if_else(details$fire_units == 1, 'Fire: <span class = checkmark>\U2713</span>', 'Fire: <span class = xmark>X</span>'), '<br>',
+                    if_else(details$wildland_units == 1, 'Wildland: <span class = checkmark>\U2713</span>', 'Wildland: <span class = xmark>X</span>'),
+                    hr(),
+                    if_else(details$canceled == 1, 'Canceled: <span class = checkmark>\U2713</span>', 'Canceled: <span class = xmark>X</span>'), '<br>',
+                    if_else(details$dropped == 1, 'Dropped: <span class = checkmark>\U2713</span>', 'Dropped: <span class = xmark>X</span>'), '<br>',
+                    hr(),
+                    if_else(is.na(details$notes), "", details$notes)
+                    )
+                  ),
+
+
+
+              easyClose = TRUE,
+              footer = tagList(
+                modalButton('Close'),
+              )
+            )
+          )
+
+        }) |>
+          bindEvent(input$show_details)
 
       observe({
         showModal(
@@ -126,7 +328,7 @@ Server <- function(id) {
         cat('Deleting Incident', file = stderr())
         #FIXME Delete Incident
 
-        browser()
+        # browser()
 
         r_Incident_Data(
           r_Incident_Data() |>
@@ -146,65 +348,6 @@ Server <- function(id) {
         )
       })
 
-
-
-
-      output$incident_table <- renderReactable({
-        # browser()
-
-        print('Rendering table')
-        reactable(r_Displayed_Incidents(),
-                  theme = reactableTheme(
-                    color = 'white',
-                    backgroundColor = '#333',
-                    stripedColor = '#555',
-                    highlightColor = '#2b8764',
-                    pageButtonHoverStyle = list(
-                      color = 'white',
-                      backgroundColor = '#a05050'
-                    ),
-                    pageButtonActiveStyle = list(
-                      color = 'white',
-                      backgroundColor = '#87292b'
-                    ),
-                  ))
-        # reactable(
-        #   r_Displayed_Incidents(),
-        #   columns = list(
-        #     dispatch_time = colDef(
-        #       name = "Dispatch Time",
-        #       format = "DateTime"
-        #     ),
-        #     dispatch_code = colDef(
-        #       name = "Dispatch Code"
-        #     ),
-        #     response_type = colDef(
-        #       name = "Response Type"
-        #     ),
-        #     address = colDef(
-        #       name = "Address"
-        #     ),
-        #     city = colDef(
-        #       name = "City"
-        #     ),
-        #     state = colDef(
-        #       name = "State"
-        #     ),
-        #     zip = colDef(
-        #       name = "Zip"
-        #     ),
-        #     county = colDef(
-        #       name = "County"
-        #     ),
-        #     latitude = colDef(
-        #       name = "Latitude"
-        #     ),
-        #     longitude = colDef(
-        #       name = "Longitude"
-        #     )
-        #   )
-        # )
-      })
     }
   )
 }

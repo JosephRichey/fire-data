@@ -51,6 +51,10 @@ Firefighter_Incident <- dbGetQuery(CON, "SELECT * FROM firefighter_incident")
 Firefighter_Apparatus <- dbGetQuery(CON, "SELECT * FROM firefighter_apparatus")
 
 #' @export
+Apparatus <- dbGetQuery(CON, "SELECT * FROM apparatus")
+
+
+#' @export
 Local_Date <- as.Date(Sys.time() |> with_tz(tzone = Sys.getenv('LOCAL_TZ')), tz = Sys.getenv('LOCAL_TZ'))
 
 
