@@ -175,7 +175,7 @@ CREATE TABLE test.incident (
     dispatch_time varchar(255),
     end_time varchar(255),
     address varchar(255),
-    dispatch_reason varchar(255),
+    dispatch_reason varchar(255), #FIXME Change this to dispatch_code
     ems_units bool,
     fire_units bool,
     wildland_units bool,
@@ -183,7 +183,8 @@ CREATE TABLE test.incident (
     canceled bool,
     dropped bool,
     notes text,
-    finalized bool
+    finalized bool,
+    incident_expire VARCHAR(255)
 );
 
 ALTER TABLE test.incident ADD INDEX (incident_id);
@@ -211,7 +212,7 @@ CREATE TABLE test.apparatus_incident (
 	apparatus_incident_id INT PRIMARY KEY AUTO_INCREMENT,
     incident_id VARCHAR(255),
     apparatus_id INT,
-    time_adjustment float,
+    time_adjustment float, #FIXME Remove this column
     foreign key (incident_id) REFERENCES test.incident(incident_id) ON UPDATE CASCADE,
     FOREIGN KEY (apparatus_id) REFERENCES test.apparatus(apparatus_id)
 );

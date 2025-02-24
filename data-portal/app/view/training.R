@@ -110,10 +110,12 @@ AttendanceOutput <- function(id) {
   ns <- NS(id)
   tagList(
       card(
+        fill = FALSE,
         card_header(textOutput(ns("which_attendance"))),
         card_body(
+          fillable = FALSE,
           rHandsontableOutput(ns('View_Attendance'),
-                              width = "auto", height = "100%"),
+                              width = "100%", height = "100%"),
           htmlOutput(ns("save_warning"))
         ),
         actionButton(ns("submit_attendance_update"),

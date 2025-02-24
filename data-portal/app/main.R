@@ -15,6 +15,7 @@ box::use(
   view/training,
   view/roster,
   view/summary,
+  view/incident,
   logic/app_data,
 )
 
@@ -121,7 +122,7 @@ ui <- function(id) {
                       ),
                       training$AttendanceOutput(ns('training_page'))
                     )
-                  ),
+                  )
 
                   # nav_panel(
                   #   title = "Attendance 2",
@@ -138,26 +139,10 @@ ui <- function(id) {
           route("incident",
                 layout_sidebar(
                   sidebar = sidebar(
-
                     open = "desktop",
-                    actionButton("input2", "Edit Incident ID"),
-                    actionButton("input3", "Delete Incident"),
-                    accordion(
-                      open = FALSE,
-                      bslib::accordion_panel(
-                        title = "Incident Filter",
-                      textInput("input4", "Incident Name", value = ""),
-                      textInput("input5", "Incident Type", value = ""),
-                      )
-                    )
+                    incident$UI(ns('incident'))
                   ),
-                    DT::datatable(
-                    data.frame(
-                      ID = 1:10,
-                      Name = letters[1:10],
-                      Type = rep(c("A", "B"), 5)
-                    )
-                  )
+                    incident$Output(ns('incident'))
                 )
                 ),
           route("equipment",
@@ -385,6 +370,8 @@ server <- function(id) {
     training$Server('training_page')
 
     roster$Server('roster')
+
+    incident$Server('incident')
 
     # summary$Server('ind_summary', 'Individual')
 
