@@ -209,6 +209,18 @@ Server <- function(id) {
                     ),
                     dropped = colDef(
                       show = FALSE
+                    ),
+
+                    notes = colDef(
+                      show = FALSE
+                    ),
+
+                    area = colDef(
+                      show = FALSE
+                    ),
+
+                    address = colDef(
+                      show = FALSE
                     )
 
                   ),
@@ -263,7 +275,7 @@ Server <- function(id) {
         observe({
           # Show a modal with all info from call
           #FIXME Write change to DB
-          browser()
+          # browser()
           details <- r_Incident_Data() |>
             filter(incident_id == input$show_details)
 

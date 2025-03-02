@@ -4,6 +4,7 @@ box::use(
   dplyr[...],
   lubridate[...],
   hms[as_hms],
+  logger[...]
 )
 
 box::use(
@@ -72,4 +73,4 @@ Dispatch_Codes <- lapply(
   }
 )
 
-
+log_info("App Data loaded.")

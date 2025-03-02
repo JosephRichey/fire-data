@@ -17,6 +17,7 @@ box::use(
   view/summary,
   view/incident,
   logic/app_data,
+  logic/logging,
 )
 
 menu <- tags$ul(
