@@ -153,3 +153,8 @@ table.dataTable tbody tr:focus {
   color: #87292b;
   font-weight: bold;
 }
+
+// Rhandsontable sets this to 1000, but that's less than a modal.
+.datepicker {
+  z-index: 1100 !important;
+}

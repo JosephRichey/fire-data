@@ -16,6 +16,7 @@ box::use(
   view/roster,
   view/summary,
   view/incident,
+  view/equipment_management,
   logic/app_data,
   logic/logging,
 )
@@ -154,17 +155,9 @@ ui <- function(id) {
                       sidebar = sidebar(
 
                         open = "desktop",
-                        selectInput("input1", "Equipment Type", choices = c("A", "B", "C")),
-                        checkboxGroupInput("input2", "Equipment Status",
-                                           choices = c("Due", "Approaching", "Normal", "Snooze")),
+                        equipment_management$Checks_UI(ns('equipment')),
                       ),
-                      datatable(
-                        data.frame(
-                          ID = 1:10,
-                          Name = letters[1:10],
-                          Type = rep(c("A", "B"), 5)
-                        )
-                      )
+                      equipment_management$Checks_Output(ns('equipment'))
                     )
                   ),
 
@@ -174,17 +167,9 @@ ui <- function(id) {
                       sidebar = sidebar(
 
                         open = "desktop",
-                        selectInput("input1", "Equipment Type", choices = c("A", "B", "C")),
-                        checkboxGroupInput("input2", "Equipment Status",
-                                           choices = c("Due", "Approaching", "Normal", "Snooze")),
+                        equipment_management$Expiration_UI(ns('equipment')),
                       ),
-                      datatable(
-                        data.frame(
-                          ID = 1:10,
-                          Name = letters[1:10],
-                          Type = rep(c("A", "B"), 5)
-                        )
-                      )
+                      equipment_management$Expiration_Output(ns('equipment'))
                     )
                   ),
 
@@ -194,23 +179,10 @@ ui <- function(id) {
                       sidebar = sidebar(
 
                         open = "desktop",
-                        actionButton("input1", "Add New Type"),
-                        actionButton("input2", "Add New Piece"),
-                        actionButton("input3", "Delete Type"),
-                        actionButton("input4", "Delete Piece"),
-                        hr(),
-                        selectInput("input5", "Equipment Type", choices = c("A", "B", "C")),
-                        selectInput("input6", "Firefighter Assigned", choices = c("A", "B", "C")),
+                        equipment_management$Manage_Equipment_UI(ns('equipment')),
                       ),
-                      "A(n) [equipment type] needs to be checked every [time interval]. [Equipment piece] is an [equipment type]. Example: An apparatus needs to be checked every month. Engine 82 is an apparatus.",
-                      datatable(
-                        data.frame(
-                          ID = 1:10,
-                          Name = letters[1:10],
-                          Type = rep(c("A", "B"), 5)
-                        )
 
-                      )
+                      equipment_management$Manage_Equipment_Output(ns('equipment'))
                     )
                   )
                 )
@@ -373,6 +345,10 @@ server <- function(id) {
     roster$Server('roster')
 
     incident$Server('incident')
+
+    equipment_management$Server('equipment')
+
+    equipment_management$Manage_Equipment_Server('equipment')
 
     # summary$Server('ind_summary', 'Individual')
 

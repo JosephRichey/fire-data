@@ -219,10 +219,10 @@ Server <- function(id) {
         
         New <- Base_Data() |>
           mutate(
+            #FIXME Needs to check and set back number of appropriate number of days
             next_check_date = if_else(equipment_id %in% Ids_to_check, next_check_date + 365, next_check_date)
           )
         
-        Base_Data(New)
         
         for(x in Equipment_Table()[input$equipment_rows_selected,3]) {
           showNotification(
@@ -232,6 +232,7 @@ Server <- function(id) {
           )
         }
         
+        Base_Data(New)
       }) |> 
         bindEvent(input$check_selected)
       
@@ -277,7 +278,6 @@ Server <- function(id) {
             snooze_expires = if_else(equipment_id %in% Ids_to_check, Sys.Date() + input$snooze_days, snooze_expires)
           )
         
-        Base_Data(New)
         
         for(x in Equipment_Table()[input$equipment_rows_selected,3]) {
           showNotification(
@@ -286,6 +286,7 @@ Server <- function(id) {
             type = 'message'
           )
         }
+        Base_Data(New)
         
       }) |> 
         bindEvent(input$snooze_ok)

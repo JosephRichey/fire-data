@@ -143,3 +143,23 @@ BuiltDateTime <- function(time, date, input_type, return_type = 'UTC') {
 # BuiltDateTime(local_time, date, 'local', 'UTC')
 # BuiltDateTime(ust_time, date, 'UST', 'local')
 # BuiltDateTime(ust_time, date, 'UST', 'UST')
+
+
+#' @export
+GenerateThreshold <- function(date, leadTime, leadTimeUnit, expireCalc = FALSE) {
+
+  if(expireCalc) {
+    case_when(
+      leadTimeUnit == "day" ~ date + days(leadTime),
+      leadTimeUnit == 'month' ~ date %m+% months(leadTime),
+      leadTimeUnit == 'year' ~ date %m+% years(leadTime)
+    )
+  } else {
+    case_when(
+      leadTimeUnit == "day" ~ date - days(leadTime),
+      leadTimeUnit == 'month' ~ date %m-% months(leadTime),
+      leadTimeUnit == 'year' ~ date %m-% years(leadTime)
+    )
+  }
+}
+
