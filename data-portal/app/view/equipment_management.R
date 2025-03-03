@@ -454,8 +454,30 @@ Manage_Equipment_UI <- function(id) {
         size = 10
       ),
       multiple = TRUE
-    ),
-    hr(),
+    )
+
+  )
+}
+
+Manage_Equipment_Output <- function(id) {
+  ns <- NS(id)
+  tagList(
+    strong(helpText("A(n) [equipment type] needs to be checked every [number] [time interval]. [Equipment piece] is an [equipment type].")),
+    h5(strong(helpText("Example: An apparatus needs to be checked every 3 months. Engine 82 is an apparatus."))),
+    card(
+      title = 'Equipment Pieces',
+    fill = FALSE,
+    card_body(
+        fillable = FALSE,
+        DT::dataTableOutput(ns('equipment_pieces')),
+      )
+    )
+  )
+}
+
+Manage_Equipment_Type_UI <- function(id) {
+  ns <- NS(id)
+  tagList(
     actionButton(
       ns('add_type'),
       'Add New Equipment Type',
@@ -481,19 +503,11 @@ Manage_Equipment_UI <- function(id) {
   )
 }
 
-Manage_Equipment_Output <- function(id) {
+Manage_Equipment_Type_Output <- function(id) {
   ns <- NS(id)
   tagList(
     strong(helpText("A(n) [equipment type] needs to be checked every [number] [time interval]. [Equipment piece] is an [equipment type].")),
     h5(strong(helpText("Example: An apparatus needs to be checked every 3 months. Engine 82 is an apparatus."))),
-    card(
-      title = 'Equipment Pieces',
-    fill = FALSE,
-    card_body(
-        fillable = FALSE,
-        DT::dataTableOutput(ns('equipment_pieces')),
-      )
-    ),
     card(
       title = 'Equipment Types',
       fill = FALSE,
@@ -566,7 +580,7 @@ Manage_Equipment_Server <- function(id) {
               ns('new_equipment_type'),
               'Equipment Type',
               #FIXME Not reactive
-              choices = c(app_data$Equipment_Type |>
+              choices = c(r_Equipment_Type() |>
                             filter(is.na(equipment_type_expire)) |>
                             pull(equipment_type))
             ),
@@ -595,7 +609,8 @@ Manage_Equipment_Server <- function(id) {
 
       # Set Expiration date to auto rec.
       observe({
-        tmp <- app_data$Equipment_Type |>
+        # browser()
+        tmp <- r_Equipment_Type() |>
           filter(equipment_type == input$new_equipment_type) |>
           select(expire_time, expire_time_unit)
 
@@ -621,17 +636,19 @@ Manage_Equipment_Server <- function(id) {
             equipment_id = max(Base_Equipment_Data()$equipment_id) + 1,
             equipment_name = input$new_equipment_name,
             #FIXME Use function to get equipment type
-            equipment_type_id = app_data$Equipment_Type[app_data$Equipment_Type[,2] == input$new_equipment_type,][1] |> pull(),
+            equipment_type_id = r_Equipment_Type()[r_Equipment_Type()[,2] == input$new_equipment_type,][1] |> pull(),
             firefighter_id = if(input$new_assigned_to == 'None') NA else app_data$Firefighter[app_data$Firefighter[,2] == input$new_assigned_to,][1] |> pull(),
             next_check_date = app_data$Current_Local_Date + 30,
-            expiration_date = if(length(input$new_expiration_date) == 0) NA else input$new_expiration_date,
-            snooze_expires = NA,
-            expire_equipment = NA,
+            expiration_date = if(length(input$new_expiration_date) == 0) as.Date(NA) else input$new_expiration_date,
+            snooze_expires = as.Date(NA),
+            expire_equipment = NA_character_,
             equipment_type = input$new_equipment_type,
             #FIXME Use function to get assigned to
-            full_name = if(input$new_assigned_to == 'None') NA else input$new_assigned_to,
+            full_name = if(input$new_assigned_to == 'None') NA_character_ else input$new_assigned_to,
             #FIXME have this match whatever the preset is
           )
+
+        # FIXME Add check via logs to see if the new equipment is being added correctly
 
         Base_Equipment_Data(New)
 
@@ -684,7 +701,7 @@ Manage_Equipment_Server <- function(id) {
             selectInput(
               ns('edit_equipment_type'),
               'Equipment Type',
-              choices = c(app_data$Equipment_Type |>
+              choices = c(r_Equipment_Type() |>
                             filter(is.na(equipment_type_expire)) |>
                             pull(equipment_type),
               selected = edit_data$equipment_type)
@@ -726,7 +743,7 @@ Manage_Equipment_Server <- function(id) {
             equipment_id = edit_ids,
             equipment_name = input$edit_equipment_name,
             #FIXME Use function to get equipment type
-            equipment_type_id = app_data$Equipment_Type[app_data$Equipment_Type[,2] == input$edit_equipment_type,][1] |> pull(),
+            equipment_type_id = r_Equipment_Type()[r_Equipment_Type()[,2] == input$edit_equipment_type,][1] |> pull(),
             firefighter_id = if(input$edit_assigned_to == 'None') NA else app_data$Firefighter[app_data$Firefighter[,2] == input$edit_assigned_to,][1] |> pull(),
             next_check_date = app_data$Current_Local_Date + 30,
             expiration_date = if(length(input$edit_expiration_date) == 0) NA else input$edit_expiration_date,
@@ -781,7 +798,7 @@ Manage_Equipment_Server <- function(id) {
 
         # removeModal()
 
-        browser()
+        # browser()
 
         delete_ids <- Visible_Equipment_Table()[input$equipment_pieces_rows_selected,1]
 
@@ -801,10 +818,15 @@ Manage_Equipment_Server <- function(id) {
       }) |>
         bindEvent(input$confirm_delete_equipment)
 
+      r_Equipment_Type <- reactiveVal({
+        # browser()
+        app_data$Equipment_Type
+      })
+
 
       Visible_Equipment_Types <- reactive({
         # browser()
-        df <- app_data$Equipment_Type |>
+        df <- r_Equipment_Type() |>
           filter(is.na(equipment_type_expire)) |>
           mutate(
             check = glue("Check every {check_time} {check_time_unit}(s), with {check_lead_time} {check_lead_time_unit}(s) warning."),
@@ -836,6 +858,125 @@ Manage_Equipment_Server <- function(id) {
           )
         )
       })
+
+      observe({
+        # browser()
+        showModal(
+          modalDialog(
+            title = 'Add New Equipment Type',
+            textInput(
+              ns('add_new_equipment_type'),
+              'Equipment Type',
+              width = '100%',
+              placeholder = 'Enter equipment type'
+            ),
+            layout_column_wrap(
+              width = 1/2,
+              numericInput(
+                ns('add_new_check_time'),
+                'Check Every',
+                value = 1,
+                min = 1
+              ),
+              div(
+                style = "margin-top: 8px;",
+                selectInput(
+                  ns('add_new_check_time_unit'),
+                  ' ',
+                  choices = c('Day', 'Month', 'Year'),
+                  selected = 'Month'
+                )
+              ),
+              numericInput(
+                ns('add_new_check_lead_time'),
+                'with a warning of',
+                value = 1,
+                min = 1
+              ),
+              div(
+                style = "margin-top: 8px;",
+                selectInput(
+                  ns('add_new_check_lead_time_unit'),
+                  ' ',
+                  choices = c('Day', 'Month', 'Year'),
+                  selected = 'Day'
+                )
+              )
+            ),
+            hr(),
+            layout_column_wrap(
+              width = 1/2,
+              numericInput(
+                ns('add_new_expire_time'),
+                'Expire Every',
+                value = 1,
+                min = 1
+              ),
+              div(
+                style = "margin-top: 8px;",
+                selectInput(
+                  ns('add_new_expire_time_unit'),
+                  ' ',
+                  choices = c('Day', 'Month', 'Year'),
+                  selected = 'Year'
+                )
+              ),
+              numericInput(
+                ns('add_new_expire_lead_time'),
+                'with a warning of',
+                value = 1,
+                min = 1
+              ),
+              div(
+                style = "margin-top: 8px;",
+                selectInput(
+                  ns('add_new_expire_lead_time_unit'),
+                  ' ',
+                  choices = c('Day', 'Month', 'Year'),
+                  selected = 'Month'
+                )
+              )
+            ),
+            footer = tagList(
+              modalButton('Cancel'),
+              actionButton(ns('confirm_add_type'), 'Confirm',
+                            class = 'btn-primary')
+            )
+          )
+        )
+
+      }) |>
+        bindEvent(input$add_type)
+
+      observe({
+        # browser()
+        removeModal()
+        log_trace('Adding new equipment type')
+
+        New <- app_data$Equipment_Type |>
+          add_row(
+            equipment_type_id = max(app_data$Equipment_Type$equipment_type_id) + 1,
+            equipment_type = input$add_new_equipment_type,
+            check_time = input$add_new_check_time,
+            check_time_unit = input$add_new_check_time_unit |> tolower(),
+            check_lead_time = input$add_new_check_lead_time,
+            check_lead_time_unit = input$add_new_check_lead_time_unit |> tolower(),
+            expire_time = input$add_new_expire_time,
+            expire_time_unit = input$add_new_expire_time_unit |> tolower(),
+            expire_lead_time = input$add_new_expire_lead_time,
+            expire_lead_time_unit = input$add_new_expire_lead_time_unit |> tolower()
+          )
+
+        r_Equipment_Type(New)
+
+        showNotification(
+          paste(input$add_new_equipment_type, 'added successfully.'),
+          duration = 5,
+          type = 'message'
+        )
+
+      }) |>
+        bindEvent(input$confirm_add_type)
 
 
     }

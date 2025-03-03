@@ -184,7 +184,19 @@ ui <- function(id) {
 
                       equipment_management$Manage_Equipment_Output(ns('equipment'))
                     )
-                  )
+                  ),
+                  nav_panel(
+                    title = "Manage Equipment Type",
+                    layout_sidebar(
+                      sidebar = sidebar(
+
+                        open = "desktop",
+                        equipment_management$Manage_Equipment_Type_UI(ns('equipment')),
+                      ),
+
+                      equipment_management$Manage_Equipment_Type_Output(ns('equipment'))
+                    )
+                  ),
                 )
                 ),
           route("reports",
