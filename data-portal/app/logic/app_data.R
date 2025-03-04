@@ -83,6 +83,16 @@ Base_Equipment_Data <- Equipment |>
   left_join(Equipment_Type, by = "equipment_type_id") |>
   left_join(Firefighter |> select(firefighter_id, full_name), by = "firefighter_id")
 
+
+#' @export
+Certification_Type <- dbGetQuery(CON, "SELECT * FROM certification_type")
+
+#' @export
+Certification <- dbGetQuery(CON, "SELECT * FROM certification") |>
+  mutate(
+    expiration_date = as.Date(expiration_date)
+  )
+
 Setting <- dbGetQuery(CON, "SELECT * FROM setting")
 
 Dispatch_Setting <- Setting |>

@@ -275,9 +275,9 @@ Server <- function(id) {
             warning_threshold <= app_data$Current_Local_Date ~ "Approaching",
             TRUE ~ 'Normal'),
             icon = case_when(
-              flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = 'red'),
-              flag_type == "Approaching" ~ bsicons::bs_icon("exclamation-triangle", fill = 'yellow'),
-              flag_type == "Normal" ~ bsicons::bs_icon("check-circle-fill", class = "text-success")
+              flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'danger') |> unname()),
+              flag_type == "Approaching" ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'warning') |> unname()),
+              flag_type == "Normal" ~ bsicons::bs_icon("check-circle-fill", fill = bs_get_variables(session$getCurrentTheme(), 'success') |> unname())
             ),
             full_name = if_else(is.na(full_name), "", full_name) |> as.character()
           ) |>
