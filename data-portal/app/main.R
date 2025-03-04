@@ -234,39 +234,16 @@ ui <- function(id) {
                   ),
 
                   nav_panel(
-                    title = "Certifications",
+                    title = 'Certifications',
                     layout_sidebar(
                       sidebar = sidebar(
-
                         open = "desktop",
-                        actionButton("input6", "Add Cert"),
-                        actionButton("input1", "Add Cert Type"),
-                        hr(),
-                        actionButton("input3", "Edit Cert"),
-                        actionButton("input2", "Edit Cert Type"),
-                        actionButton("input4", "Renew Cert"),
-                        hr(),
-                        actionButton("input5", "Delete Cert"),
-                        actionButton("input7", "Delete Cert Type"),
+                        personnel$Certification_UI(ns('personnel')),
                       ),
-                      datatable(
-                        data.frame(
-                          ID = 1:10,
-                          Name = letters[1:10],
-                          Type = rep(c("A", "B"), 5)
-                        )
-
-                      ),
-                      datatable(
-                        data.frame(
-                          ID = 1:10,
-                          Name = letters[1:10],
-                          Type = rep(c("A", "B"), 5)
-                        )
-
-                      )
+                      personnel$Certification_Output(ns('personnel'))
                     )
                   ),
+
                   nav_panel(
                     title = 'Org Chart',
 

@@ -9,6 +9,8 @@ box::use(
   ggplot2[...],
   ggraph[...],
   tidygraph[...],
+  logger[...],
+  shinyalert[...],
 )
 
 
@@ -59,15 +61,70 @@ Roster_Output <- function(id) {
 Certification_UI <- function(id) {
   ns <- NS(id)
   tagList(
+    pickerInput(
+      ns('certification_type'),
+      'Certification Type',
+      choices = c(app_data$Certification_Type$certification_name |> unique()),
+      selected = c(app_data$Certification_Type$certification_name |> unique()),
+      options = list(
+        `actions-box` = TRUE,
+        #FIXME set with .csv settings
+        # `live-search` = TRUE,
+        size = 10
+      ),
+      multiple = TRUE
+    ),
+    pickerInput(
+      ns('cert_firefighter'),
+      'Firefighter',
+      choices = c(app_data$Firefighter |> filter(active_status == 1) |> pull(full_name)),
+      selected = c(app_data$Firefighter |> filter(active_status == 1) |> pull(full_name)),
+      options = list(
+        `actions-box` = TRUE,
+        #FIXME set with .csv settings
+        # `live-search` = TRUE,
+        size = 10
+      ),
+      multiple = TRUE
+    ),
+
+    checkboxGroupInput(
+      ns('expire_due_filter'),
+      label = '',
+      choices = c('Due', 'Approaching', 'Normal'),
+      #FIXME set with .csv settings
+      selected = c('Due', 'Approaching'),
+      inline = TRUE
+    ),
+    hr(),
+    br(),
     actionButton(
-      ns('add_certification'),
+      ns('add_cert'),
       'Add Certification',
-      class = 'btn-primary'
+      icon = icon('plus'),
+      class = 'btn-primary',
     ),
     actionButton(
-      ns('edit_certification'),
-      'Edit Certification',
-      class = 'btn-secondary'
+      ns('renew'),
+      'Renew',
+      icon = icon('check'),
+      class = 'btn-primary',
+      width = '100%'
+    ),
+    actionButton(
+      ns('delete'),
+      'Delete',
+      icon = icon('trash'),
+      class = 'btn-danger',
+      width = '100%'
+    ),
+
+    actionButton(
+      ns('cert_refresh'),
+      'Refresh',
+      icon = icon('rotate-right'),
+      class = 'btn-light',
+      width = '100%'
     )
   )
 }
@@ -80,7 +137,7 @@ Certification_Output <- function(id) {
       fill = FALSE,
       card_body(
         fillable = FALSE,
-        DTOutput(ns('certification_table'))
+        DTOutput(ns('certification'))
       )
     )
   )
@@ -228,6 +285,216 @@ Server <- function(id) {
 
       })
 
+      ###### Certifications #####
+
+      r_Certification <- reactiveVal({
+        app_data$Certification
+      })
+
+      r_Visible_Certs <- reactive({
+        # browser()
+        certification <- r_Certification() |>
+          left_join(app_data$Certification_Type, by = c('type_id' ='certification_type_id')) |>
+          #FIXME Certs to inactive firefighters shouldn't be shown.
+          left_join(r_Firefighter(), by = c('firefighter_id')) |>
+          mutate(warning_threshold = functions$GenerateThreshold(expiration_date, lead_time, lead_time_unit)) |>
+          mutate(
+            flag_type = case_when(
+              expiration_date <= app_data$Local_Date ~ 'Due',
+              warning_threshold <= app_data$Local_Date ~ 'Approaching',
+              TRUE ~ 'Normal'
+            ),
+          status = case_when(
+            flag_type == 'Due' ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'danger') |> unname()),
+            flag_type == 'Approaching' ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'warning') |> unname()),
+            TRUE ~ bsicons::bs_icon("check-circle-fill", fill = bs_get_variables(session$getCurrentTheme(), 'success') |> unname())
+            )
+          ) |>
+          filter(full_name %in% input$cert_firefighter) |>
+          filter(flag_type %in% input$expire_due_filter) |>
+          select(certification_id, type_id,
+                 status, full_name, certification_name, expiration_date)
+      })
+
+      output$certification <- renderDT({
+        datatable(r_Visible_Certs() |> functions$FixColNames(),
+                  rownames = FALSE,
+                  escape = FALSE,
+                  options = list(
+                    columnDefs = list(
+                      list(visible = FALSE, targets = c(0, 1)),
+                      list(className = 'dt-center', targets = '_all')
+                    ),
+                    order = list(5, 'asc')
+                  )
+        ) |>
+          DT::formatDate(columns = 6, method = 'toLocaleDateString')
+      })
+
+      observe({
+        # browser()
+        log_trace('Checking to see if certs can be renewed.')
+
+        if(is.null(input$certification_rows_selected)) {
+          shinyalert(
+            title = 'Error',
+            type = 'error',
+            text = 'Please select certifications to renew.'
+          )
+          return()
+        }
+
+        #TODO Does this need to be in a function? Used multiple places.
+
+        renew_ids <- r_Visible_Certs()[input$certification_rows_selected,1]
+        renew_types <- r_Visible_Certs()[input$certification_rows_selected,2]
+
+        dates <- app_data$Certification_Type |>
+          filter(certification_type_id %in% renew_types) |>
+          arrange(desc(renew_time)) |>
+          slice_head(n = 1)
+
+        recommended_expiration <- functions$GenerateThreshold(app_data$Current_Local_Date, dates$renew_time, dates$renew_time_unit, TRUE) |>
+          as.Date()
+
+
+        showModal(
+          modalDialog(
+            title = 'Select New Expiration Date',
+
+            'Please select the new expiration date for the selected certifications.',
+            dateInput(
+              ns('new_expiration_date'),
+              'New Expiration Date',
+              min = app_data$Current_Local_Date,
+              value = recommended_expiration
+            ),
+
+            footer = tagList(
+              modalButton('Cancel'),
+              actionButton(ns('confirm_expiration_update'), 'Confirm')
+            )
+          )
+        )
+      }) |>
+        bindEvent(input$renew)
+
+      observeEvent(input$confirm_expiration_update, {
+        # browser()
+        renew_ids <- r_Visible_Certs()[input$certification_rows_selected,1]
+
+        New <- r_Certification() |>
+          mutate(expiration_date = if_else(certification_id %in% renew_ids, input$new_expiration_date, expiration_date))
+
+        r_Certification(New)
+
+        removeModal()
+      })
+
+      observeEvent(input$cert_refresh, {
+        # browser()
+        r_Certification(app_data$Certification)
+      })
+
+      observe({
+        # browser()
+        if(is.null(input$certification_rows_selected)) {
+          shinyalert(
+            title = 'Error',
+            type = 'error',
+            text = 'Please select certifications to delete.'
+          )
+          return()
+        }
+
+        showModal(
+          modalDialog(
+            title = 'Delete Certifications',
+            'Are you sure you want to delete the selected certifications?',
+            footer = tagList(
+              modalButton('Cancel'),
+              actionButton(ns('confirm_delete'), 'Confirm')
+            )
+          )
+        )
+      }) |>
+        bindEvent(input$delete)
+
+      observe({
+        # browser()
+
+        removeModal()
+        delete_ids <- r_Visible_Certs()[input$certification_rows_selected,1]
+
+        New <- r_Certification() |>
+          filter(!certification_id %in% delete_ids)
+
+        r_Certification(New)
+
+        showNotification(
+          'Certifications deleted.',
+          duration = 5,
+          type = 'message'
+        )
+      }) |>
+        bindEvent(input$confirm_delete)
+
+      observe({
+
+        showModal(
+          modalDialog(
+            title = 'Add Certification',
+            selectInput(
+              ns('add_cert_type'),
+              'Certification Type',
+              choices = c(app_data$Certification_Type$certification_name |> unique()),
+              selected = c(app_data$Certification_Type$certification_name |> unique())
+            ),
+            selectInput(
+              ns('add_cert_firefighter'),
+              'Firefighter',
+              choices = c(app_data$Firefighter |> filter(active_status == 1) |> pull(full_name)),
+              selected = c(app_data$Firefighter |> filter(active_status == 1) |> pull(full_name)),
+              multiple = TRUE
+            ),
+            dateInput(
+              #FIXME Update based on selected cert
+              ns('add_cert_date'),
+              'Expiration Date',
+              value = app_data$Current_Local_Date + 730
+            ),
+            footer = tagList(
+              modalButton('Cancel'),
+              actionButton(ns('confirm_add_cert'), 'Confirm')
+            )
+          )
+        )
+
+      }) |>
+        bindEvent(input$add_cert)
+
+      observeEvent(input$confirm_add_cert, {
+        #FIXME Perform check to make sure there are't duplicate certs.
+
+        # browser()
+        New <- r_Certification() |>
+          add_row(
+            certification_id = max(r_Certification()$certification_id) + 1,
+            firefighter_id = app_data$Firefighter |> filter(full_name %in% input$add_cert_firefighter) |> pull(firefighter_id),
+            type_id = app_data$Certification_Type |> filter(certification_name == input$add_cert_type) |> pull(certification_type_id),
+            expiration_date = input$add_cert_date
+          )
+
+        r_Certification(New)
+
+        removeModal()
+
+        showNotification(
+          'Certification(s) added.',
+          duration = 5,
+          type = 'message'
+        )
+      })
 
 
 

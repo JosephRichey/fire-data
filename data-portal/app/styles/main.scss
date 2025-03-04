@@ -158,3 +158,9 @@ table.dataTable tbody tr:focus {
 .datepicker {
   z-index: 1100 !important;
 }
+
+// The page fill padding needs to be set to zero. Can't do it globally.
+.bslib-page-fill {
+  padding: 0;
+  gap: 0;
+}
