@@ -1,6 +1,11 @@
 box::use(
   shiny[...],
   shinyTime[...],
+  bslib[...],
+)
+
+box::use(
+  ../logic/app_data,
 )
 
 #' @export
@@ -142,6 +147,110 @@ excuseAttendanceModal <- function(ns,
     footer = tagList(
       modalButton("Cancel"),
       actionButton(ns("submit_excuse_attendance"), "Excuse Attendance")
+    ),
+    easyClose = TRUE
+  )
+}
+
+#' @export
+addFirefighterModal <- function(ns) {
+  modalDialog(
+    size = 'l',
+    title = "Add Firefighter",
+    helpText('Enter the first and last name of the firefighter you would like to add. This is how it will appear in all reports and apps.'),
+    layout_column_wrap(
+      width = 1/2,
+      textInput(
+        ns('add_full_name'),
+        'Full Name',
+        placeholder = 'John Smith'
+      ),
+      dateInput(
+        ns('add_start_date'),
+        'Start Date',
+        value = app_data$Local_Date
+      )
+    ),
+    hr(),
+    layout_column_wrap(
+      width = 1/2,
+      selectInput(
+        ns('add_reports_to'),
+        'Reports To',
+        #FIXME
+        choices = app_data$Firefighter |> dplyr::filter(active_status == 1) |> dplyr::pull(full_name),
+      ),
+      selectInput(
+        ns('add_company'),
+        'Company',
+        choices = app_data$Company$company_name,
+        selected = app_data$Company$company_name[1]
+      ),
+      selectInput(
+        ns('add_role'),
+        'Role',
+        #FIXME Set this with .csv settings
+        choices = c('Chief', 'Captain', 'Lieutenant', 'Firefighter', 'Probationary')
+      )
+    ),
+    layout_column_wrap(
+      width = 1/2,
+      checkboxInput(
+        ns('add_trainer'),
+        'Trainer',
+        value = FALSE
+      ),
+      checkboxInput(
+        ns('add_officer'),
+        'Officer',
+        value = FALSE
+      )
+    ),
+    hr(),
+    layout_column_wrap(
+      width = 1/2,
+      textInput(
+        ns('add_street_1'),
+        'Street Address 1',
+        placeholder = '123 Main St.'
+      ),
+      textInput(
+        ns('add_street_2'),
+        'Street Address 2'
+      ),
+      textInput(
+        ns('add_city'),
+        'City',
+        placeholder = 'Anytown'
+      ),
+      selectInput(
+        ns('add_state'),
+        'State',
+        choices = datasets::state.abb,
+        selected = 'UT' #FIXME CSV Settings
+      ),
+      textInput(
+        ns('add_zip'),
+        'Zip Code',
+        placeholder = '12345'
+      ),
+      textInput(
+        ns('add_phone'),
+        'Phone Number',
+        placeholder = '123-456-7890'
+      )
+    ),
+    textInput(
+      ns('add_email'),
+      'Email Address',
+      width = '100%',
+      placeholder = 'john.smith@gmail.com'
+    ),
+
+    footer = tagList(
+      modalButton('Cancel'),
+      actionButton(ns("action_add_firefigher"), "Submit",
+                   class = 'btn-primary')
     ),
     easyClose = TRUE
   )

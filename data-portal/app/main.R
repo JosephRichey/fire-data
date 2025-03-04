@@ -5,15 +5,12 @@ box::use(
   DBI[dbDisconnect],
   shiny.router[...],
   fontawesome[...],
-  ggraph[...],
-  tidygraph[...],
   bsicons[...],
-  ggplot2[...],
 )
 
 box::use(
   view/training,
-  view/roster,
+  view/personnel,
   view/summary,
   view/incident,
   view/equipment_management,
@@ -27,47 +24,10 @@ menu <- tags$ul(
   tags$li(a(href = route_link("incident"), fa("calendar-check", title = "Incident"))),
   tags$li(a(href = route_link("equipment"), fa("fire-extinguisher", title = "Equipment Management"))),
   tags$li(a(href = route_link("reports"), fa("chart-pie", title = "reports"))),
-  tags$li(a(href = route_link("roster"), fa("user", title = "Roster"))),
+  tags$li(a(href = route_link("personnel"), fa("user", title = "Personnel"))),
   tags$li(a(href = route_link("messaging"), fa("envelope", title = "Messaging"))),
   tags$li(a(href = route_link("settings"), fa("cogs", title = "Settings")))
 )
-
-
-# Define edges and nodes
-edges <- data.frame(
-  from = c(
-    "Alex", "Taylor", "Taylor",
-    "Jordan",  "Taylor",
-    "Pat", "Jordan", "Jordan",  "Jordan"
-  ),
-  to = c(
-    "Taylor", "Jordan", "Jordan",
-    "Chris",  "Pat",
-    "Jamie", "Morgan", "Blake", "Casey"
-  )
-)
-
-nodes <- data.frame(
-  name = c(
-    "Alex", "Taylor", "Jordan",
-    "Chris", "Pat", "Jamie",
-    "Morgan", "Blake", "Casey"
-  ),
-  role = c(
-    "Chief", "Assistant Chief", "Captain",
-    "FF", "Captain", "FF",
-    "FF", "FF", "FF"
-  ),
-  team = c(
-    "Admin", "Admin", "Crew A",
-    "Crew A", "Crew B", "Crew B",
-    "Crew A", "Crew A", "Crew A"
-  ),
-  rank = c(1, 2, 3, 4, 3, 4, 4, 4, 4)
-)
-
-# Convert to a tidygraph object
-graph <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
 
 
 #' @export
@@ -257,7 +217,7 @@ ui <- function(id) {
               )
             )
           ),
-          route("roster",
+          route("personnel",
                 navset_pill(
                   nav_panel(
                     title = "Roster",
@@ -265,10 +225,10 @@ ui <- function(id) {
                       sidebar = sidebar(
 
                         open = "desktop",
-                        roster$UI(ns('roster')),
+                        personnel$Roster_UI(ns('personnel')),
                       ),
 
-                      roster$Output(ns('roster'))
+                      personnel$Roster_Output(ns('personnel'))
 
                     )
                   ),
@@ -310,7 +270,7 @@ ui <- function(id) {
                   nav_panel(
                     title = 'Org Chart',
 
-                    plotOutput(ns("org_chart"))
+                    personnel$Org_Chart_Output(ns('personnel'))
                   )
 
                 )
@@ -354,7 +314,7 @@ server <- function(id) {
 
     training$Server('training_page')
 
-    roster$Server('roster')
+    personnel$Server('personnel')
 
     incident$Server('incident')
 

@@ -31,3 +31,9 @@ export function show_details(ns, id) {
   Shiny.setInputValue(fullInputId, id, {priority: "event"});
 };
 
+export function toggle_firefighter(ns, id) {
+  console.log("working from toggle_firefighter");
+  var fullInputId = ns + "toggle_firefighter";
+  console.log("Setting input with id: " + fullInputId);
+  Shiny.setInputValue(fullInputId, id, {priority: "event"});
+};
