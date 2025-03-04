@@ -474,6 +474,7 @@ Server <- function(id) {
         bindEvent(input$add_cert)
 
       observeEvent(input$confirm_add_cert, {
+
         #FIXME Perform check to make sure there are't duplicate certs.
 
         # browser()
