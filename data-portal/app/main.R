@@ -16,6 +16,7 @@ box::use(
   view/equipment_management,
   logic/app_data,
   logic/logging,
+  view/report,
 )
 
 menu <- tags$ul(
@@ -208,12 +209,7 @@ ui <- function(id) {
               ),
 
               nav_panel(title = "AI Reports",
-                        layout_sidebar(
-                          sidebar = sidebar(
-                            title = "Set Filters"
-
-                          )
-                        )
+                        report$Ai_UI(ns('report'))
               )
             )
           ),
@@ -298,6 +294,8 @@ server <- function(id) {
     equipment_management$Server('equipment')
 
     equipment_management$Manage_Equipment_Server('equipment')
+
+    report$Server('report')
 
     # summary$Server('ind_summary', 'Individual')
 

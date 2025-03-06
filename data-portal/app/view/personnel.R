@@ -311,6 +311,7 @@ Server <- function(id) {
             )
           ) |>
           filter(full_name %in% input$cert_firefighter) |>
+          filter(certification_name %in% input$certification_type) |>
           filter(flag_type %in% input$expire_due_filter) |>
           select(certification_id, type_id,
                  status, full_name, certification_name, expiration_date)
