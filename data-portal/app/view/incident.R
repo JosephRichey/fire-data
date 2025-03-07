@@ -117,9 +117,7 @@ Server <- function(id) {
           mutate(across(c(ems_units, fire_units, wildland_units, canceled, dropped),
                         ~ as.character(if_else(.x == 1, bsicons::bs_icon('check', class = 'text-success fs-3'), bsicons::bs_icon('x', class = 'text-primary fs-3'))))) |>
           mutate(
-            info = '',
-            finalized = as.character(if_else(finalized == 1, bsicons::bs_icon('check-square-fill', class = 'text-success fs-3'), bsicons::bs_icon('x-circle-fill', class = 'text-primary fs-3'))),
-            toggle = '') |>
+            info = '') |>
           relocate(info, .before = finalized)
 
 
@@ -157,35 +155,32 @@ Server <- function(id) {
                       format = colFormat(datetime = T, hour12 = F)
                     ),
 
-                    toggle = colDef(
-                      cell = function(value, index) {
-                        htmltools::tags$button(
-                          'Switch',
-                          onclick = sprintf("App.finalize_incident('%s', '%s')",
-                                            ns(""),
-                                            r_Displayed_Incidents()$incident_id[index] |> as.character()),
-                          class = "btn btn-primary"
-                        )
-                      },
-                      html = TRUE  # Important for rendering HTML inside reactable
-                    ),
-
                     finalized = colDef(
                       name = "Finalized",
-                      html = TRUE
+                      html = TRUE,
+                      cell = function(value, index) {
+                        icon_svg <- as.character(bsicons::bs_icon('check-square-fill'))  # Convert to string
+
+                        htmltools::HTML(sprintf(
+                          "<span onclick=\"App.finalize_incident('%s', '%s')\" class='fs3' style='cursor: pointer; font-size: 1.5em;%s'>%s</span>",
+                          ns(""),
+                          r_Displayed_Incidents()$incident_id[index] |> as.character(),
+                          if_else(value == 1, "color: #2b8764;", "color: #87292b;"),
+                          icon_svg  # Insert raw SVG
+                        ))
+                      }
                     ),
-
-
 
                     info = colDef(
                       cell = function(value, index) {
-                        htmltools::tags$button(
-                          htmltools::tags$span('\U1F6C8'),
-                          class = "btn btn-info fs3",
-                          onclick = sprintf("App.show_details('%s', '%s')",
-                                            ns(""),
-                                            r_Displayed_Incidents()$incident_id[index] |> as.character()),
+                        htmltools::HTML(
+                          sprintf(
+                            "<span onclick=\"App.show_details('%s', '%s')\" class='fs3' style='cursor: pointer; font-size: 1.5em; color:#377eb4;'>&#x1F6C8; </span>",
+                            ns(""),
+                            r_Displayed_Incidents()$incident_id[index] |> as.character()
+                          )
                         )
+
                       },
                       html = TRUE  # Important for rendering HTML inside reactable
                     ),

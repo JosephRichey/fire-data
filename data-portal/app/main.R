@@ -303,26 +303,6 @@ server <- function(id) {
 
     router_server()
 
-    output$org_chart <- renderPlot({
-      # Plot using ggraph
-      # browser()
-
-      return(ggraph(graph, layout = "tree") +
-        geom_edge_link() +  # No arrows specified
-        geom_node_point(ggplot2::aes(color = team), size = 6) +
-        geom_node_text(ggplot2::aes(label = paste(name, "\n", role), size = 5)) +
-        theme_minimal() +
-        theme(
-          axis.line = element_blank(),
-          axis.text = element_blank(),
-          axis.ticks = element_blank(),
-          axis.title = element_blank(),
-          panel.grid = element_blank(),
-          legend.position = "bottom"
-        ) +
-        labs(color = "Team"))
-    })
-
     # Disconnect from the database on app close
     session$onSessionEnded(function() {
       DBI::dbDisconnect(app_data$CON)
