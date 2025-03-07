@@ -55,6 +55,9 @@ Incident_Xref <- dbGetQuery(CON, "SELECT * FROM incident_xref")
 Firefighter_Incident <- dbGetQuery(CON, "SELECT * FROM firefighter_incident")
 
 #' @export
+Firefighter_Incident <- dbGetQuery(CON, "SELECT * FROM firefighter_incident")
+
+#' @export
 Firefighter_Apparatus <- dbGetQuery(CON, "SELECT * FROM firefighter_apparatus")
 
 #' @export

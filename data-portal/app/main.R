@@ -17,6 +17,7 @@ box::use(
   logic/app_data,
   logic/logging,
   view/report,
+  view/report_incident,
 )
 
 menu <- tags$ul(
@@ -44,10 +45,14 @@ ui <- function(id) {
                      success = "#2b8764",
                      info = "#377eb8",
                      warning = "#D76F33",
-                     danger = "#9933CC",
+                     danger = "#D76F33",#"#9933CC",
                      light = "#565656",
                      "accordion-button-active-bg" = "#87292b",
                      "accordion-button-active-color" = "white",
+                     "nav-underline-link-active-color" = "#2b8764",
+                     "nav-link-color" = "white",
+                     "nav-link-hover-color" = "#a05050",
+                     "btn-hover-border-shade-amount" = '100%',
                      bootswatch = "darkly"),
 
     # Sidebar with icons
@@ -164,29 +169,37 @@ ui <- function(id) {
             navset_pill(
               nav_panel(
                 title = "Trainings",
-                layout_sidebar(
-                  sidebar = sidebar(
-                    title = "Set Filters",
-                    summary$UI(ns('ind_summary'), "Individual")
-                    ),
-                  summary$Output(ns('ind_summary'), "Individual")
+                navset_card_underline(
+                  nav_panel(
+                    title = "Individual",
+                    layout_sidebar(
+                      sidebar = sidebar(
+                        title = "Set Filters",
+                        report$Training_UI(ns('ind_training'), "Individual")
+                      ),
+                      report$Training_Output(ns('ind_training'), "Individual")
+                    )
+                  ),
+                  nav_panel(
+                    title = "Department",
+                    layout_sidebar(
+                      sidebar = sidebar(
+                        title = "Set Filters",
+                        report$Training_UI(ns('dep_training'), "Department")
+                      ),
+                      report$Training_Output(ns('dep_training'), "Department")
+                    )
                   )
-                ),
+                )
+               ),
 
               nav_panel(title = "Incidents",
                         layout_sidebar(
                           sidebar = sidebar(
                             title = "Set Filters",
-
+                            report_incident$UI(ns('incident'))
                             ),
-                            value_box("Total EMS Incident Hours",
-                                      textOutput("1000"),
-                                      showcase = bs_icon('clock-fill',
-                                                         class = 'text-success')),
-                            value_box("Total Fire Incident Hours",
-                                      textOutput("1001"),
-                                      showcase = bs_icon('clock-fill',
-                                                         class = 'text-danger')),
+                            report_incident$Output(ns('incident'))
                         )
               ),
 
@@ -209,7 +222,7 @@ ui <- function(id) {
               ),
 
               nav_panel(title = "AI Reports",
-                        report$Ai_UI(ns('report'))
+                        report$AI_UI(ns('report'))
               )
             )
           ),
@@ -295,11 +308,13 @@ server <- function(id) {
 
     equipment_management$Manage_Equipment_Server('equipment')
 
-    report$Server('report')
+    report$AI_Server('report')
 
-    # summary$Server('ind_summary', 'Individual')
+    report$Training_Server('ind_training', 'Individual')
 
-    # summary$Server('dep_summary', 'Department')
+    report$Training_Server('dep_training', 'Department')
+
+    report_incident$Server('incident')
 
     router_server()
 

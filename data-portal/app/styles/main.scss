@@ -164,3 +164,13 @@ table.dataTable tbody tr:focus {
   padding: 0;
   gap: 0;
 }
+
+// Set the default modal button color to gray.
+.btn-default:not(.btn-primary):not(.btn-secondary):not(.btn-info):not(.btn-success):not(.btn-warning):not(.btn-danger):not(.btn-dark):not(.btn-light):not([class*='btn-outline-']) {
+  background: #565656;
+  color: white;
+  border-color: #565656;
+  hover-background: #444;
+  hover-color: white;
+  hover-border-color: #000;
+}
