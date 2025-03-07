@@ -30,7 +30,11 @@ Ai_UI <- function(id) {
                   'Question',
                   width = '100%',
                   placeholder = 'Ask a question'),
-        actionButton(ns('submit'), 'Submit')
+        actionButton(
+          ns('submit'),
+          'Submit',
+          class = 'btn-primary'
+                     )
       )
     ),
     accordion(

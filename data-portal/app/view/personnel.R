@@ -108,7 +108,7 @@ Certification_UI <- function(id) {
       ns('renew'),
       'Renew',
       icon = icon('check'),
-      class = 'btn-primary',
+      class = 'btn-secondary',
       width = '100%'
     ),
     actionButton(
@@ -150,7 +150,8 @@ Org_Chart_Output <- function(id) {
     card(
       downloadButton(
         ns('download_org_chart'),
-        'Download Org Chart'
+        'Download Org Chart',
+        class = 'btn-primary'
       ),
       fill = FALSE,
       card_body(

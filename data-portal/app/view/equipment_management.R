@@ -45,7 +45,7 @@ Checks_UI <- function(id) {
       ns('check_all'),
       'Check All',
       icon = icon('check'),
-      class = 'btn-danger',
+      class = 'btn-warning',
       width = '100%'
     ),
 
@@ -157,7 +157,7 @@ Server <- function(id) {
               flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = 'red'),
               flag_type == "Approaching" ~ bsicons::bs_icon("exclamation-triangle", fill = 'yellow'),
               flag_type == "Snooze" ~ bsicons::bs_icon("clock", class = "text-info"),
-              flag_type == "Normal" ~ bsicons::bs_icon("check-circle-fill", class = "text-success")
+              flag_type == "Normal" ~ bsicons::bs_icon("check-circle-fill", fill = "green")
             ),
             full_name = if_else(is.na(full_name), "", full_name) |> as.character()
           ) |>
@@ -275,9 +275,9 @@ Server <- function(id) {
             warning_threshold <= app_data$Current_Local_Date ~ "Approaching",
             TRUE ~ 'Normal'),
             icon = case_when(
-              flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'danger') |> unname()),
-              flag_type == "Approaching" ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'warning') |> unname()),
-              flag_type == "Normal" ~ bsicons::bs_icon("check-circle-fill", fill = bs_get_variables(session$getCurrentTheme(), 'success') |> unname())
+              flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = 'red'),
+              flag_type == "Approaching" ~ bsicons::bs_icon("exclamation-triangle", fill = 'yellow'),
+              flag_type == "Normal" ~ bsicons::bs_icon("check-circle-fill", fill = 'green')
             ),
             full_name = if_else(is.na(full_name), "", full_name) |> as.character()
           ) |>

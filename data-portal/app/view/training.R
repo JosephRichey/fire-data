@@ -35,9 +35,19 @@ TrainingUI <- function(id) {
   ns <- NS(id)
 
   tagList(
-    actionButton(ns('add_training'), "Add Training"),
-    actionButton(ns('modify_training'), "Modify Training"),
-    actionButton(ns("delete_training"), "Delete Training"),
+    actionButton(
+      ns('add_training'),
+      "Add Training",
+      class = 'btn-primary'),
+    actionButton(
+      ns('modify_training'),
+      "Modify Training",
+      class = 'btn-secondary'),
+    actionButton(
+      ns("delete_training"),
+      "Delete Training",
+      class = 'btn-danger'
+      ),
     accordion(
       open = FALSE,
       accordion_panel(
@@ -96,10 +106,12 @@ AttendanceUI <- function(id) {
     actionButton(
       ns('add_attendance'),
       "Add Attendance",
+      class = "btn-secondary",
       disabled = TRUE),
     actionButton(
       ns("delete_attendance"),
       "Delete Attendance",
+      class = 'btn-danger',
       disabled = TRUE)
   )
 }
