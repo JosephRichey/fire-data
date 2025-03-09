@@ -20,6 +20,7 @@ box::use(
   view/report_incident,
   view/report_personnel,
   view/report_equipment,
+  view/messaging,
 )
 
 menu <- tags$ul(
@@ -270,21 +271,24 @@ ui <- function(id) {
           route("messaging",
                 layout_sidebar(
                   sidebar = sidebar(
-
                     open = "desktop",
-                    actionButton("input1", "Copy Email Addresses"),
-                    actionButton("input2", "Copy Phone Numbers"),
+                    messaging$UI(ns('messaging'))
                   ),
-                    textInput("input1", "Recipient", value = ""),
-                    textInput("input2", "Subject", value = ""),
-                    textAreaInput("input3", "Message", value = ""),
-                    actionButton("input4", "Send Message")
+                  card(
+                    messaging$Output(ns('messaging'))
+                  )
                 )
                 ),
           route("settings",
                 tagList(
-                  actionButton("input1", "Change Password"),
-                  actionButton("input2", "Change Main Settings")
+                  actionButton("input1", "Change Password",
+                               class = 'btn-primary',
+                               style = 'margin-bottom: 10px'
+                               ),
+                  actionButton("input2", "Change Main Settings",
+                               class = 'btn-primary',
+                               style = 'margin-bottom: 10px'
+                               )
                 )
               )
           ),
@@ -323,6 +327,8 @@ server <- function(id) {
     report_personnel$Server('personnel')
 
     report_equipment$Server('equipment')
+
+    messaging$Server('messaging')
 
     router_server()
 

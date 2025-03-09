@@ -32,6 +32,9 @@ Firefighter <- dbGetQuery(CON, "SELECT * FROM firefighter") |>
   mutate(start_date = functions$FormatLocalDate(start_date, TRUE))
 
 #' @export
+Firefighter_Contact <- dbGetQuery(CON, "SELECT * FROM firefighter_contact")
+
+#' @export
 Chain_Of_Command <- dbGetQuery(CON, "SELECT * FROM chain_of_command")
 
 #' @export
