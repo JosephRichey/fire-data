@@ -19,6 +19,7 @@ box::use(
   view/report,
   view/report_incident,
   view/report_personnel,
+  view/report_equipment,
 )
 
 menu <- tags$ul(
@@ -46,7 +47,7 @@ ui <- function(id) {
                      success = "#2b8764",
                      info = "#377eb8",
                      warning = "#D76F33",
-                     danger = "#D76F33",#"#9933CC",
+                     danger = "#892A6B",#"#9933CC",
                      light = "#565656",
                      "accordion-button-active-bg" = "#87292b",
                      "accordion-button-active-color" = "white",
@@ -207,9 +208,11 @@ ui <- function(id) {
               nav_panel(title = "Equipment",
                         layout_sidebar(
                           sidebar = sidebar(
-                            title = "Set Filters"
+                            title = "Set Filters",
+                            report_equipment$UI(ns('equipment'))
 
-                          )
+                          ),
+                          report_equipment$Output(ns('equipment'))
                         )
               ),
 
@@ -318,6 +321,8 @@ server <- function(id) {
     report_incident$Server('incident')
 
     report_personnel$Server('personnel')
+
+    report_equipment$Server('equipment')
 
     router_server()
 

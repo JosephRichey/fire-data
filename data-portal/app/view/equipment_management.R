@@ -154,10 +154,10 @@ Server <- function(id) {
             check_threshold <= app_data$Current_Local_Date ~ "Approaching",
             TRUE ~ 'Normal'),
             icon = case_when(
-              flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = 'red'),
-              flag_type == "Approaching" ~ bsicons::bs_icon("exclamation-triangle", fill = 'yellow'),
+              flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'danger')),
+              flag_type == "Approaching" ~ bsicons::bs_icon("exclamation-triangle", fill = '#F4C542'),
               flag_type == "Snooze" ~ bsicons::bs_icon("clock", class = "text-info"),
-              flag_type == "Normal" ~ bsicons::bs_icon("check-circle-fill", fill = "green")
+              flag_type == "Normal" ~ bsicons::bs_icon("check-circle-fill", fill = bs_get_variables(session$getCurrentTheme(), 'success'))
             ),
             full_name = if_else(is.na(full_name), "", full_name) |> as.character()
           ) |>
@@ -276,9 +276,9 @@ Server <- function(id) {
             warning_threshold <= app_data$Current_Local_Date ~ "Approaching",
             TRUE ~ 'Normal'),
             icon = case_when(
-              flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = 'red'),
-              flag_type == "Approaching" ~ bsicons::bs_icon("exclamation-triangle", fill = 'yellow'),
-              flag_type == "Normal" ~ bsicons::bs_icon("check-circle-fill", fill = 'green')
+              flag_type == "Due" ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'danger')),
+              flag_type == "Approaching" ~ bsicons::bs_icon("exclamation-triangle", fill = '#F4C542'),
+              flag_type == "Normal" ~ bsicons::bs_icon("check-circle-fill", fill = bs_get_variables(session$getCurrentTheme(), 'success'))
             ),
             full_name = if_else(is.na(full_name), "", full_name) |> as.character()
           ) |>

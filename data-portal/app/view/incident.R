@@ -38,7 +38,7 @@ UI <- function(id) {
     actionButton(ns("delete"),
                  "Delete Incident",
                  icon = icon("trash"),
-                 class = "btn-danger"),
+                 class = "btn-warning"),
     accordion(
       accordion_panel(
         title = "Filter Incidents",
@@ -324,7 +324,7 @@ Server <- function(id) {
               actionButton(ns('delete_incident_button'),
                            'Delete',
                            icon = icon('trash'),
-                           class = 'btn-danger'),
+                           class = 'btn-warning'),
             )
           )
         )

@@ -306,9 +306,9 @@ Server <- function(id) {
               TRUE ~ 'Normal'
             ),
           status = case_when(
-            flag_type == 'Due' ~ bsicons::bs_icon("exclamation-triangle", fill = 'red'),
-            flag_type == 'Approaching' ~ bsicons::bs_icon("exclamation-triangle", fill = 'yellow'),
-            TRUE ~ bsicons::bs_icon("check-circle-fill", fill = 'green')
+            flag_type == 'Due' ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'danger')),
+            flag_type == 'Approaching' ~ bsicons::bs_icon("exclamation-triangle", fill = '#F4C542'),
+            TRUE ~ bsicons::bs_icon("check-circle-fill", fill = bs_get_variables(session$getCurrentTheme(), 'success'))
             )
           ) |>
           filter(full_name %in% input$cert_firefighter) |>

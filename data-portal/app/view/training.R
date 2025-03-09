@@ -46,7 +46,7 @@ TrainingUI <- function(id) {
     actionButton(
       ns("delete_training"),
       "Delete Training",
-      class = 'btn-danger'
+      class = 'btn-warning'
       ),
     accordion(
       open = FALSE,
@@ -111,7 +111,7 @@ AttendanceUI <- function(id) {
     actionButton(
       ns("delete_attendance"),
       "Delete Attendance",
-      class = 'btn-danger',
+      class = 'btn-warning',
       disabled = TRUE)
   )
 }
@@ -506,7 +506,7 @@ Server <- function(id) {
               "Are you sure you want to delete this training?",
               footer = tagList(
                 modalButton("Cancel"),
-                actionButton(ns("confirm_deletion"), "Delete", class = "btn-danger")
+                actionButton(ns("confirm_deletion"), "Delete", class = "btn-warning")
               )
             )
           )
