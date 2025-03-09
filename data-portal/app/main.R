@@ -18,6 +18,7 @@ box::use(
   logic/logging,
   view/report,
   view/report_incident,
+  view/report_personnel,
 )
 
 menu <- tags$ul(
@@ -215,9 +216,9 @@ ui <- function(id) {
               nav_panel(title = "Personnel",
                         layout_sidebar(
                           sidebar = sidebar(
-                            title = "Set Filters"
-
-                          )
+                            report_personnel$UI(ns('personnel'))
+                          ),
+                          report_personnel$Output(ns('personnel'))
                         )
               ),
 
@@ -315,6 +316,8 @@ server <- function(id) {
     report$Training_Server('dep_training', 'Department')
 
     report_incident$Server('incident')
+
+    report_personnel$Server('personnel')
 
     router_server()
 
