@@ -46,7 +46,7 @@ Training_UI <- function(id, ag_level) {
         ns('choose_custom'),
         'Generate Custom Report',
         class = 'btn-primary',
-        icon = icon('file')
+        icon = icon('wand-magic-sparkles')
       )
     )
   } else {
@@ -60,7 +60,7 @@ Training_UI <- function(id, ag_level) {
         ns('choose_custom'),
         'Generate Custom Report',
         class = 'btn-primary',
-        icon = icon('file')
+        icon = icon('wand-magic-sparkles')
       )
     )
   }

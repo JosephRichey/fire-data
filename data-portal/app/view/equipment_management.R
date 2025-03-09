@@ -220,7 +220,8 @@ Server <- function(id) {
             'Are you sure you want to check all equipment currently displayed in the table?',
             footer = tagList(
               modalButton('Cancel'),
-              actionButton(ns('confirm_check_all'), 'Confirm')
+              actionButton(ns('confirm_check_all'), 'Confirm',
+                           class = "btn-warning")
             )
           )
         )
@@ -377,7 +378,8 @@ Server <- function(id) {
 
             footer = tagList(
               modalButton('Cancel'),
-              actionButton(ns('confirm_expiration_update'), 'Confirm')
+              actionButton(ns('confirm_expiration_update'), 'Confirm',
+                           class = "btn-primary")
             )
           )
         )
@@ -439,7 +441,7 @@ Manage_Equipment_UI <- function(id) {
       ns('delete_equipment'),
       'Delete Equipment',
       icon = icon('trash'),
-      class = 'btn-danger',
+      class = 'btn-warning',
       width = '100%'
     ),
     pickerInput(
@@ -496,7 +498,7 @@ Manage_Equipment_Type_UI <- function(id) {
       ns('delete_equipment_type'),
       'Delete Equipment Type',
       icon = icon('trash'),
-      class = 'btn-danger',
+      class = 'btn-warning',
       width = '100%'
     ),
 
@@ -599,7 +601,8 @@ Manage_Equipment_Server <- function(id) {
             ),
             footer = tagList(
               modalButton('Cancel'),
-              actionButton(ns('confirm_add_equipment'), 'Confirm')
+              actionButton(ns('confirm_add_equipment'), 'Confirm',
+                           class = "btn-primary")
             )
           )
         )
@@ -722,7 +725,8 @@ Manage_Equipment_Server <- function(id) {
             ),
             footer = tagList(
               modalButton('Cancel'),
-              actionButton(ns('confirm_edit_equipment'), 'Confirm')
+              actionButton(ns('confirm_edit_equipment'), 'Confirm',
+                           class = "btn-primary")
             )
           )
         )
@@ -783,10 +787,12 @@ Manage_Equipment_Server <- function(id) {
           modalDialog(
             title = 'Confirm Delete',
             'Are you sure you want to delete the selected equipment?',
+            br(),
             Visible_Equipment_Table()[input$equipment_pieces_rows_selected,2] |> paste(collapse = ', '),
             footer = tagList(
               modalButton('Cancel'),
-              actionButton(ns('confirm_delete_equipment'), 'Confirm')
+              actionButton(ns('confirm_delete_equipment'), 'Confirm',
+                           class = "btn-warning")
             )
           )
         )

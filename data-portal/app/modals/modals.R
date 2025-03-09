@@ -72,9 +72,16 @@ trainingModal <- function(ns,
     footer = tagList(
       modalButton("Cancel"),
       if(edit) {
-        actionButton(ns("submit_edit_training"), "Submit Edit")
+        actionButton(
+          ns("submit_edit_training"),
+          "Submit Edit",
+          class = "btn-primary"
+          )
       } else {
-        actionButton(ns("submit_add_training"), "Add Training")
+        actionButton(
+          ns("submit_add_training"),
+          "Add Training",
+          class = "btn-primary")
       }
     ),
     easyClose = TRUE
@@ -110,7 +117,8 @@ attendanceModal <- function(ns,
 
     footer = tagList(
       modalButton("Cancel"),
-      actionButton(ns("submit_add_attendance"), "Submit Attendance")
+      actionButton(ns("submit_add_attendance"), "Submit Attendance",
+                   class = "btn-primary")
     ),
     easyClose = TRUE
   )
@@ -128,7 +136,8 @@ deleteAttendanceModal <- function(ns,
                 multiple = TRUE),
     footer = tagList(
       modalButton("Cancel"),
-      actionButton(ns("submit_delete_attendance"), "Delete Attendance")
+      actionButton(ns("submit_delete_attendance"), "Delete Attendance",
+                   class = "btn-warning")
     ),
     easyClose = TRUE
   )
@@ -146,7 +155,8 @@ excuseAttendanceModal <- function(ns,
                 multiple = TRUE),
     footer = tagList(
       modalButton("Cancel"),
-      actionButton(ns("submit_excuse_attendance"), "Excuse Attendance")
+      actionButton(ns("submit_excuse_attendance"), "Excuse Attendance",
+                   class = "btn-primary")
     ),
     easyClose = TRUE
   )

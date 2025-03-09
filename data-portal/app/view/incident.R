@@ -159,14 +159,15 @@ Server <- function(id) {
                       name = "Finalized",
                       html = TRUE,
                       cell = function(value, index) {
-                        icon_svg <- as.character(bsicons::bs_icon('check-square-fill'))  # Convert to string
+                        check <- as.character(bsicons::bs_icon('check-square-fill'))
+                        x <- as.character(bsicons::bs_icon('x-square-fill'))
 
                         htmltools::HTML(sprintf(
                           "<span onclick=\"App.finalize_incident('%s', '%s')\" class='fs3' style='cursor: pointer; font-size: 1.5em;%s'>%s</span>",
                           ns(""),
                           r_Displayed_Incidents()$incident_id[index] |> as.character(),
                           if_else(value == 1, "color: #2b8764;", "color: #87292b;"),
-                          icon_svg  # Insert raw SVG
+                          if_else(value == 1, check, x)
                         ))
                       }
                     ),

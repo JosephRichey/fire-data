@@ -306,9 +306,9 @@ Server <- function(id) {
               TRUE ~ 'Normal'
             ),
           status = case_when(
-            flag_type == 'Due' ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'danger') |> unname()),
-            flag_type == 'Approaching' ~ bsicons::bs_icon("exclamation-triangle", fill = bs_get_variables(session$getCurrentTheme(), 'warning') |> unname()),
-            TRUE ~ bsicons::bs_icon("check-circle-fill", fill = bs_get_variables(session$getCurrentTheme(), 'success') |> unname())
+            flag_type == 'Due' ~ bsicons::bs_icon("exclamation-triangle", fill = 'red'),
+            flag_type == 'Approaching' ~ bsicons::bs_icon("exclamation-triangle", fill = 'yellow'),
+            TRUE ~ bsicons::bs_icon("check-circle-fill", fill = 'green')
             )
           ) |>
           filter(full_name %in% input$cert_firefighter) |>
@@ -374,7 +374,8 @@ Server <- function(id) {
 
             footer = tagList(
               modalButton('Cancel'),
-              actionButton(ns('confirm_expiration_update'), 'Confirm')
+              actionButton(ns('confirm_expiration_update'), 'Confirm',
+                           class = 'btn-primary')
             )
           )
         )
@@ -415,7 +416,8 @@ Server <- function(id) {
             'Are you sure you want to delete the selected certifications?',
             footer = tagList(
               modalButton('Cancel'),
-              actionButton(ns('confirm_delete'), 'Confirm')
+              actionButton(ns('confirm_delete'), 'Confirm',
+                           class = 'btn-primary')
             )
           )
         )
@@ -467,7 +469,8 @@ Server <- function(id) {
             ),
             footer = tagList(
               modalButton('Cancel'),
-              actionButton(ns('confirm_add_cert'), 'Confirm')
+              actionButton(ns('confirm_add_cert'), 'Confirm',
+                           class = 'btn-primary')
             )
           )
         )

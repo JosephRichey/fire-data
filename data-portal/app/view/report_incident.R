@@ -33,7 +33,7 @@ UI <- function(id) {
       ns('choose_custom'),
       'Generate Custom Report',
       class = 'btn-primary',
-      icon = icon('file')
+      icon = icon('wand-magic-sparkles')
     )
   )
 }
