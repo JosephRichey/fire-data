@@ -115,7 +115,7 @@ Certification_UI <- function(id) {
       ns('delete'),
       'Delete',
       icon = icon('trash'),
-      class = 'btn-danger',
+      class = 'btn-warning',
       width = '100%'
     ),
 
