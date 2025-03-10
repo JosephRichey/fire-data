@@ -355,8 +355,18 @@ AI_Server <- function(id) {
 
         sql(stringr::str_extract(openai_response(), "SELECT[\\s\\S]*?;"))
 
+        #FIXME Using this to capture some of the queries and response. DOn't include in prod (probably)
+        query <- DBI::sqlInterpolate(
+          app_data$CON,
+          'INSERT INTO ai_response_log (prompt, response) VALUES (?query, ?response)',
+          query = input$question,
+          response = openai_response()
+        )
+
+        DBI::dbExecute(app_data$CON, query)
+
         if(is.na(sql())) {
-          req(FALSE)
+          return(gt(data.frame()))
         }
 
         # Check if the SQL contains any unwanted keywords
@@ -392,9 +402,18 @@ AI_Server <- function(id) {
       })
 
       output$answer <- renderText({
+
+        #FIXME This is super sketch.
+
         # browser()
         req(input$submit)
-        stringr::str_extract(openai_response(), "Answer:.*")
+
+        if(is.na(sql())) {
+          return(openai_response())
+        } else {
+          stringr::str_extract(openai_response(), "Answer:.*")
+
+        }
       })
 
     }

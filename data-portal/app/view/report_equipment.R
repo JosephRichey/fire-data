@@ -45,16 +45,16 @@ Output <- function(id) {
         "5",
         theme = value_box_theme(
           bg = '#F4C542',
-          fg = 'white'
+          fg = 'black'
         ),
-        icon = icon('exclamation-triangle', lib = 'font-awesome')
+        showcase = bsicons::bs_icon('exclamation-triangle')
       ),
       value_box(
         'Expired Equipment',
         # textOutput(ns('expired_equipment')),
         "1",
-        theme = 'danger',
-        icon = icon('exclamation-triangle', lib = 'font-awesome')
+        theme = 'primary',
+        showcase = bsicons::bs_icon('exclamation-triangle')
       ),
 
       col_widths = c(5, -2, 5)
