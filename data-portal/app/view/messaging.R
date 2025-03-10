@@ -18,6 +18,11 @@ box::use(
 
 UI <- function(id) {
   ns <- NS(id)
+  tags$script("
+            Shiny.addCustomMessageHandler('txt', function (txt) {
+                navigator.clipboard.writeText(txt);
+            });
+        ")
   tagList(
     actionButton(ns("copy_email"), "Copy Email Addresses",
                  class = 'btn-primary'),
@@ -64,10 +69,12 @@ Server <- function(id) {
       ns <- session$ns
 
       observe({
-        app_data$Firefighter_Contact |>
-          select(email_address) |>
-          pull() |>
-          write_clip(breaks = ", ")
+        # browser()
+        text <- app_data$Firefighter_Contact |>
+          pull(email_address) |>
+          paste(collapse = ", ")
+
+        session$sendCustomMessage("txt", text)
 
         showNotification("Email addresses copied to clipboard", duration = 5)
 
@@ -75,10 +82,11 @@ Server <- function(id) {
         bindEvent(input$copy_email)
 
       observe({
-        app_data$Firefighter_Contact |>
-          select(phone_number) |>
-          pull() |>
-          write_clip(breaks = ", ")
+        text <- app_data$Firefighter_Contact |>
+          pull(phone_number) |>
+          paste(collapse = ", ")
+
+        session$sendCustomMessage("txt", text)
 
         showNotification("Phone numbers copied to clipboard", duration = 5)
 
@@ -126,7 +134,13 @@ Server <- function(id) {
               to = input$receipient,
               from = c("no-reply@FirePulse" = "jwrichey.1@gmail.com"),
               subject = input$subject,
-              credentials = creds_key("gmail_creds")
+              credentials = creds_envvar(
+                user = "jwrichey.1@gmail.com",
+                provider = 'gmail',
+                host = "smtp.gmail.com",
+                port = 465,
+                use_ssl = FALSE
+              )
             )
 
           removeModal()

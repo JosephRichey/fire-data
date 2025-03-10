@@ -876,6 +876,11 @@ Manage_Equipment_Server <- function(id) {
               width = '100%',
               placeholder = 'Enter equipment type'
             ),
+            checkboxInput(
+              ns('input2'),
+              "Don't require check",
+              value = FALSE
+            ),
             layout_column_wrap(
               width = 1/2,
               numericInput(
@@ -910,6 +915,11 @@ Manage_Equipment_Server <- function(id) {
               )
             ),
             hr(),
+            checkboxInput(
+              ns('input1'),
+              "Don't require expiration",
+              value = FALSE
+            ),
             layout_column_wrap(
               width = 1/2,
               numericInput(

@@ -234,6 +234,8 @@ Server <- function(id) {
                                          active_status))
         r_Firefighter(New)
 
+        #FIXME Need to consider rebuilding the chain of command when a firefighter is removed.
+
 
       }) |>
         bindEvent(input$toggle_firefighter)
@@ -541,7 +543,20 @@ Server <- function(id) {
           ))
 
         # Convert to a tidygraph object
-        graph <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
+        tryCatch(
+          graph <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
+
+        , error = function(e) {
+          shinyalert(
+            title = 'Error',
+            type = 'error',
+            text = 'There was an error generating the org chart. This usually happens when you remove someone from active duty without removing them from the chain of command.'
+          )
+          print(e)
+          return(NULL)
+        }
+
+        )
 
         return(ggraph(graph, layout = "tree") +
                  geom_edge_link() +  # No arrows specified

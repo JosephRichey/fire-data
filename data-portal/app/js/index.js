@@ -37,3 +37,13 @@ export function toggle_firefighter(ns, id) {
   console.log("Setting input with id: " + fullInputId);
   Shiny.setInputValue(fullInputId, id, {priority: "event"});
 };
+
+console.log("Clipboard.js loaded!");
+Shiny.addCustomMessageHandler('txt', function(txt) {
+    navigator.clipboard.writeText(txt).then(() => {
+        console.log("Text copied to clipboard!");
+    }).catch(err => {
+        console.error("Failed to copy text: ", err);
+    });
+});
+
