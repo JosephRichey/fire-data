@@ -93,7 +93,7 @@ Server <- function(id) {
           rvs$target_ff_full_name <- input$name
           
           #FIXME This shoulnd't be duplicated- use a function.
-          rvs$target_training_id <- app_data$Training |>
+          rvs$target_training_id <- r_training() |>
             dplyr::filter(
               sysTime + 300 > start_time & # Same logic as VerifyTrainingTime
                 sysTime - (60 * 60) < end_time # Same logic as VerifyTrainingTime
@@ -161,7 +161,7 @@ Server <- function(id) {
       })
       
       observeEvent(input$confirm_check_in, {
-        browser()
+        # browser()
         removeModal()
         
         # No sqlInterpolate needed. All inputs are preselected.
