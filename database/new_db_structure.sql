@@ -183,8 +183,8 @@ CREATE TABLE test.incident (
     canceled bool,
     dropped bool,
     notes text,
-    finalized bool,
-    incident_expire VARCHAR(255)
+    finalized bool
+    #incident_expire VARCHAR(255) #FIXME Add this column
 );
 
 ALTER TABLE test.incident ADD INDEX (incident_id);

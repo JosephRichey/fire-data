@@ -199,7 +199,7 @@ select_ff_aparatus <- function(ns, incident_details, additional) {
       if(additional) {
         actionButton(ns("add_additional_response"), "Back", class = "btn btn-light")
       } else {
-        actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-light")
+        actionButton(ns("to_address_unit"), "Back", class = "btn btn-light")
       },
       actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
       actionButton(ns("to_assignment"), "Next", class = "btn btn-primary")

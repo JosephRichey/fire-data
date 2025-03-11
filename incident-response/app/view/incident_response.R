@@ -10,7 +10,6 @@ box::use(
   purrr[...],
   sortable[...],
   htmlwidgets[...],
-  shinyTime[...],
 )
 
 box::use(
@@ -174,6 +173,7 @@ ModalServer <- function(id) {
       # Show third modal
       observe({
         removeModal()
+        # browser()
         showModal(modal$select_ff_aparatus(ns, incident_details, additional()))
       }) |>
         bindEvent(input$to_apparatus_ff, ignoreNULL = TRUE, ignoreInit = TRUE)
@@ -298,7 +298,7 @@ ModalServer <- function(id) {
       observe({
         ## Print values to log
         vals <- reactiveValuesToList(incident_details)
-        
+        # browser()
         print(vals)
         
         list <- input$ff_app_lists
