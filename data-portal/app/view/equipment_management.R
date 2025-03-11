@@ -877,7 +877,7 @@ Manage_Equipment_Server <- function(id) {
               placeholder = 'Enter equipment type'
             ),
             checkboxInput(
-              ns('input2'),
+              ns('not_require_check'),
               "Don't require check",
               value = FALSE
             ),
@@ -916,7 +916,7 @@ Manage_Equipment_Server <- function(id) {
             ),
             hr(),
             checkboxInput(
-              ns('input1'),
+              ns('not_require_expiration'),
               "Don't require expiration",
               value = FALSE
             ),
@@ -963,6 +963,7 @@ Manage_Equipment_Server <- function(id) {
 
       }) |>
         bindEvent(input$add_type)
+
 
       observe({
         # browser()

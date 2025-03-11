@@ -34,11 +34,10 @@ menu <- tags$ul(
   tags$li(a(href = route_link("settings"), fa("cogs", title = "Settings")))
 )
 
-
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  page_fillable(
+  page_fluid(
     title = paste0(Sys.getenv('FD'), " - Data Portal"),
 
     # Theme
@@ -302,6 +301,10 @@ ui <- function(id) {
 #' @export
 server <- function(id) {
   moduleServer(id, function(input, output, session) {
+    shinycssloaders::showPageSpinner(
+      type = 6,
+      color = "#87292b"
+    )
 
     ##### Global Stuff #####
     ns <- session$ns
@@ -336,6 +339,10 @@ server <- function(id) {
     session$onSessionEnded(function() {
       DBI::dbDisconnect(app_data$CON)
       print('Disconnected from database.')
+    })
+
+    session$onFlushed(function() {
+      shinycssloaders::hidePageSpinner()
     })
 
   })

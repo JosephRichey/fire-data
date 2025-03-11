@@ -453,14 +453,12 @@ Server <- function(id) {
             selectInput(
               ns('add_cert_type'),
               'Certification Type',
-              choices = c(app_data$Certification_Type$certification_name |> unique()),
-              selected = c(app_data$Certification_Type$certification_name |> unique())
+              choices = c(app_data$Certification_Type$certification_name |> unique())
             ),
             selectInput(
               ns('add_cert_firefighter'),
               'Firefighter',
               choices = c(app_data$Firefighter |> filter(active_status == 1) |> pull(full_name)),
-              selected = c(app_data$Firefighter |> filter(active_status == 1) |> pull(full_name)),
               multiple = TRUE
             ),
             dateInput(
