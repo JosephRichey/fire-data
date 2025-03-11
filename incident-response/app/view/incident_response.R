@@ -579,6 +579,7 @@ CardServer <- function(id) {
                 )
               )
             ),
+            card_body(
             p(
               paste(
                 format(incident$dispatch_time, "%H:%M:%S", usetz = F),
@@ -587,6 +588,7 @@ CardServer <- function(id) {
                 )
             ),
             p(paste(responded, collapse = ", "))
+            )
           )
         })
       }) |> 

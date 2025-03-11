@@ -17,7 +17,7 @@ ui <- function(id) {
   tagList(
     uiOutput(ns('incident_cards'))
   )
-  page_fixed(
+  page_fluid(
     title = Sys.getenv('FD'),
     h1(Sys.getenv('FD')),
     h3("Incident Response"),
