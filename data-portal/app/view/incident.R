@@ -271,7 +271,7 @@ Server <- function(id) {
         observe({
           # Show a modal with all info from call
           #FIXME Write change to DB
-          # browser()
+          browser()
           details <- r_Incident_Data() |>
             filter(incident_id == input$show_details)
 
@@ -288,7 +288,7 @@ Server <- function(id) {
                     if_else(details$canceled == 1, 'Canceled: <span class = checkmark>\U2713</span>', 'Canceled: <span class = xmark>X</span>'), '<br>',
                     if_else(details$dropped == 1, 'Dropped: <span class = checkmark>\U2713</span>', 'Dropped: <span class = xmark>X</span>'), '<br>',
                     hr(),
-                    if_else(is.na(details$notes), "", details$notes)
+                    replace(details$notes, is.na(details$notes), "")
                     )
                   ),
 
