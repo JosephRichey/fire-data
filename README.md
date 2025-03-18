@@ -38,7 +38,7 @@ See a fully functioning example app <a href = "https://fire-data.shinyapps.io/da
 
 ### Training Attendance
 
-This is the most tried and tested app currently. This allows people to check in and out of trainings for training hours. The admin password to sign everyone out is "positconf2024".
+This is the most tried and tested app currently. This allows people to check in and out of trainings for training hours. The admin password to sign everyone out is "123".
 
 Upcoming features include:
 
@@ -54,6 +54,8 @@ The first version of this was released in v0.3.0. This allows departments to tra
 
 See a fully functioning example app <a href = "https://fire-data.shinyapps.io/incident-response/" target="_blank">here</a>.
 
-### Inventory
+### Equipment Management
 
-This is an exploratory feature. The general idea is a very lightweight inventory management app. This is still being scoped to see if it's a feasible project.
+This app will be released with v1.0.0. This allows for checks to be made on a regular cadence. Equipment can be added and managed in the data portal, and then checked in this application. (Current prototype doesn't support this- use equipment that is already loaded.)
+
+See a fully function example app <a href = "https://fire-data.shinyapps.io/equipment_management/" target="_blank">here</a>
