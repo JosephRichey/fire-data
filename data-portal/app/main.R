@@ -2,7 +2,7 @@ box::use(
   shiny[...],
   bslib[...],
   DT[...],
-  DBI[dbDisconnect],
+  DBI[dbDisconnect, dbGetQuery],
   shiny.router[...],
   fontawesome[...],
   bsicons[...],
@@ -334,6 +334,17 @@ server <- function(id) {
     messaging$Server('messaging')
 
     router_server()
+
+    # Keep DB connection live
+    observe({
+      invalidateLater(180000)  # Ping every 3 minutes
+      cat('Pinging database...', file = stderr())
+      tryCatch(
+        dbGetQuery(app_data$CON, "SELECT 1"),
+        error = function(e) message("Connection ping failed: ", e$message)
+      )
+    })
+
 
     # Disconnect from the database on app close
     session$onSessionEnded(function() {
