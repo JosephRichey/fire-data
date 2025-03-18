@@ -371,7 +371,7 @@ AI_Server <- function(id) {
 
         # Check if the SQL contains any unwanted keywords
         if (grepl("\\b(DELETE|DROP|UPDATE|INSERT|ALTER|TRUNCATE)\\b", sql(), ignore.case = TRUE)) {
-          logger::log_error("Unsafe SQL detected!")
+          logger::log_error("Unsafe SQL detected! The AI is taking over!")
           stop()
         } else {
 
@@ -403,17 +403,10 @@ AI_Server <- function(id) {
 
       output$answer <- renderText({
 
-        #FIXME This is super sketch.
-
         # browser()
         req(input$submit)
 
-        if(is.na(sql())) {
-          return(openai_response())
-        } else {
-          stringr::str_extract(openai_response(), "Answer:.*")
-
-        }
+        stringr::str_replace(openai_response(), "```[\\s\\S.]*```","") |> stringr::str_trim()
       })
 
     }
