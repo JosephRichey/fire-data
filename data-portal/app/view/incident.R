@@ -271,7 +271,7 @@ Server <- function(id) {
         observe({
           # Show a modal with all info from call
           #FIXME Write change to DB
-          browser()
+          # browser()
           details <- r_Incident_Data() |>
             filter(incident_id == input$show_details)
 

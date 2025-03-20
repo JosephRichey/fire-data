@@ -24,7 +24,7 @@ UI <- function(id) {
   tagList(
     dateRangeInput(ns('incident_filter_range'),
                    "Show incidents between:",
-                   start = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')) - years(1),
+                   start = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ')) - months(1),
                    end = with_tz(Sys.time(), tzone = Sys.getenv('LOCAL_TZ'))),
     downloadButton(ns("download"), "Download",
                    class = 'btn-secondary'),
@@ -43,7 +43,6 @@ Output <- function(id) {
   ns <- NS(id)
 
   tagList(
-
       layout_columns(
         value_box("Number of Incidents",
                   textOutput(ns("number")),
@@ -86,6 +85,9 @@ Output <- function(id) {
 
         col_widths = c(3,3,3,3),
         row_widths = c(1,1)
+      ),
+      card(
+        plotlyOutput(ns("incidents"))
       )
 
   )
@@ -143,7 +145,7 @@ Server <- function(id) {
           mutate(incident_length = difftime(end_time, dispatch_time, units = 'hours') |> as.numeric()) |>
           left_join(app_data$Firefighter_Incident |> select(firefighter_id, incident_id),
                     by = c("incident_id")) |>
-          select(incident_id, incident_length, ems_units, fire_units, wildland_units)
+          select(incident_id, incident_length, incident_date, ems_units, fire_units, wildland_units)
 
 
         return(df)
@@ -250,6 +252,45 @@ Server <- function(id) {
           select(incident_id) |>
           distinct() |>
           nrow()
+      })
+
+      output$incidents <- renderPlotly({
+        # browser()
+        plot_data <- R_Incidents() |>
+          select(-incident_length) |>
+          unique() |>
+          group_by(incident_date) |>
+          summarize(
+            ems = sum(ems_units),
+            fire = sum(fire_units),
+            wildland = sum(wildland_units)
+          )
+
+        plot_ly(plot_data, x = ~incident_date) |>
+          add_lines(y = ~ems, name = "EMS", line = list(color = "#3498DB")) |>
+          add_lines(y = ~fire, name = "Fire", line = list(color = "#E74C3C")) |>
+          add_lines(y = ~wildland, name = "Wildland", line = list(color = "#00BC8C")) |>
+          layout(
+            title = "Incidents Time",
+            xaxis = list(
+              title = "Date",
+              titlefont = list(color = '#FFFFFF'),
+              tickfont = list(color = '#FFFFFF'),
+              gridcolor = '#2d2d2d'
+              ),
+            yaxis = list(title = "Incidents",
+                         titlefont = list(color = '#FFFFFF'),
+                         tickfont = list(color = '#FFFFFF'),
+                         gridcolor = '#2d2d2d',
+                         zeroline = FALSE,
+                         dtick = 1
+                         ),
+            plot_bgcolor = '#222222',
+            paper_bgcolor = '#222222',
+            font = list(color = '#FFFFFF'),
+            showlegend = TRUE)
+
+
       })
 
 

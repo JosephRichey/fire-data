@@ -47,20 +47,35 @@ Output <- function(id) {
           bg = '#F4C542',
           fg = 'black'
         ),
-        showcase = bsicons::bs_icon('exclamation-triangle')
+        showcase = bsicons::bs_icon('exclamation')
       ),
       value_box(
         'Expired Equipment',
         # textOutput(ns('expired_equipment')),
-        "1",
-        theme = 'primary',
+        "0",
+        theme = 'warning',
         showcase = bsicons::bs_icon('exclamation-triangle')
       ),
+      value_box(
+        'Failed Checks',
+        "1",
+        theme = 'primary',
+        showcase = bsicons::bs_icon('exclamation-octagon')
 
-      col_widths = c(5, -2, 5)
+      ),
+
+      col_widths = c(4, 4, 4)
     ),
 
-    plotlyOutput(ns('equipment_plot'))
+    layout_columns(
+      plotlyOutput(ns('equipment_plot')),
+      card(
+        card_header('Equipment Messages/Failures'),
+        DT::DTOutput(ns('equipment_messages'))
+      )
+
+    )
+
 
   )
 
@@ -73,6 +88,26 @@ Server <- function(id) {
     function(input, output, session) {
 
       ns <- session$ns
+
+      output$equipment_messages <- DT::renderDT(
+        data.frame(
+          Message = c('We need more SCBA wipes',
+                      "Saw failure: Roof saw on 82 won't start"),
+          Date = c('2025-03-01', Sys.Date() |> as.character()),
+          Action = c(
+            sprintf('<button id="resolve_%d" class="btn btn-success">Resolve</button>', 1),
+            sprintf('<button id="resolve_%d" class="btn btn-success">Resolve</button>', 2)
+          )
+        ) |>
+          DT::datatable(
+            escape = FALSE,
+            filter = 'none',
+            rownames = FALSE,
+            selection = 'none',
+            options = list(dom = 't')
+          )
+
+      )
 
 
       observe({
@@ -117,11 +152,25 @@ Server <- function(id) {
           mutate(compliance = pmin(compliance, 100))
 
         plot_ly(data, x = ~date, y = ~compliance) %>%
-          add_lines() %>%
+          add_lines(line = list(color = 'white')) %>%
           layout(
             title = "Equipment Compliance Over Time",
-            xaxis = list(title = "Date"),
-            yaxis = list(title = "Compliance (%)")
+            xaxis = list(
+              title = "Date",
+              titlefont = list(color = '#FFFFFF'),
+              tickfont = list(color = '#FFFFFF'),
+              gridcolor = '#2d2d2d'
+            ),
+            yaxis = list(title = "Compliance (%)",
+                         titlefont = list(color = '#FFFFFF'),
+                         tickfont = list(color = '#FFFFFF'),
+                         gridcolor = '#2d2d2d',
+                         zeroline = FALSE
+            ),
+            plot_bgcolor = '#222222',
+            paper_bgcolor = '#222222',
+            font = list(color = '#FFFFFF'),
+            showlegend = FALSE
           )
 
       })

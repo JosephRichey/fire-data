@@ -338,7 +338,7 @@ server <- function(id) {
     # Keep DB connection live
     observe({
       invalidateLater(180000)  # Ping every 3 minutes
-      cat('Pinging database...', file = stderr())
+      cat('Pinging database...\n', file = stderr())
       tryCatch(
         dbGetQuery(app_data$CON, "SELECT 1"),
         error = function(e) message("Connection ping failed: ", e$message)
