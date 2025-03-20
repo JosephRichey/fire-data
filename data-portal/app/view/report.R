@@ -227,37 +227,63 @@ Training_Server <- function(id, ag_level) {
                                   Month = unique(Training_Data$Month),
                                   stringsAsFactors = FALSE)
 
-        # Merge with the training data to fill in missing months with zeros
-        plot_data <- merge(all_months, Training_Data, by = c("training_type", "Month"), all.x = TRUE) %>%
+        # Step 1: Prepare plot data with `training_type` intact
+        plot_data <- merge(all_months, Training_Data, by = c("training_type", "Month"), all.x = TRUE) |>
           mutate(training_length = ifelse(is.na(training_length), 0, training_length)) |>
-          group_by(training_type, Month) %>%
-          summarise(Total_Length = sum(training_length))
+          group_by(training_type, Month) |>
+          summarise(Total_Length = sum(training_length), .groups = "drop")
 
-        # Create the plot with specified colors, legend, and hover text
-        plot <- plot_ly(plot_data,
-                        x = ~Month,
-                        y = ~Total_Length,
-                        color = ~training_type,
-                        type = 'scatter',
-                        mode = 'lines',
-                        colors = c("EMS" = "#3498DB", "Fire" = "#E74C3C", "Wildland" = "#00BC8C", "Other" = '#ADB5BD'),
-                        text = ~paste("Total Hours: ", Total_Length, " hours")) %>%
-          layout(title = "Training Summary",
-                 xaxis = list(title = "Month",
-                              titlefont = list(color = '#FFFFFF'),
-                              tickfont = list(color = '#FFFFFF'),
-                              gridcolor = '#2d2d2d'),
-                 yaxis = list(title = "Training Length (hours)",
-                              titlefont = list(color = '#FFFFFF'),
-                              tickfont = list(color = '#FFFFFF'),
-                              gridcolor = '#2d2d2d',
-                              zeroline = FALSE),
-                 plot_bgcolor = '#222222',
-                 paper_bgcolor = '#222222',
-                 font = list(color = '#FFFFFF'),
-                 showlegend = TRUE)
+        # Step 2: Create total values for annotation (no grouping by `training_type`)
+        total_data <- plot_data |>
+          group_by(Month) |>
+          summarise(Total_Length = sum(Total_Length), .groups = "drop")
+
+        # Step 3: Create the stacked bar chart
+        plot <- plot_ly(
+          plot_data,
+          x = ~Month,
+          y = ~Total_Length,
+          color = ~training_type,
+          type = 'bar',
+          colors = c("EMS" = "#3498DB", "Fire" = "#E74C3C", "Wildland" = "#00BC8C", "Other" = '#ADB5BD'),
+          text = ~paste(Total_Length),
+          textposition = "inside"
+        ) %>%
+          add_text(
+            data = total_data,
+            x = ~Month,
+            y = ~Total_Length + 0.25,
+            text = ~Total_Length,
+            textposition = "outside",
+            showlegend = FALSE,
+            inherit = FALSE
+          ) %>%
+          layout(
+            title = "Training Summary",
+            xaxis = list(
+              title = "Month",
+              titlefont = list(color = '#FFFFFF'),
+              tickfont = list(color = '#FFFFFF'),
+              gridcolor = '#2d2d2d'
+            ),
+            yaxis = list(
+              title = "Training Length (hours)",
+              titlefont = list(color = '#FFFFFF'),
+              tickfont = list(color = '#FFFFFF'),
+              gridcolor = '#2d2d2d',
+              zeroline = FALSE,
+              dtick = 1
+            ),
+            plot_bgcolor = '#222222',
+            paper_bgcolor = '#222222',
+            font = list(color = '#FFFFFF'),
+            barmode = 'stack',
+            showlegend = TRUE
+          )
 
         plot
+
+
       })
 
       # Data Download

@@ -259,36 +259,55 @@ Server <- function(id) {
         plot_data <- R_Incidents() |>
           select(-incident_length) |>
           unique() |>
+          mutate(
+            mixed = if_else((ems_units + fire_units + wildland_units) > 1, 1, 0),
+            neither = if_else((ems_units + fire_units + wildland_units) == 0, 1, 0)
+          ) |>
           group_by(incident_date) |>
           summarize(
             ems = sum(ems_units),
             fire = sum(fire_units),
-            wildland = sum(wildland_units)
-          )
+            wildland = sum(wildland_units),
+            mixed = sum(mixed),
+            neither = sum(neither)
+          ) |>
+          mutate(total = ems + fire + wildland + mixed + neither)  # Total column for text annotations
 
         plot_ly(plot_data, x = ~incident_date) |>
-          add_lines(y = ~ems, name = "EMS", line = list(color = "#3498DB")) |>
-          add_lines(y = ~fire, name = "Fire", line = list(color = "#E74C3C")) |>
-          add_lines(y = ~wildland, name = "Wildland", line = list(color = "#00BC8C")) |>
+          add_bars(y = ~ems, name = "EMS", marker = list(color = "#3498DB")) |>
+          add_bars(y = ~fire, name = "Fire", marker = list(color = "#E74C3C")) |>
+          add_bars(y = ~wildland, name = "Wildland", marker = list(color = "#00BC8C")) |>
+          add_bars(y = ~mixed, name = "Mixed", marker = list(color = "#F39C12")) |>
+          add_bars(y = ~neither, name = "Neither", marker = list(color = "#BDC3C7")) |>
+          add_text(
+            y = ~total + 0.25,
+            text = ~total,
+            textposition = "outside",
+            showlegend = FALSE
+          ) |>
           layout(
-            title = "Incidents Time",
+            title = "Incidents Over Time",
             xaxis = list(
               title = "Date",
               titlefont = list(color = '#FFFFFF'),
               tickfont = list(color = '#FFFFFF'),
               gridcolor = '#2d2d2d'
-              ),
-            yaxis = list(title = "Incidents",
-                         titlefont = list(color = '#FFFFFF'),
-                         tickfont = list(color = '#FFFFFF'),
-                         gridcolor = '#2d2d2d',
-                         zeroline = FALSE,
-                         dtick = 1
-                         ),
+            ),
+            yaxis = list(
+              title = "Incidents",
+              titlefont = list(color = '#FFFFFF'),
+              tickfont = list(color = '#FFFFFF'),
+              gridcolor = '#2d2d2d',
+              zeroline = FALSE,
+              dtick = 1
+            ),
             plot_bgcolor = '#222222',
             paper_bgcolor = '#222222',
             font = list(color = '#FFFFFF'),
-            showlegend = TRUE)
+            barmode = 'stack',
+            showlegend = TRUE
+          )
+
 
 
       })
