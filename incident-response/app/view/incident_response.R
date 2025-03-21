@@ -347,6 +347,7 @@ ModalServer <- function(id) {
         
         Current_Incident <- app_data$Incident()
         New_Incident <- data.frame(
+          id = nrow(Current_Incident) + 1,
           incident_id = coalesce(incident_details$incident_id, incident_details$incident_id_additional, input$incident_id_additional),
           dispatch_time = local_dispatch_time,
           end_time = local_end_time,
