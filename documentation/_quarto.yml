@@ -1,0 +1,20 @@
+project:
+  type: website
+
+website:
+  title: "FirePulse Doccumentation"
+  navbar:
+    left:
+      - text: "Home"
+        file: index.qmd
+      - text: "About"
+        file: about.qmd
+
+format:
+  html:
+    theme: flatly
+    css: styles.css
+    toc: true
+
+
+
