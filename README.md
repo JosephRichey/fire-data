@@ -59,3 +59,5 @@ See a fully functioning example app <a href = "https://fire-data.shinyapps.io/in
 This app will be released with v1.0.0. This allows for checks to be made on a regular cadence. Equipment can be added and managed in the data portal, and then checked in this application. (Current prototype doesn't support this- use equipment that is already loaded.)
 
 See a fully function example app <a href = "https://fire-data.shinyapps.io/equipment_management/" target="_blank">here</a>
+
+<a href="https://www.buymeacoffee.com/josephrichey" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-blue.png" alt="Buy Me A Coffee" height="41" width="174"></a>
