@@ -2,15 +2,29 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "documentation",
+    "title": "Fire Data Documentation",
     "section": "",
-    "text": "This is a Quarto website.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites."
+    "text": "This is the documentation for Fire Data, a solution for tracking and analyzing data in the volunteer fire service. This document provides an overview of the data structure, key features, and usage instructions.\nIf you are interested in having this project hosted for you, please contact jwrichey.1@gmail.com.\nFor users who have an instance up and running and have questions, check out the User Reference page.\nFor users who are interested in the code and how it works, check out the Developer Reference page.\nMore information about the project can be found in the About page."
   },
   {
     "objectID": "about.html",
     "href": "about.html",
     "title": "About",
     "section": "",
-    "text": "About this site"
+    "text": "Fire Data is an open source project that has several apps developed to be used together to track and report on administrative data in volunteer fire departments. Check out the presentation for this project at PositConf 2024.\nThis was developed originally in two different repositories. The history of both repositories have been included in this one. If you want to see the original repositories, they are linked here and here.\n\n\n\nThis code is licensed under CC BY-NC-SA. The general idea of this project is it can be setup to run with minimal modification. The general steps are as follows:\n\nClone the repository.\nEstablish an AWS mySQL server and get the necessary credentials.\nRun the table setup scrips.\nStore database credentials, table names, and other specific values in an .Renviron file. Use the Renviron template file to start (note, you have to have one file for each app and it must be in the top level of each project).\nPublish to shinyapps.io.\n\n\n\n\n\n\nThis is the admin level app that allows for reporting, training and personal management, and soon managing and editing calls. Currently, the functionality is minimal. More coming soon.\nUpcoming changes include:\n\nAbility to modify check-in/check-out times\nIncident Analysis\nFull functionality to edit trainings, calls, etc.\n\nSee a fully functioning example app here.\n\n\n\nThis is the most tried and tested app currently. This allows people to check in and out of trainings for training hours. The admin password to sign everyone out is “positconf2024”.\nUpcoming features include:\n\nColor distinct modals that emphasize if you are checking in or out.\nGeneral UI improvements.\n\nSee a fully functioning example app here.\n\n\n\nThe first version of this was released in v0.3.0. This allows departments to track who attended calls, what units were used, amount of time spent on the call, etc. This will eventually integrate with a backend server that can be set up to email reports with data and visuals as needed.\nSee a fully functioning example app here."
+  },
+  {
+    "objectID": "about.html#usage",
+    "href": "about.html#usage",
+    "title": "About",
+    "section": "",
+    "text": "This code is licensed under CC BY-NC-SA. The general idea of this project is it can be setup to run with minimal modification. The general steps are as follows:\n\nClone the repository.\nEstablish an AWS mySQL server and get the necessary credentials.\nRun the table setup scrips.\nStore database credentials, table names, and other specific values in an .Renviron file. Use the Renviron template file to start (note, you have to have one file for each app and it must be in the top level of each project).\nPublish to shinyapps.io."
+  },
+  {
+    "objectID": "about.html#apps",
+    "href": "about.html#apps",
+    "title": "About",
+    "section": "",
+    "text": "This is the admin level app that allows for reporting, training and personal management, and soon managing and editing calls. Currently, the functionality is minimal. More coming soon.\nUpcoming changes include:\n\nAbility to modify check-in/check-out times\nIncident Analysis\nFull functionality to edit trainings, calls, etc.\n\nSee a fully functioning example app here.\n\n\n\nThis is the most tried and tested app currently. This allows people to check in and out of trainings for training hours. The admin password to sign everyone out is “positconf2024”.\nUpcoming features include:\n\nColor distinct modals that emphasize if you are checking in or out.\nGeneral UI improvements.\n\nSee a fully functioning example app here.\n\n\n\nThe first version of this was released in v0.3.0. This allows departments to track who attended calls, what units were used, amount of time spent on the call, etc. This will eventually integrate with a backend server that can be set up to email reports with data and visuals as needed.\nSee a fully functioning example app here."
   }
 ]
