@@ -180,7 +180,9 @@ CREATE TABLE equipment_log (
 CREATE TABLE equipment_check_compliance (
 	id INT PRIMARY KEY AUTO_INCREMENT,
     compliance_date_time datetime,
-    compliance float
+    check_compliance float,
+    expiration_compliance float,
+    overall_compliance float
 );
 
 # Training Table - stores all the trainings.
