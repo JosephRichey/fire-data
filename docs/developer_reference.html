@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>technical_reference – Fire Data Doccumentation</title>
+<title>Technical Reference – Fire Data Doccumentation</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -101,6 +101,10 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Tutorials</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./setting_reference.html"> 
+<span class="menu-text">Setting Reference</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link active" href="./developer_reference.html" aria-current="page"> 
 <span class="menu-text">Developer Reference</span></a>
   </li>  
@@ -119,15 +123,28 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#database" id="toc-database" class="nav-link active" data-scroll-target="#database">Database</a>
+  <ul class="collapse">
+  <li><a href="#base-tables" id="toc-base-tables" class="nav-link" data-scroll-target="#base-tables">Base Tables</a></li>
+  <li><a href="#training-tables" id="toc-training-tables" class="nav-link" data-scroll-target="#training-tables">Training Tables</a></li>
+  <li><a href="#incident-tables" id="toc-incident-tables" class="nav-link" data-scroll-target="#incident-tables">Incident Tables</a></li>
+  <li><a href="#equipment-tables" id="toc-equipment-tables" class="nav-link" data-scroll-target="#equipment-tables">Equipment Tables</a></li>
+  <li><a href="#personnel-tables" id="toc-personnel-tables" class="nav-link" data-scroll-target="#personnel-tables">Personnel Tables</a></li>
+  </ul></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">technical_reference</h1>
+<h1 class="title">Technical Reference</h1>
 </div>
 
 
@@ -144,8 +161,389 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
+<section id="database" class="level2">
+<h2 class="anchored" data-anchor-id="database">Database</h2>
+<p>The database is designed to be a MySQL database hosted on AWS. A breakdown of th tables follows:</p>
+<section id="base-tables" class="level3">
+<h3 class="anchored" data-anchor-id="base-tables">Base Tables</h3>
+<p>These tables are used throughout the app. They are cross functional with the main four areas (training, incident, equipment, personnel) of the platform.</p>
+<hr>
+<section id="firefighter" class="level4">
+<h4 class="anchored" data-anchor-id="firefighter">Firefighter</h4>
+<p><strong>Purpose:</strong> Stores the core personnel records for all firefighters within the department. Contains status (active/inactive), role, and other essential information.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for each firefighter.</p>
+<p>full_name (VARCHAR(511)) – The firefighter’s full name.</p>
+<p>start_date (DATE) – The official start (hire) date.</p>
+<p>trainer (BOOLEAN) – Indicates whether this firefighter can lead trainings.</p>
+<p>officer (BOOLEAN) – Indicates whether this firefighter holds an officer rank.</p>
+<p>active_status (BOOLEAN) – True if actively employed/engaged, false if deactivated or inactive.</p>
+<p>company_id (INT, FK → company(id)) – Links the firefighter to a specific crew/company.</p>
+<p>firefighter_role (VARCHAR(255)) – Descriptive role or title (e.g., Firefighter, Captain, etc.).</p>
+<p><strong>Deletion:</strong></p>
+<p>In practice, firefighters are not deleted but toggled inactive (active_status = false).</p>
+<p>The FK to company uses ON DELETE SET NULL, so if a company is removed, the company_id here becomes NULL. They will be orphaned from a company.</p>
+<p>Similarly, in chain of command, if a firefighter is removed, the FK to firefighter_id uses ON DELETE SET NULL. They will be orphaned in the chain of command.</p>
+<p><strong>Joins:</strong></p>
+<p>firefighter ↔︎ company on company_id (one company can have many firefighters).</p>
+<p>Referenced by many tables via firefighter_id (e.g., chain_of_command, firefighter_contact, attendance, etc.).</p>
+<hr>
+</section>
+<section id="apparatus" class="level4">
+<h4 class="anchored" data-anchor-id="apparatus">Apparatus</h4>
+<p><strong>Purpose:</strong> Represents a piece of firefighting apparatus (e.g., Engine 1, Ladder Truck). Tracks which vehicles/resources are active and available.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for each apparatus.</p>
+<p>apparatus_name (VARCHAR(255)) – Official or commonly used name/label.</p>
+<p>apparatus_expire (DATE) – Date after which the apparatus is considered “retired” or otherwise not available for new assignments.</p>
+<p><strong>Deletion:</strong></p>
+<p>Typically not deleted if used historically. Instead, the apparatus_expire field indicates it is no longer active. List is managed in the settings tab.</p>
+<p><strong>Joins:</strong></p>
+<p>Referenced in tables such as equipment (equipment can be assigned to an apparatus), apparatus_response, and firefighter_apparatus.</p>
+</section>
+<section id="setting" class="level4">
+<h4 class="anchored" data-anchor-id="setting">Setting</h4>
+<p><strong>Purpose:</strong> Stores configurable keys and values for various features or behaviors within the platform (system‐wide or departmental settings). See <a href="./setting_reference.html">Setting Reference</a> for more details.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier.</p>
+<p>major_setting_key (VARCHAR(255)) – Broad category of the setting.</p>
+<p>minor_setting_key (VARCHAR(255)) – Sub‐key or a more specific setting name.</p>
+<p>setting_value (VARCHAR(255)) – The stored value.</p>
+<p><strong>Deletion:</strong></p>
+<p>Typically, you might delete old or unused settings. No special constraints beyond the primary key.</p>
+<p><strong>Joins:</strong></p>
+<p>Not usually joined to other tables. Accessed by the application to retrieve configuration.</p>
+<hr>
+</section>
+</section>
+<section id="training-tables" class="level3">
+<h3 class="anchored" data-anchor-id="training-tables">Training Tables</h3>
+<p>These tables are used to track training sessions, attendance, and related details.</p>
+<hr>
+<section id="training" class="level4">
+<h4 class="anchored" data-anchor-id="training">Training</h4>
+<p><strong>Purpose:</strong> Defines a training session/event with a topic, time range, and related details.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for the training event.</p>
+<p>training_type (VARCHAR(255)) – Category or type of training (e.g., “Fire Behavior,” “Rescue Ops”).</p>
+<p>topic (VARCHAR(255)) – Short description of the subject.</p>
+<p>training_description (VARCHAR(1000)) – More detailed information about the training.</p>
+<p>start_time (DATETIME) – Date/time the training is scheduled to begin.</p>
+<p>end_time (DATETIME) – Date/time the training is scheduled to end.</p>
+<p>credit_hours (FLOAT/DECIMAL) – Number of credited hours awarded. Defaults to the difference between start_time and end_time.</p>
+<p>trainer (INT, FK → firefighter(id)) – The firefighter responsible for leading or coordinating the training.</p>
+<p>training_expire (DATE) – Date this training was deleted and no longer included in any reporting.</p>
+<p><strong>Deletion:</strong></p>
+<p>Typically not deleted if historical records (attendance) reference it. Instead, might mark expired or keep for audit.</p>
+<p><strong>Joins:</strong></p>
+<p>training ↔︎ attendance on id → training_id (one training has many attendance records).</p>
+<p>training ↔︎ firefighter on trainer → firefighter(id).</p>
+<hr>
+</section>
+<section id="attendance" class="level4">
+<h4 class="anchored" data-anchor-id="attendance">Attendance</h4>
+<p><strong>Purpose:</strong> Tracks which firefighters attended each training session, plus check‐in/check‐out times.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique attendance record identifier.</p>
+<p>firefighter_id (INT, FK → firefighter(id)) – Id of Who attended.</p>
+<p>training_id (INT, FK → training(id)) – Which training session.</p>
+<p>check_in (DATETIME) – Actual check‐in time.(UTC)</p>
+<p>check_out (DATETIME) – Actual check‐out time.(UTC)</p>
+<p>auto_checkout (BOOLEAN) – Indicates if the system automatically handled check‐out.</p>
+<p>credit (BOOLEAN) – Whether the firefighter receives credit for attending. This is assigned via stored proc in the database.</p>
+<p>excused (BOOLEAN) – If the firefighter was excused from attending.</p>
+<p><strong>Deletion:</strong></p>
+<p>Typically only removed if the attendance was invalid or created by mistake. Usually retained for record keeping.</p>
+<p><strong>Joins:</strong></p>
+<p>attendance ↔︎ firefighter (many attendance records per firefighter).</p>
+<p>attendance ↔︎ training (many attendance records per training).</p>
+<hr>
+</section>
+</section>
+<section id="incident-tables" class="level3">
+<h3 class="anchored" data-anchor-id="incident-tables">Incident Tables</h3>
+<p>These tables are used to track incidents, responses, and related details.</p>
+<hr>
+<section id="incident" class="level4">
+<h4 class="anchored" data-anchor-id="incident">Incident</h4>
+<p><strong>Purpose:</strong> Top‐level record representing a call or event to which the department responds (fire, EMS, etc.).</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier.</p>
+<p>cad_identifier (VARCHAR(255)) – The identifier from the dispatch system.</p>
+<p>incident_start (DATETIME) – When the incident began.</p>
+<p>incident_end (DATETIME) – When the incident concluded or was cleared.</p>
+<p>address (VARCHAR(255)) – Location of the incident.</p>
+<p>dispatch_code (VARCHAR(255)) – Official code from the dispatch system.</p>
+<p>area (VARCHAR(255)) – Specific category (mutual aid, primary area, municipality, etc.).</p>
+<p>canceled (BOOLEAN) – True if the incident was canceled.</p>
+<p>dropped (BOOLEAN) – True if the incident was dropped.</p>
+<p>finalized (BOOLEAN) – True if the incident is closed and all records are finalized.</p>
+<p>incident_expire (DATE) – Mark to exclude from reporting.</p>
+<p><strong>Deletion:</strong></p>
+<p>Usually never deleted; kept indefinitely for auditing. Instead, you will see incident_expire.</p>
+<p><strong>Joins:</strong></p>
+<p>incident ↔︎ response (one incident can have many responses).</p>
+<p>incident ↔︎ incident_unit (tracks which type of response was needed).</p>
+<hr>
+</section>
+<section id="response" class="level4">
+<h4 class="anchored" data-anchor-id="response">Response</h4>
+<p><strong>Purpose:</strong> Represents an actual response instance tied to an incident (e.g., engine 1 responded). Typically, most incidents will only have one response (a response can have multiple firefighters, apparatus, etc.) An example of a mulit-response incident would be a wildland fire where one crew responded for the first 12 hours, and a second crew took over for the next 12 hours.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for each response.</p>
+<p>incident_id (INT, FK → incident(id), ON DELETE RESTRICT, ON UPDATE CASCADE) – Which incident this response belongs to.</p>
+<p>response_start (DATETIME) – When that response effort began.</p>
+<p>response_end (DATETIME) – When that response ended.</p>
+<p>notes (TEXT) – Field notes, relevant info about the response.</p>
+<p>response_expire (DATE) – Exclude from reporting.</p>
+<p><strong>Deletion:</strong></p>
+<p>Generally retained for incident history. Expire to exclude. ON DELETE RESTRICT ensures the incident cannot be deleted if responses exist.</p>
+<p><strong>Joins:</strong></p>
+<p>response ↔︎ incident on incident_id.</p>
+<p>response ↔︎ firefighter_response, apparatus_response, firefighter_apparatus.</p>
+<hr>
+</section>
+<section id="unit" class="level4">
+<h4 class="anchored" data-anchor-id="unit">Unit</h4>
+<p><strong>Purpose:</strong> Stores types of units or categories (e.g., Fire, EMS, Wildland, etc.). Departments can customize.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier.</p>
+<p>unit_type (VARCHAR(255)) – Name/category (e.g., “Fire”, “EMS”, etc.).</p>
+<p>unit_expire (DATE) – When this unit type is no longer considered active for new usage.</p>
+<p><strong>Deletion:</strong></p>
+<p>Typically not removed; once expired, it should not be used for new incidents.</p>
+<p><strong>Joins:</strong></p>
+<p>unit ↔︎ incident_unit (many incidents can reference each unit type).</p>
+<hr>
+</section>
+<section id="incident-unit" class="level4">
+<h4 class="anchored" data-anchor-id="incident-unit">Incident Unit</h4>
+<p><strong>Purpose:</strong> Links an incident to the type of unit (e.g., Fire, EMS, Rescue) that responded.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier.</p>
+<p>incident_id (INT, FK → incident(id)) – The incident.</p>
+<p>unit_type_id (INT, FK → unit(id)) – The type of unit that responded.</p>
+<p><strong>Deletion:</strong></p>
+<p>Typically retained for historical reference. ON DELETE RESTRICT means you cannot remove an incident or unit if references exist here.</p>
+<p><strong>Joins:</strong></p>
+<p>incident_unit ↔︎ incident.</p>
+<p>incident_unit ↔︎ unit (one incident can have several types of units needed).</p>
+<p><em>This application tracks unit type response separately from apparatus because, in many volunteer departments, apparatus are often used simply to transport personnel. In these cases, it’s important to record the type of response unit (e.g., EMS, fire, rescue) independently from the specific vehicle used.</em></p>
+<hr>
+</section>
+<section id="firefighter-response" class="level4">
+<h4 class="anchored" data-anchor-id="firefighter-response">Firefighter Response</h4>
+<p><strong>Purpose:</strong> Associates individual firefighters with a particular response to track who participated and any time adjustments.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique record for each firefighter/response combination.</p>
+<p>response_id (INT, FK → response(id)) – Which response they participated in.</p>
+<p>firefighter_id (INT, FK → firefighter(id)) – The firefighter involved.</p>
+<p>time_adjustment (FLOAT/DECIMAL) – Additional time or offset for reporting hours.</p>
+<p><strong>Deletion:</strong></p>
+<p>No option for deletion. Edits will overwrite old records.</p>
+<p><strong>Joins:</strong></p>
+<p>firefighter_response ↔︎ firefighter.</p>
+<p>firefighter_response ↔︎ response.</p>
+<hr>
+</section>
+<section id="apparatus-response" class="level4">
+<h4 class="anchored" data-anchor-id="apparatus-response">Apparatus Response</h4>
+<p><strong>Purpose:</strong> Tracks which apparatus were assigned to a specific response.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier.</p>
+<p>response_id (INT, FK → response(id)) – The response record.</p>
+<p>apparatus_id (INT, FK → apparatus(id)) – The apparatus involved.</p>
+<p><strong>Deletion:</strong></p>
+<p>No option for deletion. Edits will overwrite old records.</p>
+<p><strong>Joins:</strong></p>
+<p>apparatus_response ↔︎ response.</p>
+<p>apparatus_response ↔︎ apparatus.</p>
+<hr>
+</section>
+<section id="firefighter-apparatus" class="level4">
+<h4 class="anchored" data-anchor-id="firefighter-apparatus">Firefighter Apparatus</h4>
+<p><strong>Purpose:</strong> Specifically ties a firefighter to an apparatus for the duration of a response (e.g., who was riding on or responsible for which vehicle).</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier.</p>
+<p>response_id (INT, FK → response(id)) – Which response.</p>
+<p>firefighter_id (INT, FK → firefighter(id)) – The firefighter.</p>
+<p>apparatus_id (INT, FK → apparatus(id)) – The apparatus.</p>
+<p><strong>Deletion:</strong></p>
+<p>No option for deletion. Edits will overwrite old records.</p>
+<p><strong>Joins:</strong></p>
+<p>firefighter_apparatus ↔︎ response.</p>
+<p>firefighter_apparatus ↔︎ firefighter.</p>
+<p>firefighter_apparatus ↔︎ apparatus.</p>
+<hr>
+</section>
+</section>
+<section id="equipment-tables" class="level3">
+<h3 class="anchored" data-anchor-id="equipment-tables">Equipment Tables</h3>
+<p>These tables are used to track equipment, checks, and compliance.</p>
+<hr>
+<section id="equipment-type" class="level4">
+<h4 class="anchored" data-anchor-id="equipment-type">Equipment Type</h4>
+<p><strong>Purpose:</strong> Defines the category of equipment, plus checking and expiration intervals (e.g., SCBA, Monitor, Defibrillator).</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for the type.</p>
+<p>equipment_type (VARCHAR(255)) – Descriptive name (e.g., “SCBA Battery”).</p>
+<p>check_lead_time, check_lead_time_unit (INT, VARCHAR) – How far in advance of a check you want a warning and the time unit (days, weeks, etc.).</p>
+<p>check_time, check_time_unit (INT, VARCHAR) – Frequency of required checks.</p>
+<p>expire_lead_time, expire_lead_time_unit (INT, VARCHAR) – How far in advance of expiration you want a warning.</p>
+<p>expire_time, expire_time_unit (INT, VARCHAR) – How long until the equipment of this type typically expires.</p>
+<p>equipment_type_expire (DATE) – Date this type is no longer used.</p>
+<p><strong>Deletion:</strong></p>
+<p>Generally not physically removed once used in equipment; expired types remain in the system for historical data.</p>
+<p><strong>Joins:</strong></p>
+<p>equipment_type ↔︎ equipment.</p>
+<hr>
+</section>
+<section id="equipment" class="level4">
+<h4 class="anchored" data-anchor-id="equipment">Equipment</h4>
+<p><strong>Purpose:</strong> An instance of a specific piece of equipment belonging to a type and assigned either to a firefighter or apparatus.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for each piece of equipment.</p>
+<p>equipment_name (VARCHAR(255)) – Human‐readable name/label.</p>
+<p>equipment_type_id (INT, FK → equipment_type(id)) – What type it is.</p>
+<p>firefighter_id (INT, FK → firefighter(id)) – If the equipment is assigned to a firefighter.</p>
+<p>apparatus_id (INT, FK → apparatus(id)) – If the equipment is assigned to an apparatus.</p>
+<p>next_check_date (DATE) – When the next required check is due.</p>
+<p>expiration_date (DATE) – When this item expires.</p>
+<p>snooze_expires (DATE) – If the check was “snoozed,” when that snooze period ends.</p>
+<p>expire_equipment (DATE) – Date this equipment no longer shows up in reporting.</p>
+<p><strong>Deletion:</strong></p>
+<p>Typically retained for safety/audit; once “expired,” either have to replace and renew equipment, or, delete the equipment (through setting a date in the expire_equipment column).</p>
+<p><strong>Joins:</strong></p>
+<p>equipment ↔︎ equipment_type.</p>
+<p>Potentially joined to firefighter or apparatus to show ownership/assignment.</p>
+<p>equipment_log references specific equipment checks.</p>
+<hr>
+</section>
+<section id="equipment-log" class="level4">
+<h4 class="anchored" data-anchor-id="equipment-log">Equipment Log</h4>
+<p><strong>Purpose:</strong> Logs each check performed on a piece of equipment, capturing who did it and when.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for each log entry.</p>
+<p>checked_by_id (INT, FK → firefighter(id)) – The firefighter who performed the check.</p>
+<p>equipment_id (INT, FK → equipment(id)) – The item being checked.</p>
+<p>check_date_time (DATETIME) – When the check occurred.</p>
+<p><strong>Deletion:</strong></p>
+<p>Typically never deleted unless a check entry was made in error, as it’s important for audit/compliance.</p>
+<p><strong>Joins:</strong></p>
+<p>equipment_log ↔︎ equipment.</p>
+<p>equipment_log ↔︎ firefighter (who did the check).</p>
+<hr>
+</section>
+<section id="equipment-check-compliance" class="level4">
+<h4 class="anchored" data-anchor-id="equipment-check-compliance">Equipment Check Compliance</h4>
+<p><strong>Purpose:</strong> Snapshots overall equipment‐check compliance, typically a percentage representing how many items are up‐to‐date on required checks.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for each snapshot record.</p>
+<p>compliance_date_time (DATETIME) – The timestamp when compliance was calculated.</p>
+<p>check_compliance (FLOAT/DECIMAL) – The percentage of equipment that is not overdue for checks (0–100, or a fraction).</p>
+<p>expire_compliance (FLOAT/DECIMAL) – The percentage of equipment that is not expired (0–100, or a fraction).</p>
+<p>overall_compliance (FLOAT/DECIMAL) – The overall compliance percentage (0–100, or a fraction).</p>
+<p><strong>Deletion:</strong></p>
+<p>Generally retained for historical trend analysis.</p>
+<p><strong>Joins:</strong></p>
+<p>Usually stands alone, referenced by reporting features rather than a direct join to other tables.</p>
+<hr>
+</section>
+</section>
+<section id="personnel-tables" class="level3">
+<h3 class="anchored" data-anchor-id="personnel-tables">Personnel Tables</h3>
+<p>These tables are used to track personnel, certifications, and related details. ___</p>
+<section id="company" class="level4">
+<h4 class="anchored" data-anchor-id="company">Company</h4>
+<p><strong>Purpose:</strong> Identifies which crew/company (e.g., “A‐Shift,” “Engine 3 Crew”) a firefighter belongs to.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for the company.</p>
+<p>company_name (VARCHAR(255)) – Descriptive name of the crew/company.</p>
+<p><strong>Deletion:</strong></p>
+<p>Can be removed, but if referenced by a firefighter (company_id), that field is set to NULL.</p>
+<p><strong>Joins:</strong></p>
+<p>company ↔︎ firefighter (one‐to‐many).</p>
+<hr>
+</section>
+<section id="certification-type" class="level4">
+<h4 class="anchored" data-anchor-id="certification-type">Certification Type</h4>
+<p><strong>Purpose:</strong> Defines different possible certifications, along with renewal and lead‐time requirements.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique ID for the certification type.</p>
+<p>certification_name (VARCHAR(255)) – Name (e.g., “EMT‐Basic,” “Firefighter 1”).</p>
+<p>lead_time, lead_time_unit (INT, VARCHAR) – Advance notice needed before initial certification expiration.</p>
+<p>renew_time, renew_time_unit (INT, VARCHAR) – How often recertification is required.</p>
+<p>certification_expire (DATE) – Date this certification type is no longer used.</p>
+<p><strong>Deletion:</strong></p>
+<p>Typically not deleted but expired, to maintain references in certification.</p>
+<p><strong>Joins:</strong></p>
+<p>certification_type ↔︎ certification.</p>
+<hr>
+</section>
+<section id="certification" class="level4">
+<h4 class="anchored" data-anchor-id="certification">Certification</h4>
+<p><strong>Purpose:</strong> An actual certification instance held by a particular firefighter.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for the certification record.</p>
+<p>type_id (INT, FK → certification_type(id)) – Which certification type.</p>
+<p>firefighter_id (INT, FK → firefighter(id)) – Who holds the certification.</p>
+<p>expiration_date (DATE) – When the certification for this individual expires.</p>
+<p><strong>Deletion:</strong></p>
+<p>Can be deleted or renewed. No historical records are kept.</p>
+<p><strong>Joins:</strong></p>
+<p>certification ↔︎ certification_type.</p>
+<p>certification ↔︎ firefighter.</p>
+<hr>
+</section>
+<section id="firefighter-status-history" class="level4">
+<h4 class="anchored" data-anchor-id="firefighter-status-history">Firefighter Status History</h4>
+<p><strong>Purpose:</strong> Captures active/inactive date ranges for each firefighter to calculate total tenure or track leaves/retirements.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier for each status record.</p>
+<p>firefighter_id (INT, FK → firefighter(id)) – Linked firefighter.</p>
+<p>inactive_start_date (DATE) – Start of an inactive period.</p>
+<p>inactive_end_date (DATE) – End of that inactive period (NULL if still inactive).</p>
+<p><strong>Deletion:</strong></p>
+<p>Typically not deleted; it’s a timeline record of a firefighter’s employment status.</p>
+<p><strong>Joins:</strong></p>
+<p>firefighter_status_history ↔︎ firefighter.</p>
+<hr>
+</section>
+<section id="chain-of-command" class="level4">
+<h4 class="anchored" data-anchor-id="chain-of-command">Chain of Command</h4>
+<p><strong>Purpose:</strong> Defines the supervisory relationships: who reports to whom.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique record.</p>
+<p>firefighter_id (INT, FK → firefighter(id)) – The subordinate.</p>
+<p>supervisor_id (INT, FK → firefighter(id)) – The supervisor.</p>
+<p><strong>Deletion:</strong></p>
+<p>If a supervisor is deleted (rare), references here become NULL if ON DELETE SET NULL.</p>
+<p>Typically, changes are made by altering references or adding new rows.</p>
+<p><strong>Joins:</strong></p>
+<p>chain_of_command ↔︎ firefighter (both subordinate and supervisor are in the same table).</p>
+<hr>
+</section>
+<section id="firefighter-contact" class="level4">
+<h4 class="anchored" data-anchor-id="firefighter-contact">Firefighter Contact</h4>
+<p><strong>Purpose:</strong> Stores contact details (address, phone, email) for each firefighter.</p>
+<p><strong>Column Definitions:</strong></p>
+<p>id (INT, PK) – Unique identifier.</p>
+<p>firefighter_id (INT, FK → firefighter(id)) – Linked firefighter.</p>
+<p>street_address_1, street_address_2 (VARCHAR(255)) – Mailing address lines.</p>
+<p>city (VARCHAR(255)) – City.</p>
+<p>state (CHAR(2)) – State/province (assuming US 2‐letter codes).</p>
+<p>zip_code (VARCHAR(10)) – ZIP/Postal code.</p>
+<p>phone_number (VARCHAR(15)) – Primary contact number.</p>
+<p>email_address (VARCHAR(255)) – Primary email.</p>
+<p><strong>Deletion:</strong></p>
+<p>Possibly removed if the contact is outdated or if the firefighter is removed. Usually just updated.</p>
+<p><strong>Joins:</strong></p>
+<p>firefighter_contact ↔︎ firefighter (one‐to‐one or one‐to‐many if you allow multiple contacts per firefighter).</p>
 
 
+</section>
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

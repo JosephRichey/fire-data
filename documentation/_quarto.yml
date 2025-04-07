@@ -12,6 +12,8 @@ website:
         file: user_reference.qmd
       - text: "Tutorials"
         file: tutorials.qmd
+      - text: "Setting Reference"
+        file: setting_reference.qmd
       - text: "Developer Reference"
         file: developer_reference.qmd
       - text: "About"
