@@ -12,6 +12,7 @@ box::use(
 )
 
 #' @export
+# FIXME Deprecate this connection and move all connections to logic/functions
 CON <- dbConnect(RMySQL::MySQL(),
                 dbname = "test",
                 host = Sys.getenv("DB_HOST"),

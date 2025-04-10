@@ -4,7 +4,35 @@ box::use(
   hms[...],
   dplyr[...],
   data.table[...],
+  DBI[...],
 )
+
+#' @export
+CON <- dbConnect(RMySQL::MySQL(),
+                 dbname = "test",
+                 host = Sys.getenv("DB_HOST"),
+                 port = 3306,
+                 user = "admin",
+                 password = Sys.getenv("DB_PASSWORD"))
+
+#' @export
+QueryDatabase <- function(table_name) {
+  query <- paste0("SELECT * FROM ", table_name)
+  Data <- dbGetQuery(CON, query)
+
+  return(Data)
+}
+
+#' @export
+UpdateReactives <- function(dbTableName, reactiveContainer) {
+    i <- 1
+    for (name in dbTableName) {
+      df <- QueryDatabase(name)
+      reactiveContainer[i](df)
+      i <- i + 1
+     }
+}
+
 
 #' @export
 FixColNames <- function(Data) {

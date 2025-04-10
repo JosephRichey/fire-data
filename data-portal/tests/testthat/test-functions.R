@@ -6,6 +6,28 @@ box::use(
   app/logic/functions,
 )
 
+test_that("Can connect to test database", {
+  Tables <- dbGetQuery(functions$CON, "SHOW TABLES")
+
+  #FIXME Eventually, once structure is solid, update this test
+  # to have actual table names
+  testthat::expect_gt(nrow(Tables), 2)
+})
+
+test_that("QueryDatabase function works", {
+  # Test function returns a data frame
+  testthat::expect_s3_class(functions$QueryDatabase('firefighter'), "data.frame")
+
+  # Test function returns a data frame with the correct number of columns
+  testthat::expect_equal(ncol(functions$QueryDatabase('firefighter')), 8,
+                         label = "function returns a data frame with the correct number of columns")
+
+  # Test function returns a data frame with the correct column names
+  testthat::expect_equal(colnames(functions$QueryDatabase('firefighter')),
+                         c("id", "full_name", "start_date", "trainer", "officer", "active_status", "company_id", "firefighter_role"),
+                         label = "function returns a data frame with the correct column names")
+})
+
 test_that("VerifyNoOverlap function works", {
   # In the test data, there is a training every day of the year from 18:00 to 20:00
   # Not tested extensively at the limits. This function is only meant to prevent people from entering duplicates.
