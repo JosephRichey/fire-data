@@ -9,13 +9,14 @@ box::use(
 )
 
 box::use(
-  view/training,
+  view/Training,
   view/personnel,
   view/summary,
   view/incident,
   view/equipment_management,
   logic/app_data,
   logic/logging,
+  logic/functions,
   view/report,
   view/report_incident,
   view/report_personnel,
@@ -71,40 +72,7 @@ ui <- function(id) {
         router_ui(
 
           route("/",
-                navset_pill(
-                  nav_panel(
-                    title = "Trainings",
-                    layout_sidebar(
-                      sidebar = sidebar(
-                        open = "desktop",
-                        training$TrainingUI(ns('training_page'))
-                      ),
-                      training$TrainingOutput(ns('training_page'))
-                    )
-                  ),
-
-                  nav_panel(
-                    title = "Attendance",
-                    layout_sidebar(
-                      sidebar = sidebar(
-                        open = "desktop",
-                        training$AttendanceUI(ns('training_page'))
-                      ),
-                      training$AttendanceOutput(ns('training_page'))
-                    )
-                  )
-
-                  # nav_panel(
-                  #   title = "Attendance 2",
-                  #   layout_sidebar(
-                  #     sidebar = sidebar(
-                  #       open = "desktop",
-                  #       training$AttendanceUITest(ns('training_page'))
-                  #     ),
-                  #     training$AttendanceOutputTest(ns('training_page'))
-                  #   )
-                  # )
-                )
+                Training$UI(ns('training_page'))
           ),
           route("incident",
                 layout_sidebar(
@@ -309,7 +277,18 @@ server <- function(id) {
     ##### Global Stuff #####
     ns <- session$ns
 
-    training$Server('training_page')
+    ##### On app load, initialize all reactive values #####
+    rdfs <- reactiveValues(
+      training = NULL,
+      firefighter = NULL,
+      attendance = NULL
+    )
+    functions$UpdateReactives(rdfs)
+
+    print(interactive())
+
+    ##### Modules Servers #####
+    Training$Server('training_page', rdfs)
 
     personnel$Server('personnel')
 
@@ -337,6 +316,8 @@ server <- function(id) {
 
     # Keep DB connection live
     observe({
+      #FIXME This needs to be set so the shiny session can still time out,
+      # but the DB connection is still kept alive
       invalidateLater(180000)  # Ping every 3 minutes
       cat('Pinging database...\n', file = stderr())
       tryCatch(

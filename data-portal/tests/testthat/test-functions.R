@@ -1,5 +1,7 @@
 box::use(
   testthat[...],
+  DBI[dbGetQuery],
+  shiny[reactiveConsole, reactiveValues],
 )
 
 box::use(
@@ -18,6 +20,9 @@ test_that("QueryDatabase function works", {
   # Test function returns a data frame
   testthat::expect_s3_class(functions$QueryDatabase('firefighter'), "data.frame")
 
+  # Test that function handles errors gracefully
+  testthat::expect_no_error(functions$QueryDatabase('non_existent_table'))
+
   # Test function returns a data frame with the correct number of columns
   testthat::expect_equal(ncol(functions$QueryDatabase('firefighter')), 8,
                          label = "function returns a data frame with the correct number of columns")
@@ -27,6 +32,36 @@ test_that("QueryDatabase function works", {
                          c("id", "full_name", "start_date", "trainer", "officer", "active_status", "company_id", "firefighter_role"),
                          label = "function returns a data frame with the correct column names")
 })
+
+test_that("UpdateReactives function works", {
+  reactiveConsole(TRUE)
+  rdfs <- reactiveValues(
+    training = NULL,
+    firefighter = NULL,
+    attendance = NULL
+  )
+  functions$UpdateReactives(rdfs, c("training", "firefighter"))
+
+  # Test reactive returns a data frame
+  testthat::expect_s3_class(rdfs$training, "data.frame")
+
+  # Test functions fails when the number of reactives and database tables do not match
+  testthat::expect_error(functions$UpdateReactives(c("training", "firefighter"), c(r_Training)),
+                         label = "function fails when the number of reactives and database tables do not match")
+
+  # Test function exits quietly when no database tables to update
+  testthat::expect_no_error(functions$UpdateReactives(c(), c()))
+
+  # Test works when a single database table is updated
+  testthat::expect_no_error(functions$UpdateReactives(rdfs, c("training")))
+
+  reactiveConsole(FALSE)
+
+
+})
+
+
+
 
 test_that("VerifyNoOverlap function works", {
   # In the test data, there is a training every day of the year from 18:00 to 20:00

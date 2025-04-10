@@ -61,8 +61,20 @@ appender_cloudwatch <- function(log_group, log_stream) {
 
 # --- USAGE EXAMPLE ---
 
-# 1. Configure the logger to use our custom CloudWatch appender
-log_appender(appender_cloudwatch(log_group, log_stream))
+log_layout(
+  layout_glue_generator(format = "[{level}] [{format(time, '%Y-%m-%d %H:%M:%S')}] [{namespace}] {msg}")
+)
+
+
+# 1. Configure the logger to use our custom CloudWatch appender and console appender
+if (interactive()) {
+  log_appender(appender_stdout)
+} else {
+  log_appender(appender_tee(
+    appender_console,
+    appender_cloudwatch(log_group, log_stream)
+  ))
+}
 
 # 2. (Optional) set the logging threshold (DEBUG, INFO, WARN, ERROR, FATAL)
 log_threshold(INFO)

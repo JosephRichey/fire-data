@@ -5,6 +5,12 @@ box::use(
   dplyr[...],
   data.table[...],
   DBI[...],
+  logger[...],
+  glue[glue],
+)
+
+box::use(
+  ./logging,
 )
 
 #' @export
@@ -18,20 +24,48 @@ CON <- dbConnect(RMySQL::MySQL(),
 #' @export
 QueryDatabase <- function(table_name) {
   query <- paste0("SELECT * FROM ", table_name)
-  Data <- dbGetQuery(CON, query)
+  Data <- tryCatch(
+    {
+      dbGetQuery(CON, query)
+    },
+    error = function(e) {
+      log_error("Database query failed: {e$message}", namespace = "QueryDatabase")
+      NULL
+    },
+    warning = function(w) {
+      log_warn("Database query warning: {w$message}", namespace = "QueryDatabase")
+    }
+  )
 
   return(Data)
 }
 
 #' @export
-UpdateReactives <- function(dbTableName, reactiveContainer) {
-    i <- 1
+UpdateReactives <- function(
+    rdfs,
+    dbTableName = c('training', 'firefighter', 'attendance') #FIXME Have all tables listed
+    ) {
+
+    log_info("Updating multiple database tables.",
+             namespace = "UpdateReactives")
+
     for (name in dbTableName) {
       df <- QueryDatabase(name)
-      reactiveContainer[i](df)
-      i <- i + 1
-     }
+      rdfs[[name]] <- df
+    }
+
+    log_success(glue("All database tables updated successfully. Tables: {paste(dbTableName, collapse = ', ')}"),
+             namespace = "UpdateReactives")
 }
+
+
+# library(shiny)
+# reactiveConsole(TRUE)
+# r_Training <- reactiveVal()
+# r_Firefighter <- reactiveVal()
+# UpdateReactives(c("training", "firefighter"), c(r_Training, r_Firefighter))
+# r_Training()
+# r_Firefighter()
 
 
 #' @export
@@ -74,6 +108,9 @@ VerifyNoOverlap <- function(start_time, end_time) {
   #     # starts before and ends after an existing training
   #     (UTC_start_time <= training_start_time & UTC_end_time >= training_end_time)
   #   )
+
+  Overlap <- data.frame(var = 1)
+
 
   if (nrow(Overlap) > 0) {
     return(FALSE)
