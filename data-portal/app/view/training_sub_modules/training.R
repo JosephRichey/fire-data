@@ -23,14 +23,14 @@ box::use(
   ../../modals/modals,
 )
 
-training_trainers <- app_data$Firefighter |>
+trainers <- app_data$Firefighter |>
   filter(trainer == TRUE) |>
   select(full_name, firefighter_id) |>
   (\(df) with(df, setNames(firefighter_id, full_name)))()
 
 
 #' @export
-TrainingUI <- function(id) {
+UI <- function(id) {
   ns <- NS(id)
 
   tagList(
@@ -55,6 +55,7 @@ TrainingUI <- function(id) {
         icon = bsicons::bs_icon("funnel-fill"),
         dateRangeInput(ns('training_filter_range'),
                        "Show trainings between:",
+                       #FIXME customize this
                        start = as.Date(app_data$Local_Date - dyears(1) + ddays(1)),
                        end = app_data$Local_Date
         ),
@@ -69,8 +70,8 @@ TrainingUI <- function(id) {
 
         pickerInput(ns('filter_training_officer'),
                     'Training Officer',
-                    choices = training_trainers,
-                    selected = training_trainers,
+                    choices = trainers,
+                    selected = trainers,
                     options = list(`actions-box` = TRUE),
                     multiple = TRUE
         )
@@ -80,7 +81,7 @@ TrainingUI <- function(id) {
 }
 
 #' @export
-TrainingOutput <- function(id) {
+Output <- function(id) {
   ns <- NS(id)
   tagList(
     card(
@@ -142,7 +143,7 @@ Server <- function(id, rdfs) {
           ) |>
           select(training_id, training_type, topic, training_description,
                  trainer, date, start_time, end_time) |>
-          mutate(trainer = names(training_trainers)[match(trainer, training_trainers)])
+          mutate(trainer = names(trainers)[match(trainer, trainers)])
 
         Table_Data <- functions$FixColNames(Table_Data)
         colnames(Table_Data) <- gsub("Training ", "", colnames(Table_Data))
@@ -237,7 +238,7 @@ Server <- function(id, rdfs) {
                                type = NULL,
                                topic = NULL,
                                training_description = NULL,
-                               training_trainers = training_trainers,
+                               training_trainers = trainers,
                                trainer = NULL
           )
         )
@@ -329,7 +330,7 @@ Server <- function(id, rdfs) {
                                  type = To_Modify$training_type,
                                  topic = To_Modify$topic,
                                  training_description = To_Modify$training_description,
-                                 training_trainers = training_trainers,
+                                 training_trainers = trainers,
                                  trainer = To_Modify$trainer
             )
           )

@@ -118,4 +118,8 @@ Current_Local_Date <- Sys.time() |>
   with_tz(Sys.getenv('LOCAL_TZ')) |>
   as.Date(tz = Sys.getenv('LOCAL_TZ'))
 
+
+
+
+
 log_info("App Data loaded.")

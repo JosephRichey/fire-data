@@ -10,13 +10,6 @@ box::use(
   training_sub_modules/attendance,
 )
 
-# training_trainers <- app_data$Firefighter |>
-#   filter(trainer == TRUE) |>
-#   select(full_name, firefighter_id) |>
-#   # https://ivelasq.rbind.io/blog/understanding-the-r-pipe/
-#   # See "Getting to the solution" sect
-#   (\(.) setNames(.$firefighter_id, .$full_name))
-
 
 #' @export
 UI <- function(id) {
@@ -28,9 +21,9 @@ UI <- function(id) {
         layout_sidebar(
           sidebar = sidebar(
             open = "desktop",
-            training$TrainingUI(ns('training_tab'))
+            training$UI(ns('training_tab'))
           ),
-          training$TrainingOutput(ns('training_tab'))
+          training$Output(ns('training_tab'))
         )
       ),
 

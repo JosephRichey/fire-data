@@ -60,3 +60,5 @@ id,major_setting_key,minor_setting_key,setting_value
 59,address,NULL,FALSE
 60,password,NULL,123
 61,incident_pk_regex,Must be five digits,\d{5}
+62,training_page,start_date_filter,MONTH-1,
+63,training_page,end_date_filter,MONTH+1,
