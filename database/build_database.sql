@@ -179,7 +179,7 @@ CREATE TABLE equipment_log (
 # This provides a snapshot of the compliance percentage over time.
 CREATE TABLE equipment_check_compliance (
 	id INT PRIMARY KEY AUTO_INCREMENT,
-    compliance_date_time datetime,
+    compliance_date date,
     check_compliance float,
     expiration_compliance float,
     overall_compliance float

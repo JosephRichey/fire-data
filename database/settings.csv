@@ -1,4 +1,4 @@
-setting_id,major_setting_key,minor_setting_key,setting_value
+id,major_setting_key,minor_setting_key,setting_value
 1,dispatch_code,EMS,Abdominal Pain/Problems
 2,dispatch_code,EMS,Allergies / Envenomations
 3,dispatch_code,EMS,Animal Bites / Attacks
