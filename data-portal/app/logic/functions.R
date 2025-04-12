@@ -11,22 +11,156 @@ box::use(
 
 box::use(
   ./logging,
+  ./app_data,
 )
 
 #' @export
-CON <- dbConnect(RMySQL::MySQL(),
-                 dbname = "crabapple",
-                 host = Sys.getenv("DB_HOST"),
-                 port = 3306,
-                 user = "admin",
-                 password = Sys.getenv("DB_PASSWORD"))
+GetSetting <- function(domain, key = NULL, group = NULL) {
+  Filtered <- app_data$Setting |>
+    filter(domain == !!domain)
+
+  if (!is.null(group)) {
+    Filtered <- Filtered |> filter(setting_group == !!group)
+  }
+
+  if (!is.null(key)) {
+    Filtered <- Filtered |> filter(setting_key == !!key)
+  }
+
+  # If no matching key, return nothing and show a warning
+  if (nrow(Filtered) == 0) {
+    log_warn(glue("No setting found for domain '{domain}' and key '{key}'"),
+             namespace = "GetSetting")
+    return(NA)
+  }
+
+  result <- Filtered$setting_value
+  type <- Filtered$value_type[1] # Assuming same type for all
+
+  coerce <- switch(
+    type,
+    "string" = as.character,
+    "numeric" = as.numeric,
+    "boolean" = function(x) tolower(x) %in% c("true", "1", "t", "yes"),
+    "date" = function(x) as.Date(x),
+    as.character # fallback
+  )
+
+  result <- coerce(result)
+  return(
+    if (length(result) == 1) result[[1]] else result
+  )
+}
+
+#' @export
+FormatLocal <- function(dt, input = c("datetime", "date"),
+                        output = c("datetime", "date", "time"),
+                        seconds = FALSE) {
+
+  input <- match.arg(input)
+  output <- match.arg(output)
+
+  # Restrict incompatible input-output combinations
+  invalid_combo <- (input == "date"   && output == "time")     ||
+    (input == "time"   && output == "datetime") ||
+    (input == "date"   && output == "datetime")
+
+  if (invalid_combo) {
+    stop(glue::glue("Invalid conversion: cannot format input type '{input}' as output type '{output}'"))
+  }
+
+  tz <- GetSetting('global', key = 'ltz')
+
+  # dt should already by POSIXct or date, but just to be safe
+  # Normalize input to POSIXct based on type
+  dt <- switch(
+    input,
+    "date" = as.Date(dt),
+    "datetime" = as.POSIXct(dt, tz = tz)
+  )
+
+  # Format as string based on desired output
+  fmt <- switch(
+    output,
+    "date" = GetSetting('global', key = 'date_format'),
+    "time" = if (seconds) "%H:%M:%S" else "%H:%M",
+    "datetime" = GetSetting('global', key = 'date_time_format')
+  )
+
+  format(dt, fmt, tz = tz, usetz = FALSE)
+}
+
+
+#' @export
+ConvertToLocalPosix <- function(dt,
+                              input = c("datetime", "date"),
+                              output = c("datetime", "date")) {
+  input <- match.arg(input)
+  output <- match.arg(output)
+
+  # Restrict incompatible input-output combinations
+  invalid_combo <- (input == "date"   && output == "datetime")
+
+  if (invalid_combo) {
+    stop(glue::glue("Invalid conversion: cannot format input type '{input}' as output type '{output}'"))
+  }
+
+  tz_local <- GetSetting("global", "ltz")
+
+  # Dates can only be converted to dates, so return as is
+  if (input == "date" && output == "date") {
+    return(as.Date(dt))
+  }
+
+  # Normalize input into UTC
+  dt_utc <- as.POSIXct(dt, tz = "UTC")
+
+  # Convert to local timezone
+  dt_local <- lubridate::with_tz(dt_utc, tzone = tz_local)
+
+  # Handle output formats
+  fmt <- switch(
+    output,
+    "datetime" = GetSetting("global", "date_time_format"),
+    "date" = GetSetting("global", "date_format")
+  )
+
+  # Always return as string
+  format(dt_local, fmt, tz = tz_local, usetz = FALSE)
+}
+
+#' @export
+BuildDateTime <- function(time,
+                          date,
+                          input = c("local", "not_local"),
+                          return_type = c('UTC', 'local')) {
+  input <- match.arg(input)
+  return_type <- match.arg(return_type)
+
+  tz_local <- GetSetting("global", key = "ltz")
+
+  # Combine date and time (time is expected to be a string like "14:30")
+  dt <- as.POSIXct(
+    paste(date, time),
+    tz = if (input == 'local') tz_local else 'UTC'
+  )
+
+  # Return converted to the desired time zone
+  if (return_type == 'local') {
+    return(with_tz(dt, tzone = tz_local))
+  } else {
+    return(with_tz(dt, tzone = 'UTC'))
+  }
+}
+
+
 
 #' @export
 QueryDatabase <- function(table_name) {
   query <- paste0("SELECT * FROM ", table_name)
   Data <- tryCatch(
     {
-      dbGetQuery(CON, query)
+      dbGetQuery(app_data$CON, query)
     },
     error = function(e) {
       log_error("Database query failed: {e$message}", namespace = "QueryDatabase")
@@ -49,9 +183,22 @@ UpdateReactives <- function(
     log_info("Updating multiple database tables.",
              namespace = "UpdateReactives")
 
-  #FIXME Switch statement
     for (name in dbTableName) {
       df <- QueryDatabase(name)
+
+      df <- switch(
+        name,
+
+        # Training table - convert start_time and end_time to local time
+        "training" = df |>
+          mutate(start_time = ,
+                 end_time = as.POSIXct(end_time, tz = Sys.getenv("LTZ"))),
+
+        "attendance" = df |>
+          mutate(timestamp = as.POSIXct(timestamp, tz = Sys.getenv("LTZ"))),
+      )
+
+
       rdfs[[name]] <- df
     }
 
@@ -59,36 +206,8 @@ UpdateReactives <- function(
              namespace = "UpdateReactives")
 }
 
-Settings <- dbGetQuery(CON, "SELECT * FROM setting") |>
-  mutate(setting_group = ifelse(setting_group == "", NA, setting_group))
-
-#' @export
-GetSetting <- function(domain, key = NULL, group = NULL) {
-  Filtered <- Settings |>
-    filter(domain == !!domain)
-
-  if (!is.null(group)) {
-    Filtered <- Filtered |> filter(setting_group == !!group)
-  }
-
-  if (!is.null(key)) {
-    Filtered <- Filtered |> filter(setting_key == !!key)
-  }
 
 
-
-
-  Result <- Filtered |>
-    pull(setting_value)
-
-  if (length(Result) == 0) {
-    return(NA)
-  } else if (length(Result) == 1) {
-    return(Result[[1]])
-  } else {
-    return(Result)
-  }
-}
 
 
 #' @export
@@ -118,8 +237,8 @@ as.MT.Date <- function(date_time) {
 #  Theoretically, you could create a training that crashes the entire app since you can log in early and log out late.
 VerifyNoOverlap <- function(start_time, end_time) {
 
-  UTC_start_time <- (start_time |> force_tz(Sys.getenv('LOCAL_TZ')) + .01) |> with_tz('UTC')
-  UTC_end_time <- (end_time |> force_tz(Sys.getenv('LOCAL_TZ')) + .01) |> with_tz('UTC')
+  UTC_start_time <- (start_time |> force_tz(GetSetting('global', key = 'ltz')) + .01) |> with_tz('UTC')
+  UTC_end_time <- (end_time |> force_tz(GetSetting('global', key = 'ltz')) + .01) |> with_tz('UTC')
 
   # FIXME This needs to be passed as an argument
   # Overlap <- app_data$Training |>
@@ -143,84 +262,6 @@ VerifyNoOverlap <- function(start_time, end_time) {
 
 }
 
-
-#' @export
-FormatLocalDate <- function(dt, asPosix = FALSE) {
-
-  if (asPosix) {
-    dt |>
-      as.Date(tz = Sys.getenv('LOCAL_TZ'))
-  } else {
-    dt |>
-      format('%m-%d-%Y',
-             tz = Sys.getenv('LOCAL_TZ'),
-             usetz = FALSE)
-  }
-}
-
-#' @export
-FormatLocalTime <- function(dt, seconds = FALSE) {
-  if (seconds) {
-    dt |>
-      format('%H:%M:%S',
-             tz = Sys.getenv('LOCAL_TZ'),
-             usetz = FALSE)
-  } else {
-    dt |>
-      format('%H:%M',
-             tz = Sys.getenv('LOCAL_TZ'),
-             usetz = FALSE)
-  }
-}
-
-#' @export
-FormatLocalDateTime <- function(dt) {
-  dt |>
-    format('%m-%d-%Y %H:%M:%S',
-           tz = Sys.getenv('LOCAL_TZ'),
-           usetz = FALSE)
-}
-
-#' @export
-ConvertLocalPosix <- function(dt) {
-  as.POSIXct(dt, tz = 'UTC') |> with_tz(tzone = Sys.getenv('LOCAL_TZ'))
-
-}
-
-#' @export
-FormatUtcDateTime <- function(dt) {
-  dt |>
-    format(tz = 'UTC',
-           usetz = FALSE)
-}
-
-#' @export
-BuiltDateTime <- function(time, date, input_type, return_type = 'UTC') {
-  if (input_type == 'local') {
-    dt <- as.POSIXct(
-      paste(
-        date,
-        as.ITime(time)
-      ),
-      tz = Sys.getenv('LOCAL_TZ')
-    )
-  } else {
-    dt <- as.POSIXct(
-      paste(
-        date,
-        as.ITime(time)
-      ),
-      tz = 'UTC'
-    )
-  }
-
-
-  if (return_type == 'local') {
-    return(dt |> with_tz(tzone = Sys.getenv('LOCAL_TZ')))
-  } else {
-    return(dt|> with_tz(tzone = 'UTC'))
-  }
-}
 
 
 # local_time <- as.POSIXlt("2025-02-20 9:18:52")

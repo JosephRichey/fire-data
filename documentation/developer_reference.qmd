@@ -73,7 +73,7 @@ Referenced in tables such as equipment (equipment can be assigned to an apparatu
 #### Setting
 
 **Purpose:**
-Stores configurable keys and values for various features or behaviors within the platform (system‐wide or departmental settings).
+Stores configurable keys and values for various features or behaviors within the platform (system‐wide or departmental settings).The value type allows the value to be parsed correctly. Note, all keys that have the same name have to have the same type. When parsing multiple values(like dispatch codes), the value type is set to the first record.
 See [Setting Reference](setting_reference.qmd) for more details.
 
 **Column Definitions:**
@@ -87,6 +87,8 @@ setting_group (VARCHAR(255)) – Broad group of the setting.
 setting_key (VARCHAR(255)) – Sub‐key or a more specific setting name.
 
 setting_value (VARCHAR(255)) – The stored value.
+
+value_type (VARCHAR(255)) – Type of value (e.g., “string,” “int,” “boolean”).
 
 **Deletion:**
 

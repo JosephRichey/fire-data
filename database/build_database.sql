@@ -110,7 +110,8 @@ CREATE TABLE setting (
     domain VARCHAR(255),
     setting_group VARCHAR(255),
     setting_key VARCHAR(255),
-    setting_value VARCHAR(255)
+    setting_value VARCHAR(255),
+    value_type VARCHAR(255)
 );
 
 #CREATE TABLE user_log (#

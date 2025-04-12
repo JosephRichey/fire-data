@@ -1,65 +1,70 @@
-id,domain,setting_group,setting_key,setting_value
-1,incident,dispatch_code,EMS,Abdominal Pain/Problems
-2,incident,dispatch_code,EMS,Allergies / Envenomations
-3,incident,dispatch_code,EMS,Animal Bites / Attacks
-4,incident,dispatch_code,EMS,Assault / Sexual Assault / Stun Gun
-5,incident,dispatch_code,EMS,Back Pain
-6,incident,dispatch_code,EMS,Breathing Problems
-7,incident,dispatch_code,EMS,Burns / Explosions
-8,incident,dispatch_code,EMS,Carbon Monoxide / Inhalation / HAZMAT / CBRN
-9,incident,dispatch_code,EMS,Cardiac or Respiratory Arrest / Death
-10,incident,dispatch_code,EMS,Chest Pain
-11,incident,dispatch_code,EMS,Choking
-12,incident,dispatch_code,EMS,Convulsions / Seizures
-13,incident,dispatch_code,EMS,Diabetic Problems
-14,incident,dispatch_code,EMS,Drowning / Diving / SCUBA Accident
-15,incident,dispatch_code,EMS,Electrocution / Lightning
-16,incident,dispatch_code,EMS,Eye Problems / Injuries
-17,incident,dispatch_code,EMS,Falls
-18,incident,dispatch_code,EMS,Headache
-19,incident,dispatch_code,EMS,Heart Problems / A.I.C.D.
-20,incident,dispatch_code,EMS,Heat / Cold Exposure
-21,incident,dispatch_code,EMS,Hemorrhage / Lacerations
-22,incident,dispatch_code,EMS,Inaccessible Incident / Entrapments
-23,incident,dispatch_code,EMS,Overdose / Poisoning (Ingestion)
-24,incident,dispatch_code,EMS,Pregnancy / Childbirth / Miscarriage
-25,incident,dispatch_code,EMS,Psychiatric / Suicide Attempt
-26,incident,dispatch_code,EMS,Sick Person
-27,incident,dispatch_code,EMS,Stab / Gunshot / Penetrating Trauma
-28,incident,dispatch_code,EMS,Stroke (CVA) / Transient Ischemic Attack (TIA)
-29,incident,dispatch_code,EMS,Traffic / Transportation Incidents
-30,incident,dispatch_code,EMS,Traumatic Injuries
-31,incident,dispatch_code,EMS,Unconscious / Fainting (Near)
-32,incident,dispatch_code,EMS,Unknown Problem
-33,incident,dispatch_code,EMS,Inter-Facility Transfer / Palliative Care
-34,incident,dispatch_code,EMS,Automatic Crash Notification (A.C.N.)
-35,incident,dispatch_code,EMS,Pandemic / Epidemic / Outbreak (Surveillance or Triage)
-36,incident,dispatch_code,Fire,CO Alarm
-37,incident,dispatch_code,Fire,Fire Alarm
-38,incident,dispatch_code,Fire,Garage Fire
-39,incident,dispatch_code,Fire,Grass Fire
-40,incident,dispatch_code,Fire,HAZMAT
-41,incident,dispatch_code,Fire,Illegal Burn
-42,incident,dispatch_code,Fire,Motor Vehicle Accident (Injuries)
-43,incident,dispatch_code,Fire,Motor Vehicle Accident (No Injuries)
-44,incident,dispatch_code,Fire,Smoke Investigation
-45,incident,dispatch_code,Fire,Structure Fire
-46,incident,dispatch_code,Fire,Vehicle Fire
-47,incident,dispatch_code,Fire,Utility Problem
-48,incident,dispatch_seconds,dispatch_time,FALSE
-49,incident,dispatch_seconds,end_time,FALSE
-50,incident,response_area,area,Municipality
-51,incident,response_area,area,Primary
-52,incident,response_area,area,Mutual Aid
-53,incident,response_area,area,Outside Aid
-54,incident,response_units,units,EMS
-55,incident,response_units,units,Fire
-56,incident,response_units,units,Wildland
-57,incident,input_settings,canceled,TRUE
-58,incident,input_settings,dropped,TRUE
-59,incident,input_settings,address,FALSE
-60,global,,password,123
-61,incident,input_settings,incident_cad_regex,\d{5}
-62,incident,input_settings,cad_failure_message,Must be five digits
-63,training,training_page,start_date_filter,M-1,
-64,training,training_page,end_date_filter,W+1,
+id,domain,setting_group,setting_key,setting_value,value_type
+1,incident,dispatch_code,EMS,Abdominal Pain/Problems,string
+2,incident,dispatch_code,EMS,Allergies / Envenomations,string
+3,incident,dispatch_code,EMS,Animal Bites / Attacks,string
+4,incident,dispatch_code,EMS,Assault / Sexual Assault / Stun Gun,string
+5,incident,dispatch_code,EMS,Back Pain,string
+6,incident,dispatch_code,EMS,Breathing Problems,string
+7,incident,dispatch_code,EMS,Burns / Explosions,string
+8,incident,dispatch_code,EMS,Carbon Monoxide / Inhalation / HAZMAT / CBRN,string
+9,incident,dispatch_code,EMS,Cardiac or Respiratory Arrest / Death,string
+10,incident,dispatch_code,EMS,Chest Pain,string
+11,incident,dispatch_code,EMS,Choking,string
+12,incident,dispatch_code,EMS,Convulsions / Seizures,string
+13,incident,dispatch_code,EMS,Diabetic Problems,string
+14,incident,dispatch_code,EMS,Drowning / Diving / SCUBA Accident,string
+15,incident,dispatch_code,EMS,Electrocution / Lightning,string
+16,incident,dispatch_code,EMS,Eye Problems / Injuries,string
+17,incident,dispatch_code,EMS,Falls,string
+18,incident,dispatch_code,EMS,Headache,string
+19,incident,dispatch_code,EMS,Heart Problems / A.I.C.D.,string
+20,incident,dispatch_code,EMS,Heat / Cold Exposure,string
+21,incident,dispatch_code,EMS,Hemorrhage / Lacerations,string
+22,incident,dispatch_code,EMS,Inaccessible Incident / Entrapments,string
+23,incident,dispatch_code,EMS,Overdose / Poisoning (Ingestion),string
+24,incident,dispatch_code,EMS,Pregnancy / Childbirth / Miscarriage,string
+25,incident,dispatch_code,EMS,Psychiatric / Suicide Attempt,string
+26,incident,dispatch_code,EMS,Sick Person,string
+27,incident,dispatch_code,EMS,Stab / Gunshot / Penetrating Trauma,string
+28,incident,dispatch_code,EMS,Stroke (CVA) / Transient Ischemic Attack (TIA),string
+29,incident,dispatch_code,EMS,Traffic / Transportation Incidents,string
+30,incident,dispatch_code,EMS,Traumatic Injuries,string
+31,incident,dispatch_code,EMS,Unconscious / Fainting (Near),string
+32,incident,dispatch_code,EMS,Unknown Problem,string
+33,incident,dispatch_code,EMS,Inter-Facility Transfer / Palliative Care,string
+34,incident,dispatch_code,EMS,Automatic Crash Notification (A.C.N.),string
+35,incident,dispatch_code,EMS,Pandemic / Epidemic / Outbreak (Surveillance or Triage),string
+36,incident,dispatch_code,Fire,CO Alarm,string
+37,incident,dispatch_code,Fire,Fire Alarm,string
+38,incident,dispatch_code,Fire,Garage Fire,string
+39,incident,dispatch_code,Fire,Grass Fire,string
+40,incident,dispatch_code,Fire,HAZMAT,string
+41,incident,dispatch_code,Fire,Illegal Burn,string
+42,incident,dispatch_code,Fire,Motor Vehicle Accident (Injuries),string
+43,incident,dispatch_code,Fire,Motor Vehicle Accident (No Injuries),string
+44,incident,dispatch_code,Fire,Smoke Investigation,string
+45,incident,dispatch_code,Fire,Structure Fire,string
+46,incident,dispatch_code,Fire,Vehicle Fire,string
+47,incident,dispatch_code,Fire,Utility Problem,string
+48,incident,dispatch_seconds,dispatch_time,FALSE,boolean
+49,incident,dispatch_seconds,end_time,FALSE,boolean
+50,incident,response_area,area,Municipality,string
+51,incident,response_area,area,Primary,string
+52,incident,response_area,area,Mutual Aid,string
+53,incident,response_area,area,Outside Aid,string
+54,incident,response_units,units,EMS,string
+55,incident,response_units,units,Fire,string
+56,incident,response_units,units,Wildland,string
+57,incident,input_settings,canceled,TRUE,boolean
+58,incident,input_settings,dropped,TRUE,boolean
+59,incident,input_settings,address,FALSE,boolean
+60,global,,password,123,string
+61,incident,input_settings,incident_cad_regex,\d{5},string
+62,incident,input_settings,cad_failure_message,Must be five digits,string
+63,training,training_page,start_date_filter,M-1,string
+64,training,training_page,end_date_filter,W+1,string
+65,incident,,dispatch_category,Fire,string
+66,incident,,dispatch_category,EMS,string
+67,global,time,ltz,America/Denver,string
+68,global,time,date_format,%m-%d-%Y,string
+69,global,time,date_time_format,%m-%d-%Y %H:%M:%S,string
