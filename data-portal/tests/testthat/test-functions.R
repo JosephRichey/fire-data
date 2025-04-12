@@ -60,7 +60,18 @@ test_that("UpdateReactives function works", {
 
 })
 
+test_that("GetSetting works", {
+  # Test that invalid setting returns na
+  testthat::expect_equal(functions$GetSetting('non_existent_setting'), NA,
+                         label = "function returns NA for non-existent setting")
 
+  # Test that pulling dispatch codes returns a list
+  testthat::expect_vector(functions$GetSetting('incident', group = 'dispatch_code'))
+
+  # Test that pulling password only returns a single value
+  testthat::expect_length(functions$GetSetting('password'), 1)
+
+})
 
 
 test_that("VerifyNoOverlap function works", {

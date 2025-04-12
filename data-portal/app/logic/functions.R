@@ -15,7 +15,7 @@ box::use(
 
 #' @export
 CON <- dbConnect(RMySQL::MySQL(),
-                 dbname = "test",
+                 dbname = "crabapple",
                  host = Sys.getenv("DB_HOST"),
                  port = 3306,
                  user = "admin",
@@ -49,6 +49,7 @@ UpdateReactives <- function(
     log_info("Updating multiple database tables.",
              namespace = "UpdateReactives")
 
+  #FIXME Switch statement
     for (name in dbTableName) {
       df <- QueryDatabase(name)
       rdfs[[name]] <- df
@@ -58,14 +59,36 @@ UpdateReactives <- function(
              namespace = "UpdateReactives")
 }
 
+Settings <- dbGetQuery(CON, "SELECT * FROM setting") |>
+  mutate(setting_group = ifelse(setting_group == "", NA, setting_group))
 
-# library(shiny)
-# reactiveConsole(TRUE)
-# r_Training <- reactiveVal()
-# r_Firefighter <- reactiveVal()
-# UpdateReactives(c("training", "firefighter"), c(r_Training, r_Firefighter))
-# r_Training()
-# r_Firefighter()
+#' @export
+GetSetting <- function(domain, key = NULL, group = NULL) {
+  Filtered <- Settings |>
+    filter(domain == !!domain)
+
+  if (!is.null(group)) {
+    Filtered <- Filtered |> filter(setting_group == !!group)
+  }
+
+  if (!is.null(key)) {
+    Filtered <- Filtered |> filter(setting_key == !!key)
+  }
+
+
+
+
+  Result <- Filtered |>
+    pull(setting_value)
+
+  if (length(Result) == 0) {
+    return(NA)
+  } else if (length(Result) == 1) {
+    return(Result[[1]])
+  } else {
+    return(Result)
+  }
+}
 
 
 #' @export

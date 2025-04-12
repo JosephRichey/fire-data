@@ -107,8 +107,9 @@ CREATE TABLE certification (
 # This table stores all the data that can be set to customize different aspects of the platform.
 CREATE TABLE setting (
 	id INT PRIMARY KEY AUTO_INCREMENT,
-    major_setting_key VARCHAR(255),
-    minor_setting_key VARCHAR(255),
+    domain VARCHAR(255),
+    setting_group VARCHAR(255),
+    setting_key VARCHAR(255),
     setting_value VARCHAR(255)
 );
 

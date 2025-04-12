@@ -1,64 +1,65 @@
-id,major_setting_key,minor_setting_key,setting_value
-1,dispatch_code,EMS,Abdominal Pain/Problems
-2,dispatch_code,EMS,Allergies / Envenomations
-3,dispatch_code,EMS,Animal Bites / Attacks
-4,dispatch_code,EMS,Assault / Sexual Assault / Stun Gun
-5,dispatch_code,EMS,Back Pain
-6,dispatch_code,EMS,Breathing Problems
-7,dispatch_code,EMS,Burns / Explosions
-8,dispatch_code,EMS,Carbon Monoxide / Inhalation / HAZMAT / CBRN
-9,dispatch_code,EMS,Cardiac or Respiratory Arrest / Death
-10,dispatch_code,EMS,Chest Pain
-11,dispatch_code,EMS,Choking
-12,dispatch_code,EMS,Convulsions / Seizures
-13,dispatch_code,EMS,Diabetic Problems
-14,dispatch_code,EMS,Drowning / Diving / SCUBA Accident
-15,dispatch_code,EMS,Electrocution / Lightning
-16,dispatch_code,EMS,Eye Problems / Injuries
-17,dispatch_code,EMS,Falls
-18,dispatch_code,EMS,Headache
-19,dispatch_code,EMS,Heart Problems / A.I.C.D.
-20,dispatch_code,EMS,Heat / Cold Exposure
-21,dispatch_code,EMS,Hemorrhage / Lacerations
-22,dispatch_code,EMS,Inaccessible Incident / Entrapments
-23,dispatch_code,EMS,Overdose / Poisoning (Ingestion)
-24,dispatch_code,EMS,Pregnancy / Childbirth / Miscarriage
-25,dispatch_code,EMS,Psychiatric / Suicide Attempt
-26,dispatch_code,EMS,Sick Person
-27,dispatch_code,EMS,Stab / Gunshot / Penetrating Trauma
-28,dispatch_code,EMS,Stroke (CVA) / Transient Ischemic Attack (TIA)
-29,dispatch_code,EMS,Traffic / Transportation Incidents
-30,dispatch_code,EMS,Traumatic Injuries
-31,dispatch_code,EMS,Unconscious / Fainting (Near)
-32,dispatch_code,EMS,Unknown Problem
-33,dispatch_code,EMS,Inter-Facility Transfer / Palliative Care
-34,dispatch_code,EMS,Automatic Crash Notification (A.C.N.)
-35,dispatch_code,EMS,Pandemic / Epidemic / Outbreak (Surveillance or Triage)
-36,dispatch_code,Fire,CO Alarm
-37,dispatch_code,Fire,Fire Alarm
-38,dispatch_code,Fire,Garage Fire
-39,dispatch_code,Fire,Grass Fire
-40,dispatch_code,Fire,HAZMAT
-41,dispatch_code,Fire,Illegal Burn
-42,dispatch_code,Fire,Motor Vehicle Accident (Injuries)
-43,dispatch_code,Fire,Motor Vehicle Accident (No Injuries)
-44,dispatch_code,Fire,Smoke Investigation
-45,dispatch_code,Fire,Structure Fire
-46,dispatch_code,Fire,Vehicle Fire
-47,dispatch_code,Fire,Utility Problem
-48,dispatch_seconds,dispatch_time,FALSE
-49,dispatch_seconds,end_time,FALSE
-50,response_area,area,Municipality
-51,response_area,area,Primary
-52,response_area,area,Mutual Aid
-53,response_area,area,Outside Aid
-54,response_units,units,EMS
-55,response_units,units,Fire
-56,response_units,units,Wildland
-57,canceled,NULL,TRUE
-58,dropped,NULL,TRUE
-59,address,NULL,FALSE
-60,password,NULL,123
-61,incident_pk_regex,Must be five digits,\d{5}
-62,training_page,start_date_filter,MONTH-1,
-63,training_page,end_date_filter,MONTH+1,
+id,domain,setting_group,setting_key,setting_value
+1,incident,dispatch_code,EMS,Abdominal Pain/Problems
+2,incident,dispatch_code,EMS,Allergies / Envenomations
+3,incident,dispatch_code,EMS,Animal Bites / Attacks
+4,incident,dispatch_code,EMS,Assault / Sexual Assault / Stun Gun
+5,incident,dispatch_code,EMS,Back Pain
+6,incident,dispatch_code,EMS,Breathing Problems
+7,incident,dispatch_code,EMS,Burns / Explosions
+8,incident,dispatch_code,EMS,Carbon Monoxide / Inhalation / HAZMAT / CBRN
+9,incident,dispatch_code,EMS,Cardiac or Respiratory Arrest / Death
+10,incident,dispatch_code,EMS,Chest Pain
+11,incident,dispatch_code,EMS,Choking
+12,incident,dispatch_code,EMS,Convulsions / Seizures
+13,incident,dispatch_code,EMS,Diabetic Problems
+14,incident,dispatch_code,EMS,Drowning / Diving / SCUBA Accident
+15,incident,dispatch_code,EMS,Electrocution / Lightning
+16,incident,dispatch_code,EMS,Eye Problems / Injuries
+17,incident,dispatch_code,EMS,Falls
+18,incident,dispatch_code,EMS,Headache
+19,incident,dispatch_code,EMS,Heart Problems / A.I.C.D.
+20,incident,dispatch_code,EMS,Heat / Cold Exposure
+21,incident,dispatch_code,EMS,Hemorrhage / Lacerations
+22,incident,dispatch_code,EMS,Inaccessible Incident / Entrapments
+23,incident,dispatch_code,EMS,Overdose / Poisoning (Ingestion)
+24,incident,dispatch_code,EMS,Pregnancy / Childbirth / Miscarriage
+25,incident,dispatch_code,EMS,Psychiatric / Suicide Attempt
+26,incident,dispatch_code,EMS,Sick Person
+27,incident,dispatch_code,EMS,Stab / Gunshot / Penetrating Trauma
+28,incident,dispatch_code,EMS,Stroke (CVA) / Transient Ischemic Attack (TIA)
+29,incident,dispatch_code,EMS,Traffic / Transportation Incidents
+30,incident,dispatch_code,EMS,Traumatic Injuries
+31,incident,dispatch_code,EMS,Unconscious / Fainting (Near)
+32,incident,dispatch_code,EMS,Unknown Problem
+33,incident,dispatch_code,EMS,Inter-Facility Transfer / Palliative Care
+34,incident,dispatch_code,EMS,Automatic Crash Notification (A.C.N.)
+35,incident,dispatch_code,EMS,Pandemic / Epidemic / Outbreak (Surveillance or Triage)
+36,incident,dispatch_code,Fire,CO Alarm
+37,incident,dispatch_code,Fire,Fire Alarm
+38,incident,dispatch_code,Fire,Garage Fire
+39,incident,dispatch_code,Fire,Grass Fire
+40,incident,dispatch_code,Fire,HAZMAT
+41,incident,dispatch_code,Fire,Illegal Burn
+42,incident,dispatch_code,Fire,Motor Vehicle Accident (Injuries)
+43,incident,dispatch_code,Fire,Motor Vehicle Accident (No Injuries)
+44,incident,dispatch_code,Fire,Smoke Investigation
+45,incident,dispatch_code,Fire,Structure Fire
+46,incident,dispatch_code,Fire,Vehicle Fire
+47,incident,dispatch_code,Fire,Utility Problem
+48,incident,dispatch_seconds,dispatch_time,FALSE
+49,incident,dispatch_seconds,end_time,FALSE
+50,incident,response_area,area,Municipality
+51,incident,response_area,area,Primary
+52,incident,response_area,area,Mutual Aid
+53,incident,response_area,area,Outside Aid
+54,incident,response_units,units,EMS
+55,incident,response_units,units,Fire
+56,incident,response_units,units,Wildland
+57,incident,input_settings,canceled,TRUE
+58,incident,input_settings,dropped,TRUE
+59,incident,input_settings,address,FALSE
+60,global,,password,123
+61,incident,input_settings,incident_cad_regex,\d{5}
+62,incident,input_settings,cad_failure_message,Must be five digits
+63,training,training_page,start_date_filter,M-1,
+64,training,training_page,end_date_filter,W+1,

@@ -1,5 +1,5 @@
 ---
-title: "Technical Reference"
+title: "Developer Reference"
 format: html
 ---
 
@@ -80,9 +80,11 @@ See [Setting Reference](setting_reference.qmd) for more details.
 
 id (INT, PK) – Unique identifier.
 
-major_setting_key (VARCHAR(255)) – Broad category of the setting.
+domain (VARCHAR(255)) – The domain or area of the setting (e.g., “training,” “incident”).
 
-minor_setting_key (VARCHAR(255)) – Sub‐key or a more specific setting name.
+setting_group (VARCHAR(255)) – Broad group of the setting.
+
+setting_key (VARCHAR(255)) – Sub‐key or a more specific setting name.
 
 setting_value (VARCHAR(255)) – The stored value.
 
@@ -490,7 +492,7 @@ Snapshots overall equipment‐check compliance, typically a percentage represent
 
 id (INT, PK) – Unique identifier for each snapshot record.
 
-compliance_date_time (DATETIME) – The timestamp when compliance was calculated.
+compliance_date (DATE) – The date when compliance was calculated.
 
 check_compliance (FLOAT/DECIMAL) – The percentage of equipment that is not overdue for checks (0–100, or a fraction).
 
