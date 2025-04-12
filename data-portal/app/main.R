@@ -74,178 +74,178 @@ ui <- function(id) {
           route("/",
                 Training$UI(ns('training_page'))
           ),
-          route("incident",
-                layout_sidebar(
-                  sidebar = sidebar(
-                    open = "desktop",
-                    incident$UI(ns('incident'))
-                  ),
-                    incident$Output(ns('incident'))
-                )
-                ),
-          route("equipment",
-                navset_pill(
-                  nav_panel(
-                    title = "Equipment Checks",
-                    layout_sidebar(
-                      sidebar = sidebar(
-
-                        open = "desktop",
-                        equipment_management$Checks_UI(ns('equipment')),
-                      ),
-                      equipment_management$Checks_Output(ns('equipment'))
-                    )
-                  ),
-
-                  nav_panel(
-                    title = "Equipment Expiration",
-                    layout_sidebar(
-                      sidebar = sidebar(
-
-                        open = "desktop",
-                        equipment_management$Expiration_UI(ns('equipment')),
-                      ),
-                      equipment_management$Expiration_Output(ns('equipment'))
-                    )
-                  ),
-
-                  nav_panel(
-                    title = "Manage Equipment",
-                    layout_sidebar(
-                      sidebar = sidebar(
-
-                        open = "desktop",
-                        equipment_management$Manage_Equipment_UI(ns('equipment')),
-                      ),
-
-                      equipment_management$Manage_Equipment_Output(ns('equipment'))
-                    )
-                  ),
-                  nav_panel(
-                    title = "Manage Equipment Type",
-                    layout_sidebar(
-                      sidebar = sidebar(
-
-                        open = "desktop",
-                        equipment_management$Manage_Equipment_Type_UI(ns('equipment')),
-                      ),
-
-                      equipment_management$Manage_Equipment_Type_Output(ns('equipment'))
-                    )
-                  ),
-                )
-                ),
-          route("reports",
-            navset_pill(
-              nav_panel(
-                title = "Trainings",
-                navset_card_underline(
-                  nav_panel(
-                    title = "Individual",
-                    layout_sidebar(
-                      sidebar = sidebar(
-                        title = "Set Filters",
-                        report$Training_UI(ns('ind_training'), "Individual")
-                      ),
-                      report$Training_Output(ns('ind_training'), "Individual")
-                    )
-                  ),
-                  nav_panel(
-                    title = "Department",
-                    layout_sidebar(
-                      sidebar = sidebar(
-                        title = "Set Filters",
-                        report$Training_UI(ns('dep_training'), "Department")
-                      ),
-                      report$Training_Output(ns('dep_training'), "Department")
-                    )
-                  )
-                )
-               ),
-
-              nav_panel(title = "Incidents",
-                        layout_sidebar(
-                          sidebar = sidebar(
-                            title = "Set Filters",
-                            report_incident$UI(ns('incident'))
-                            ),
-                            report_incident$Output(ns('incident'))
-                        )
-              ),
-
-              nav_panel(title = "Equipment",
-                        layout_sidebar(
-                          sidebar = sidebar(
-                            title = "Set Filters",
-                            report_equipment$UI(ns('equipment'))
-
-                          ),
-                          report_equipment$Output(ns('equipment'))
-                        )
-              ),
-
-              nav_panel(title = "Personnel",
-                        layout_sidebar(
-                          sidebar = sidebar(
-                            report_personnel$UI(ns('personnel'))
-                          ),
-                          report_personnel$Output(ns('personnel'))
-                        )
-              ),
-
-              nav_panel(title = "AI Reports",
-                        report$AI_UI(ns('report'))
-              )
-            )
-          ),
-          route("personnel",
-                navset_pill(
-                  nav_panel(
-                    title = "Roster",
-                    layout_sidebar(
-                      sidebar = sidebar(
-
-                        open = "desktop",
-                        personnel$Roster_UI(ns('personnel')),
-                      ),
-
-                      personnel$Roster_Output(ns('personnel'))
-
-                    )
-                  ),
-
-                  nav_panel(
-                    title = 'Certifications',
-                    layout_sidebar(
-                      sidebar = sidebar(
-                        open = "desktop",
-                        personnel$Certification_UI(ns('personnel')),
-                      ),
-                      personnel$Certification_Output(ns('personnel'))
-                    )
-                  ),
-
-                  nav_panel(
-                    title = 'Org Chart',
-
-                    personnel$Org_Chart_Output(ns('personnel'))
-                  )
-
-                )
-
-
-          ),
-          route("messaging",
-                layout_sidebar(
-                  sidebar = sidebar(
-                    open = "desktop",
-                    messaging$UI(ns('messaging'))
-                  ),
-                  card(
-                    messaging$Output(ns('messaging'))
-                  )
-                )
-                ),
+          # route("incident",
+          #       layout_sidebar(
+          #         sidebar = sidebar(
+          #           open = "desktop",
+          #           incident$UI(ns('incident'))
+          #         ),
+          #           incident$Output(ns('incident'))
+          #       )
+          #       ),
+          # route("equipment",
+          #       navset_pill(
+          #         nav_panel(
+          #           title = "Equipment Checks",
+          #           layout_sidebar(
+          #             sidebar = sidebar(
+          #
+          #               open = "desktop",
+          #               equipment_management$Checks_UI(ns('equipment')),
+          #             ),
+          #             equipment_management$Checks_Output(ns('equipment'))
+          #           )
+          #         ),
+          #
+          #         nav_panel(
+          #           title = "Equipment Expiration",
+          #           layout_sidebar(
+          #             sidebar = sidebar(
+          #
+          #               open = "desktop",
+          #               equipment_management$Expiration_UI(ns('equipment')),
+          #             ),
+          #             equipment_management$Expiration_Output(ns('equipment'))
+          #           )
+          #         ),
+          #
+          #         nav_panel(
+          #           title = "Manage Equipment",
+          #           layout_sidebar(
+          #             sidebar = sidebar(
+          #
+          #               open = "desktop",
+          #               equipment_management$Manage_Equipment_UI(ns('equipment')),
+          #             ),
+          #
+          #             equipment_management$Manage_Equipment_Output(ns('equipment'))
+          #           )
+          #         ),
+          #         nav_panel(
+          #           title = "Manage Equipment Type",
+          #           layout_sidebar(
+          #             sidebar = sidebar(
+          #
+          #               open = "desktop",
+          #               equipment_management$Manage_Equipment_Type_UI(ns('equipment')),
+          #             ),
+          #
+          #             equipment_management$Manage_Equipment_Type_Output(ns('equipment'))
+          #           )
+          #         ),
+          #       )
+          #       ),
+          # route("reports",
+          #   navset_pill(
+          #     nav_panel(
+          #       title = "Trainings",
+          #       navset_card_underline(
+          #         nav_panel(
+          #           title = "Individual",
+          #           layout_sidebar(
+          #             sidebar = sidebar(
+          #               title = "Set Filters",
+          #               report$Training_UI(ns('ind_training'), "Individual")
+          #             ),
+          #             report$Training_Output(ns('ind_training'), "Individual")
+          #           )
+          #         ),
+          #         nav_panel(
+          #           title = "Department",
+          #           layout_sidebar(
+          #             sidebar = sidebar(
+          #               title = "Set Filters",
+          #               report$Training_UI(ns('dep_training'), "Department")
+          #             ),
+          #             report$Training_Output(ns('dep_training'), "Department")
+          #           )
+          #         )
+          #       )
+          #      ),
+          #
+          #     nav_panel(title = "Incidents",
+          #               layout_sidebar(
+          #                 sidebar = sidebar(
+          #                   title = "Set Filters",
+          #                   report_incident$UI(ns('incident'))
+          #                   ),
+          #                   report_incident$Output(ns('incident'))
+          #               )
+          #     ),
+          #
+          #     nav_panel(title = "Equipment",
+          #               layout_sidebar(
+          #                 sidebar = sidebar(
+          #                   title = "Set Filters",
+          #                   report_equipment$UI(ns('equipment'))
+          #
+          #                 ),
+          #                 report_equipment$Output(ns('equipment'))
+          #               )
+          #     ),
+          #
+          #     nav_panel(title = "Personnel",
+          #               layout_sidebar(
+          #                 sidebar = sidebar(
+          #                   report_personnel$UI(ns('personnel'))
+          #                 ),
+          #                 report_personnel$Output(ns('personnel'))
+          #               )
+          #     ),
+          #
+          #     nav_panel(title = "AI Reports",
+          #               report$AI_UI(ns('report'))
+          #     )
+          #   )
+          # ),
+          # route("personnel",
+          #       navset_pill(
+          #         nav_panel(
+          #           title = "Roster",
+          #           layout_sidebar(
+          #             sidebar = sidebar(
+          #
+          #               open = "desktop",
+          #               personnel$Roster_UI(ns('personnel')),
+          #             ),
+          #
+          #             personnel$Roster_Output(ns('personnel'))
+          #
+          #           )
+          #         ),
+          #
+          #         nav_panel(
+          #           title = 'Certifications',
+          #           layout_sidebar(
+          #             sidebar = sidebar(
+          #               open = "desktop",
+          #               personnel$Certification_UI(ns('personnel')),
+          #             ),
+          #             personnel$Certification_Output(ns('personnel'))
+          #           )
+          #         ),
+          #
+          #         nav_panel(
+          #           title = 'Org Chart',
+          #
+          #           personnel$Org_Chart_Output(ns('personnel'))
+          #         )
+          #
+          #       )
+          #
+          #
+          # ),
+          # route("messaging",
+          #       layout_sidebar(
+          #         sidebar = sidebar(
+          #           open = "desktop",
+          #           messaging$UI(ns('messaging'))
+          #         ),
+          #         card(
+          #           messaging$Output(ns('messaging'))
+          #         )
+          #       )
+          #       ),
           route("settings",
                 tagList(
                   actionButton("input1", "Change Password",
@@ -290,27 +290,27 @@ server <- function(id) {
     ##### Modules Servers #####
     Training$Server('training_page', rdfs)
 
-    personnel$Server('personnel')
-
-    incident$Server('incident')
-
-    equipment_management$Server('equipment')
-
-    equipment_management$Manage_Equipment_Server('equipment')
-
-    report$AI_Server('report')
-
-    report$Training_Server('ind_training', 'Individual')
-
-    report$Training_Server('dep_training', 'Department')
-
-    report_incident$Server('incident')
-
-    report_personnel$Server('personnel')
-
-    report_equipment$Server('equipment')
-
-    messaging$Server('messaging')
+    # personnel$Server('personnel')
+    #
+    # incident$Server('incident')
+    #
+    # equipment_management$Server('equipment')
+    #
+    # equipment_management$Manage_Equipment_Server('equipment')
+    #
+    # report$AI_Server('report')
+    #
+    # report$Training_Server('ind_training', 'Individual')
+    #
+    # report$Training_Server('dep_training', 'Department')
+    #
+    # report_incident$Server('incident')
+    #
+    # report_personnel$Server('personnel')
+    #
+    # report_equipment$Server('equipment')
+    #
+    # messaging$Server('messaging')
 
     router_server()
 
