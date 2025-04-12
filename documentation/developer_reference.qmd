@@ -671,3 +671,52 @@ Possibly removed if the contact is outdated or if the firefighter is removed. Us
 **Joins:**
 
 firefighter_contact ↔ firefighter (one‐to‐one or one‐to‐many if you allow multiple contacts per firefighter).
+
+## Time
+Time has been a challenge in this application. The following is a summary of the structure of how it's handled.
+
+### Storage and Manipulation
+
+1. Datetime is always in UTC in the database in a datetime format.
+```
+format(dt,"%Y-%m-%d %H:%M:%S", tz = "UTC", usetz = FALSE)
+```
+Use the format function when storing to ensure the correct format. Almost every time, the query is built and then executed rather than relying on dbAppend.
+
+2. Anytime data is in memory in R, convert to local time zone in a POSIXct object
+```
+as.POSIXct(dt, tz = "UTC") |> with_tz("America/Denver")
+```
+3. When displaying value, convert to local time zone in a character string. This can either be a date, time, or datetime depending on the context.
+```
+format(dt, "%Y-%m-%d %H:%M:%S", tz = "America/Denver", usetz = FALSE)
+```
+4. Dates are always stored in the database in a character string (no timezone, convert to local before storing)
+```
+format(dt, tz = 'America/Denver', "%Y-%m-%d", usetz = FALSE)
+```
+Dates retrieved from the database are converted to POSIXct obejcts when brought into memory. Tz doesn't matter, because there is no time element if it's just storing a date. Otherwise, see datetime guidelines.
+```
+as.Date(dt)
+```
+5. Utility Functions
+Three helper functions in app/logic/functions.R simplify time handling across the app:
+
+FormatLocal() – Formats a POSIXct object as a local string (date, time, or datetime). This is assuming you're going from R memory (POSIC local time zone) to a string (local time zone).
+
+ConvertToLocalPosix() – Converts a UTC datetime string into local POSIXct and formats as a string. This is mainly for going from the database to R.
+
+BuildDateTime() – Constructs a datetime from date + time input and returns a UTC or local POSIXct. Generally, it is used to build a UTC value that is stored in the database. The general flow of the applications has the database updated, and then reactives are invalidated and reloaded. This is the opposite of the other two functions, which are used to convert from the database to R memory.
+
+These ensure consistent formatting, conversion, and safety.
+
+### Flow
+The flow of time in the application is as follows:
+1. User inputs a date and time in local time (e.g., 2023-10-01 12:00:00).
+2. The application converts this to a UTC datetime string for storage in the database.
+3. The database stores this as a UTC date/datetime.
+4. When retrieving data (either on initial load or on a refresh), the application converts the UTC datetime string back to a POSIX local time zone for stroage.
+5. The application then formats the local time zone datetime for display to the user. This can be configured in the settings. See [Setting Reference](setting_reference.qmd) for more details.
+
+
+

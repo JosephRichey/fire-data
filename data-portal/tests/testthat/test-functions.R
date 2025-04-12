@@ -263,6 +263,103 @@ test_that("UpdateReactives function works", {
 
 })
 
+test_that("ParseRelativeDate handles relative days (D+N / D-N)", {
+  expect_equal(
+    functions$ParseRelativeDate("D+3", type = "start", refDate = as.Date("2025-04-10")),
+    as.Date("2025-04-13")
+  )
+
+  expect_equal(
+    functions$ParseRelativeDate("D-2", refDate = as.Date("2025-04-10")),
+    as.Date("2025-04-08")
+  )
+})
+
+test_that("ParseRelativeDate handles relative months", {
+  expect_equal(
+    functions$ParseRelativeDate("M+1", refDate = as.Date("2025-04-10")),
+    as.Date("2025-05-10")
+  )
+
+  expect_equal(
+    functions$ParseRelativeDate("M-1", refDate = as.Date("2025-04-10")),
+    as.Date("2025-03-10")
+  )
+})
+
+test_that("ParseRelativeDate handles relative years", {
+  expect_equal(
+    functions$ParseRelativeDate("Y+1", refDate = as.Date("2025-04-10")),
+    as.Date("2026-04-10")
+  )
+
+  expect_equal(
+    functions$ParseRelativeDate("Y-2", refDate = as.Date("2025-04-10")),
+    as.Date("2023-04-10")
+  )
+})
+
+test_that("ParseRelativeDate handles current month snap (CM)", {
+  expect_equal(
+    functions$ParseRelativeDate("CM", type = "start", refDate = as.Date("2025-04-15")),
+    as.Date("2025-04-01")
+  )
+
+  expect_equal(
+    functions$ParseRelativeDate("CM", type = "end", refDate = as.Date("2025-04-15")),
+    as.Date("2025-04-30")
+  )
+})
+
+test_that("ParseRelativeDate handles current quarter snap (CQ)", {
+  expect_equal(
+    functions$ParseRelativeDate("CQ", type = "start", refDate = as.Date("2025-04-15")),
+    as.Date("2025-04-01")
+  )
+
+  expect_equal(
+    functions$ParseRelativeDate("CQ", type = "end", refDate = as.Date("2025-04-15")),
+    as.Date("2025-06-30")
+  )
+})
+
+test_that("ParseRelativeDate handles current year snap (CY)", {
+  expect_equal(
+    functions$ParseRelativeDate("CY", type = "start", refDate = as.Date("2025-04-15")),
+    as.Date("2025-01-01")
+  )
+
+  expect_equal(
+    functions$ParseRelativeDate("CY", type = "end", refDate = as.Date("2025-04-15")),
+    as.Date("2025-12-31")
+  )
+})
+
+test_that("ParseRelativeDate handles offset snap strings (CQ-1, CY+2, etc.)", {
+  expect_equal(
+    functions$ParseRelativeDate("CQ-1", type = "start", refDate = as.Date("2025-04-15")),
+    as.Date("2025-01-01")
+  )
+
+  expect_equal(
+    functions$ParseRelativeDate("CY+2", type = "end", refDate = as.Date("2025-04-15")),
+    as.Date("2027-12-31")
+  )
+})
+
+test_that("ParseRelativeDate handles 'today'", {
+  expect_equal(
+    functions$ParseRelativeDate("today", refDate = as.Date("2025-04-15")),
+    as.Date("2025-04-15")
+  )
+})
+
+test_that("ParseRelativeDate errors on bad input", {
+  expect_error(
+    functions$ParseRelativeDate("banana", refDate = as.Date("2025-04-10")),
+    "Invalid relative date format"
+  )
+})
 
 
 

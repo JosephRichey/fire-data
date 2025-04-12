@@ -19,8 +19,18 @@ CON <- dbConnect(RMySQL::MySQL(),
 
 log_info("Connected to database", namespace = "app_data.R")
 
+
 #' @export
 Setting <- dbGetQuery(CON, "SELECT * FROM setting")
+
+init_ltz <- Setting |>
+  filter(setting_key == "ltz") |>
+  pull(setting_value)
+
+#' @export
+local_date <- Sys.time() |>
+  with_tz(tz = init_ltz) |>
+  as_date(tz = init_ltz)
 
 log_info("app_data.R loaded", namespace = "app_data.R")
 

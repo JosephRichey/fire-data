@@ -55,9 +55,8 @@ UI <- function(id) {
         icon = bsicons::bs_icon("funnel-fill"),
         dateRangeInput(ns('training_filter_range'),
                        "Show trainings between:",
-                       #FIXME customize this
-                       start = as.Date(app_data$Local_Date - dyears(1) + ddays(1)),
-                       end = app_data$Local_Date
+                       start = functions$GetSetting('training', key = 'start_date_filter'),
+                       end = functions$GetSetting('training', key = 'end_date_filter')
         ),
         #FIXME Set by settings
         pickerInput(ns('filter_training_type'),

@@ -14,6 +14,75 @@ box::use(
   ./app_data,
 )
 
+
+
+#' @export
+ParseRelativeDate <- function(relativeString, type = c("start", "end"), refDate = app_data$local_date) {
+  type <- match.arg(type)
+  today <- refDate
+
+  # Handle 'today' explicitly
+  if (tolower(relativeString) == "today") {
+    return(refDate)
+  }
+
+  # Match snap patterns: CM, CQ, CY, optionally with +N/-N
+  snap_match <- stringr::str_match(relativeString, "^(C[MQY])([+-]?)(\\d*)$")
+  # snap_match has 4 columns: full match, snap unit, offset direction, amount
+
+  # First, check there is a match for the snap pattern
+  if (!is.na(snap_match[1, 1])) {
+    snap_unit <- snap_match[1, 2]  # CM, CQ, CY
+    sign <- snap_match[1, 3]
+    amount <- snap_match[1, 4]
+
+    # If amount is empty, default to 0
+    offset <- if (amount == "") 0 else as.integer(amount)
+    # and invert if sign is '-'
+    if (sign == "-") offset <- -offset
+
+    base_date <- switch(
+      snap_unit,
+      "CM" = refDate %m+% months(offset),
+      "CQ" = refDate %m+% months(3 * offset),
+      "CY" = refDate %m+% years(offset),
+      stop("Unknown snap code")
+    )
+
+    return(switch(
+      snap_unit,
+      "CM" = if (type == "start") floor_date(base_date, "month") else ceiling_date(base_date, "month") - days(1),
+      "CQ" = if (type == "start") floor_date(base_date, "quarter") else ceiling_date(base_date, "quarter") - days(1),
+      "CY" = if (type == "start") floor_date(base_date, "year") else ceiling_date(base_date, "year") - days(1)
+    ))
+  }
+
+  # Offset-only logic: M-1, D+3, etc.
+  match <- stringr::str_match(relativeString, "^([MWDY])([+-])(\\d+)$")
+
+  if (any(is.na(match))) {
+    stop(glue::glue("Invalid relative date format: '{relativeString}'"))
+  }
+
+  unit <- match[, 2]
+  sign <- match[, 3]
+  n <- as.integer(match[, 4])
+
+  offset <- if (sign == "-") -n else n
+
+  result <- switch(
+    unit,
+    "M" = refDate %m+% months(offset),
+    "W" = refDate + weeks(offset),
+    "D" = refDate + days(offset),
+    "Y" = refDate %m+% years(offset),
+    stop("Unknown unit")
+  )
+
+  return(result)
+}
+
+
 #' @export
 GetSetting <- function(domain, key = NULL, group = NULL) {
   Filtered <- app_data$Setting |>
@@ -43,6 +112,7 @@ GetSetting <- function(domain, key = NULL, group = NULL) {
     "numeric" = as.numeric,
     "boolean" = function(x) tolower(x) %in% c("true", "1", "t", "yes"),
     "date" = function(x) as.Date(x),
+    "relative_date" = function(x) ParseRelativeDate(x),
     as.character # fallback
   )
 
@@ -191,11 +261,24 @@ UpdateReactives <- function(
 
         # Training table - convert start_time and end_time to local time
         "training" = df |>
-          mutate(start_time = ,
-                 end_time = as.POSIXct(end_time, tz = Sys.getenv("LTZ"))),
+          mutate(start_time = ConvertToLocalPosix(start_time,
+                                                  input = 'datetime',
+                                                  output = 'datetime'),
+                 end_time = ConvertToLocalPosix(end_time,
+                                                  input = 'datetime',
+                                                  output = 'datetime')),
 
         "attendance" = df |>
-          mutate(timestamp = as.POSIXct(timestamp, tz = Sys.getenv("LTZ"))),
+          mutate(start_time = ConvertToLocalPosix(start_time,
+                                                  input = 'check_in',
+                                                  output = 'check_in'),
+                 end_time = ConvertToLocalPosix(end_time,
+                                                input = 'check_out',
+                                                output = 'check_out')),
+        "firefighter" = df |>
+          mutate(start_date = ConvertToLocalPosix(start_date,
+                                                  input = 'date',
+                                                  output = 'date'))
       )
 
 

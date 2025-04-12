@@ -61,8 +61,8 @@ id,domain,setting_group,setting_key,setting_value,value_type
 60,global,,password,123,string
 61,incident,input_settings,incident_cad_regex,\d{5},string
 62,incident,input_settings,cad_failure_message,Must be five digits,string
-63,training,training_page,start_date_filter,M-1,string
-64,training,training_page,end_date_filter,W+1,string
+63,training,training_page,start_date_filter,M-1,relative_date
+64,training,training_page,end_date_filter,W+1,relative_date
 65,incident,,dispatch_category,Fire,string
 66,incident,,dispatch_category,EMS,string
 67,global,time,ltz,America/Denver,string
