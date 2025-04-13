@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS equipment_type;
 DROP TABLE IF EXISTS equipment_check_compliance;
 DROP TABLE IF EXISTS attendance;
 DROP TABLE IF EXISTS training;
+DROP TABLE IF EXISTS training_classification;
 DROP TABLE IF EXISTS firefighter_response;
 DROP TABLE IF EXISTS apparatus_response;
 DROP TABLE IF EXISTS firefighter_apparatus;
@@ -24,13 +25,14 @@ DROP TABLE IF EXISTS incident_unit;
 DROP TABLE IF EXISTS unit;
 DROP TABLE IF EXISTS response;
 DROP TABLE IF EXISTS incident;
+DROP TABLE IF EXISTS dispatch_code;
 DROP TABLE IF EXISTS company;
 
 # The company table stores the different crews or companies a firefighter can be assigned.
 CREATE TABLE company (
 	id int PRIMARY KEY AUTO_INCREMENT,
     company_name varchar(255)
-    # No options to expire company. No history is retained.
+    # No options to set company inactive. No history is retained.
 );
 
 # The firefighter is one of the most basic tables, storing details about each firefighter.
@@ -41,7 +43,7 @@ CREATE TABLE firefighter (
     start_date date,
     trainer boolean,
     officer boolean,
-    active_status boolean,
+    is_active boolean,
     # No deletion of firefighters, only deactivation.
     company_id int,
     firefighter_role varchar(255),
@@ -89,8 +91,7 @@ CREATE TABLE certification_type (
     lead_time_unit VARCHAR(255),
     renew_time INT,
     renew_time_unit VARCHAR(255),
-    certification_expire date  
-    # expire the type, not the certification
+    is_active boolean
     # This allows existing certs to still be reported on, but prevents new ones from being added.
 );
 
@@ -124,7 +125,7 @@ CREATE TABLE setting (
 CREATE TABLE apparatus (
 	id INT PRIMARY KEY AUTO_INCREMENT,
     apparatus_name varchar(255),
-    apparatus_expire date
+    is_active boolean
     # This allows existing apparatus to still be reported on, but prevents new records from being added.
 );
 
@@ -132,7 +133,7 @@ CREATE TABLE apparatus (
 CREATE TABLE unit (
 	id INT PRIMARY KEY AUTO_INCREMENT,
     unit_type VARCHAR(255),
-    unit_expire date
+    is_active boolean
     # This allows existing to still be reported on, but prevents new records from being added.
 );
 
@@ -148,7 +149,7 @@ CREATE TABLE equipment_type (
     expire_lead_time_unit VARCHAR(255),
     expire_time INT,
     expire_time_unit VARCHAR(255),
-    equipment_type_expire date  #expire the type, not the equipment
+    is_active boolean
     # This allows existing to still be reported on, but prevents new records from being added.
 );
 
@@ -162,7 +163,7 @@ CREATE TABLE equipment (
     next_check_date date,
     expiration_date date,
     snooze_expires date,
-    expire_equipment date,
+    is_deleted date,
     foreign key (equipment_type_id) references equipment_type(id),
     foreign key (firefighter_id) references firefighter(id),
     foreign key (apparatus_id) references apparatus(id)
@@ -188,17 +189,24 @@ CREATE TABLE equipment_check_compliance (
 );
 
 # Training Table - stores all the trainings.
+CREATE TABLE training_classification (
+	id INT primary key auto_increment,
+    training_category varchar(255),
+    training_topic varchar(255),
+    is_active boolean
+);
+
 CREATE TABLE training (
 	id int PRIMARY KEY AUTO_INCREMENT,
-    training_type varchar(255),
-    topic varchar(255),
+    classification int,
     training_description varchar(1000),
     start_time datetime,
     end_time datetime,
     credit_hours float,
     trainer int,
-    training_expire date,
-    foreign key (trainer) references firefighter(id)
+    is_deleted date,
+    foreign key (trainer) references firefighter(id),
+    foreign key (classification) references training_classification(id)
 );
 
 # Stores attendance of the trainings.
@@ -216,6 +224,14 @@ CREATE TABLE attendance (
 );
 
 # Incident tables
+CREATE TABLE dispatch_code (
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    dispatch_type VARCHAR(255),
+    dispatch_code VARCHAR(255),
+    is_active boolean
+);
+
+
 # The top level is an incident. 0 - many responses can be added to an incident.
 CREATE TABLE incident (
 	id INT PRIMARY KEY AUTO_INCREMENT,
@@ -223,13 +239,14 @@ CREATE TABLE incident (
     incident_start datetime,
     incident_end datetime,
     address varchar(255),
-    dispatch_code varchar(255), 
+    dispatch_id INT, 
     area varchar(255),
     canceled bool,
     dropped bool,
     finalized bool,
-    incident_expire date
+    is_deleted date,
     # Retain for audit
+    foreign key (dispatch_id) references dispatch_code(id)
 );
 
 # Many responses can be tied to an incident.
@@ -252,7 +269,6 @@ CREATE TABLE incident_unit (
     unit_type_id INT NOT NULL,
     FOREIGN KEY (incident_id) REFERENCES incident(id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (unit_type_id) REFERENCES unit(id) ON DELETE RESTRICT ON UPDATE CASCADE
-    
 );
 
 # This ties the firefighter to a response.
