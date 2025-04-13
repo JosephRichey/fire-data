@@ -27,10 +27,14 @@ init_ltz <- Setting |>
   filter(setting_key == "ltz") |>
   pull(setting_value)
 
+log_info(glue::glue("Extracted local timezone: {init_ltz}"), namespace = "app_data.R")
+
 #' @export
 local_date <- Sys.time() |>
   with_tz(tz = init_ltz) |>
   as_date(tz = init_ltz)
+
+log_info(glue::glue("Extracted local date: {local_date}"), namespace = "app_data.R")
 
 log_info("app_data.R loaded", namespace = "app_data.R")
 

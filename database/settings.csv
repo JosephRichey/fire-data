@@ -68,3 +68,9 @@ id,domain,setting_group,setting_key,setting_value,value_type
 67,global,time,ltz,America/Denver,string
 68,global,time,date_format,%m-%d-%Y,string
 69,global,time,date_time_format,%m-%d-%Y %H:%M:%S,string
+70,training,training_category,,EMS,string
+71,training,training_category,,Fire,string
+72,training,training_category,,Wildland,string
+73,training,training_category,,Hazmat,string
+74,training,training_topic,EMS,Cardiovacular,string
+75,training,training_topic,EMS,Medical,string
