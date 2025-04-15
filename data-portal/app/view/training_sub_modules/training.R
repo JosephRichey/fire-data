@@ -58,15 +58,14 @@ UI <- function(id) {
                        start = functions$GetSetting('training', key = 'start_date_filter'),
                        end = functions$GetSetting('training', key = 'end_date_filter')
         ),
-        #FIXME Set by settings
-        pickerInput(ns('filter_training_type'),
-                    'Training Type',
-                    choices = unique(app_data$Training$training_type),
-                    selected = unique(app_data$Training$training_type),
+        pickerInput(ns('filter_training_category'),
+                    'Training Category',
+                    choices = app_data$Training_Category_Filter,
+                    selected = app_data$Training_Category_Filter,
                     options = list(`actions-box` = TRUE),
                     multiple = TRUE
         ),
-
+        #FIXME Start here, move this to dynmaic render in server
         pickerInput(ns('filter_training_officer'),
                     'Training Officer',
                     choices = trainers,

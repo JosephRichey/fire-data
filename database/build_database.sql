@@ -100,6 +100,7 @@ CREATE TABLE certification (
     type_id INT,
     firefighter_id INT,
     expiration_date date,
+    is_deleted date,
     foreign key (type_id) references certification_type(id),
     foreign key (firefighter_id) references firefighter(id)
 );
