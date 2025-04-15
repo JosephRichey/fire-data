@@ -269,12 +269,12 @@ UpdateReactives <- function(
                                                   output = 'datetime')),
 
         "attendance" = df |>
-          mutate(start_time = ConvertToLocalPosix(start_time,
-                                                  input = 'check_in',
-                                                  output = 'check_in'),
-                 end_time = ConvertToLocalPosix(end_time,
-                                                input = 'check_out',
-                                                output = 'check_out')),
+          mutate(check_in = ConvertToLocalPosix(check_in,
+                                                  input = 'datetime',
+                                                  output = 'datetime'),
+                 check_out = ConvertToLocalPosix(check_out,
+                                                input = 'datetime',
+                                                output = 'datetime')),
         "firefighter" = df |>
           mutate(start_date = ConvertToLocalPosix(start_date,
                                                   input = 'date',

@@ -25,18 +25,18 @@ UI <- function(id) {
           ),
           training$Output(ns('training_tab'))
         )
-      ),
-
-      nav_panel(
-        title = "Attendance",
-        layout_sidebar(
-          sidebar = sidebar(
-            open = "desktop",
-            attendance$AttendanceUI(ns('attendance_tab'))
-          ),
-          attendance$AttendanceOutput(ns('attendance_tab'))
-        )
       )
+
+      # nav_panel(
+      #   title = "Attendance",
+      #   layout_sidebar(
+      #     sidebar = sidebar(
+      #       open = "desktop",
+      #       attendance$AttendanceUI(ns('attendance_tab'))
+      #     ),
+      #     attendance$AttendanceOutput(ns('attendance_tab'))
+      #   )
+      # )
 
       # nav_panel(
       #   title = "Attendance 2",
@@ -60,7 +60,7 @@ Server <- function(id, rdfs) {
     function(input, output, session) {
 
       training$Server('training_tab', rdfs)
-      attendance$Server('attendance_tab', rdfs)
+      # attendance$Server('attendance_tab', rdfs)
 
 
       return(NULL)
