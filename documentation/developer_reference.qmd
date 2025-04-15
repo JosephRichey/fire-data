@@ -9,6 +9,9 @@ The database is designed to be a MySQL database hosted on AWS. A breakdown of th
 ### Base Tables
 These tables are used throughout the app. They are cross functional with the main four areas (training, incident, equipment, personnel) of the platform.
 
+A note on naming- is_deleted is used when something should be deleted, but is retained for audit (think things like trainings). is_active is used for things that can change over time (dispatch codes and firefighters). is_deleted is always a date so there's a record of when it was deleted, and is_active is a boolean.
+
+
 ___
 
 #### Firefighter
@@ -27,7 +30,7 @@ trainer (BOOLEAN) – Indicates whether this firefighter can lead trainings.
 
 officer (BOOLEAN) – Indicates whether this firefighter holds an officer rank.
 
-active_status (BOOLEAN) – True if actively employed/engaged, false if deactivated or inactive.
+is_active (BOOLEAN) – True if actively employed/engaged, false if deactivated or inactive.
 
 company_id (INT, FK → company(id)) – Links the firefighter to a specific crew/company.
 
@@ -59,7 +62,7 @@ id (INT, PK) – Unique identifier for each apparatus.
 
 apparatus_name (VARCHAR(255)) – Official or commonly used name/label.
 
-apparatus_expire (DATE) – Date after which the apparatus is considered “retired” or otherwise not available for new assignments.
+is_active (DATE) – Date after which the apparatus is not in use or otherwise not available for new assignments.
 
 **Deletion:**
 
@@ -92,7 +95,7 @@ value_type (VARCHAR(255)) – Type of value (e.g., “string,” “int,” “b
 
 **Deletion:**
 
-Typically, you might delete old or unused settings. No special constraints beyond the primary key.
+You might delete old or unused settings (not recommended). No special constraints beyond the primary key.
 
 **Joins:**
 
@@ -105,6 +108,32 @@ These tables are used to track training sessions, attendance, and related detail
 
 ___
 
+#### Training Classification
+**Purpose:**
+Hierarchy of training classifications
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for the training classification.
+
+training_category (VARCHAR(255)) – Category of training (e.g., “Fire,” “EMS”).
+
+training_type (VARCHAR(255)) – Category or type of training (e.g., “Fire Behavior,” “Rescue Ops”). Can be null.
+
+is_active (DATE) – If this training classification is no longer used.
+
+**Deletion:**
+
+Typically not deleted if historical records (attendance) reference it. Instead, might mark expired or keep for audit.
+
+**Joins:**
+
+training ↔ attendance on id → training_id (one training has many attendance records).
+
+training ↔ firefighter on trainer → firefighter(id).
+
+___
+
 #### Training
 **Purpose:**
 Defines a training session/event with a topic, time range, and related details.
@@ -113,9 +142,7 @@ Defines a training session/event with a topic, time range, and related details.
 
 id (INT, PK) – Unique identifier for the training event.
 
-training_type (VARCHAR(255)) – Category or type of training (e.g., “Fire Behavior,” “Rescue Ops”).
-
-topic (VARCHAR(255)) – Short description of the subject.
+training_id - (INT, FK → training_classification(id)) – The classification of the training.
 
 training_description (VARCHAR(1000)) – More detailed information about the training.
 
@@ -127,7 +154,7 @@ credit_hours (FLOAT/DECIMAL) – Number of credited hours awarded. Defaults to t
 
 trainer (INT, FK → firefighter(id)) – The firefighter responsible for leading or coordinating the training.
 
-training_expire (DATE) – Date this training was deleted and no longer included in any reporting.
+is_deleted (DATE) – Date this training was deleted and no longer included in any reporting.
 
 **Deletion:**
 
@@ -181,6 +208,29 @@ These tables are used to track incidents, responses, and related details.
 
 ___
 
+#### Dispatch Code
+**Purpose:**
+Defines valid dispatch codes.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for the code.
+
+dispatch_type (VARCHAR(255)) – The type of dispatch code (e.g., “Fire,” “EMS”).
+
+dispatch_code (VARCHAR(255)) – The actual dispatch code.
+
+is_active (BOOLEAN) – If this dispatch code is no longer used.
+
+**Deletion:**
+
+Typically not deleted; instead, it’s marked as inactive. This allows for historical reference.
+
+**Joins:**
+
+dispatch_code ↔ incident (many incidents can reference the same dispatch code).
+___
+
 #### Incident
 
 **Purpose:**
@@ -198,7 +248,7 @@ incident_end (DATETIME) – When the incident concluded or was cleared.
 
 address (VARCHAR(255)) – Location of the incident.
 
-dispatch_code (VARCHAR(255)) – Official code from the dispatch system.
+dispatch_id (INT) – Official code from the dispatch system.
 
 area (VARCHAR(255)) – Specific category (mutual aid, primary area, municipality, etc.).
 
@@ -220,6 +270,8 @@ incident ↔ response (one incident can have many responses).
 
 incident ↔ incident_unit (tracks which type of response was needed).
 
+incident ↔ dispatch_code (many incidents can reference the same dispatch code).
+
 ___
 
 #### Response
@@ -239,7 +291,7 @@ response_end (DATETIME) – When that response ended.
 
 notes (TEXT) – Field notes, relevant info about the response.
 
-response_expire (DATE) – Exclude from reporting.
+is_deleted (DATE) – Exclude from reporting.
 
 **Deletion:**
 
@@ -263,11 +315,11 @@ id (INT, PK) – Unique identifier.
 
 unit_type (VARCHAR(255)) – Name/category (e.g., “Fire”, “EMS”, etc.).
 
-unit_expire (DATE) – When this unit type is no longer considered active for new usage.
+is_active (BOOLEAN) – If this unit type is no longer used.
 
 **Deletion:**
 
-Typically not removed; once expired, it should not be used for new incidents.
+Typically not removed; if not active, it should not be used for new incidents.
 
 **Joins:**
 
@@ -407,7 +459,7 @@ expire_lead_time, expire_lead_time_unit (INT, VARCHAR) – How far in advance of
 
 expire_time, expire_time_unit (INT, VARCHAR) – How long until the equipment of this type typically expires.
 
-equipment_type_expire (DATE) – Date this type is no longer used.
+is_active (BOOLEAN) – If this equipment type is no longer used.
 
 **Deletion:**
 
@@ -442,11 +494,11 @@ expiration_date (DATE) – When this item expires.
 
 snooze_expires (DATE) – If the check was “snoozed,” when that snooze period ends.
 
-expire_equipment (DATE) – Date this equipment no longer shows up in reporting.
+is_deleted (DATE) – Date this equipment no longer shows up in reporting.
 
 **Deletion:**
 
-Typically retained for safety/audit; once “expired,” either have to replace and renew equipment, or, delete the equipment (through setting a date in the expire_equipment column).
+Typically retained for safety/audit; once “deleted,” either have to replace and renew equipment, or, delete the equipment (through setting a date in the is_deleted column).
 
 **Joins:**
 
@@ -552,11 +604,11 @@ lead_time, lead_time_unit (INT, VARCHAR) – Advance notice needed before initia
 
 renew_time, renew_time_unit (INT, VARCHAR) – How often recertification is required.
 
-certification_expire (DATE) – Date this certification type is no longer used.
+is_active (boolean) – If this certification type is no longer used.
 
 **Deletion:**
 
-Typically not deleted but expired, to maintain references in certification.
+Typically not deleted but marked inactive, to maintain references in certification.
 
 **Joins:**
 
@@ -578,6 +630,8 @@ type_id (INT, FK → certification_type(id)) – Which certification type.
 firefighter_id (INT, FK → firefighter(id)) – Who holds the certification.
 
 expiration_date (DATE) – When the certification for this individual expires.
+
+is_deleted (DATE) – Date this certification was deleted and no longer included in any reporting.
 
 **Deletion:**
 

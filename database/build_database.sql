@@ -7,7 +7,6 @@ DROP TABLE IF EXISTS firefighter_status_history;
 DROP TABLE IF EXISTS certification;
 DROP TABLE IF EXISTS certification_type;
 DROP TABLE IF EXISTS setting;
-#DROP TABLE IF EXISTS user_log;
 DROP TABLE IF EXISTS equipment_log;
 DROP TABLE IF EXISTS equipment;
 DROP TABLE IF EXISTS equipment_type;
@@ -204,7 +203,7 @@ CREATE TABLE training (
     end_time datetime,
     credit_hours float,
     trainer int,
-    is_deleted date,
+    is_deleted boolean,
     foreign key (trainer) references firefighter(id),
     foreign key (classification) references training_classification(id)
 );
@@ -256,7 +255,7 @@ CREATE TABLE response (
     response_start datetime,
     response_end datetime,
     notes text,
-    response_expire date,
+    is_deleted date,
     # Retain for audit
     foreign key (incident_id) REFERENCES incident(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -267,6 +266,7 @@ CREATE TABLE incident_unit (
 	id INT PRIMARY KEY AUTO_INCREMENT,
     incident_id INT NOT NULL,
     unit_type_id INT NOT NULL,
+    is_actve boolean,
     FOREIGN KEY (incident_id) REFERENCES incident(id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (unit_type_id) REFERENCES unit(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
