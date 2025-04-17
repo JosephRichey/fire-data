@@ -7,6 +7,7 @@ box::use(
   DBI[...],
   logger[...],
   glue[glue],
+  rlang[...],
 )
 
 box::use(
@@ -289,8 +290,52 @@ UpdateReactives <- function(
              namespace = "UpdateReactives")
 }
 
+#' @export
+CreateNamedVector <- function(df, name, value, filterExpr = NULL) {
+  # Convert arguments to quosures
+  name <- enquo(name)
+  value <- enquo(value)
+  filter_expr <- enquo(filterExpr)
+
+  # Only filter if a filter expression was actually passed
+  if (quo_is_null(filter_expr)) {
+    v <- df
+  } else {
+    v <- df |> filter(!!filter_expr)
+  }
+
+  # Grab the appropriate two columns
+  v <- v |> select(name = !!name, value = !!value)
+
+  # return the named vector
+  return(stats::setNames(v$value, v$name))
+}
+
+#' @export
+IdToString <- function(df, column, id) {
+  column <- enquo(column)
+  id <- enquo(id)
+
+  v <- df |>
+    filter(id == !!id) |>
+    select(!!column) |>
+    pull()
+
+  return(v)
+}
 
 
+#' @export
+StringToId <- function(df, column, value) {
+  column <- enquo(column)
+
+  v <- df |>
+    filter(!!column == value) |>
+    select(id) |>
+    pull()
+
+  return(v)
+}
 
 
 #' @export

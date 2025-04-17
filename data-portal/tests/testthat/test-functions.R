@@ -232,7 +232,7 @@ test_that("QueryDatabase function works", {
 
   # Test function returns a data frame with the correct column names
   testthat::expect_equal(colnames(functions$QueryDatabase('firefighter')),
-                         c("id", "full_name", "start_date", "trainer", "officer", "active_status", "company_id", "firefighter_role"),
+                         c("id", "full_name", "start_date", "trainer", "officer", "is_active", "company_id", "firefighter_role"),
                          label = "function returns a data frame with the correct column names")
 })
 
@@ -359,6 +359,57 @@ test_that("ParseRelativeDate errors on bad input", {
     functions$ParseRelativeDate("banana", refDate = as.Date("2025-04-10")),
     "Invalid relative date format"
   )
+})
+
+df <- data.frame(
+  id = 1:10,
+  name = c("Alice", "Bob", "Charlie", "David", "Eve",
+           "Frank", "Grace", "Heidi", "Ivan", "Judy"),
+  age = c(25, 30, 35, 40, 28,
+          32, 29, 31, 27, 26),
+  valid = c(TRUE, FALSE, TRUE, TRUE, FALSE,
+            TRUE, FALSE, TRUE, FALSE, TRUE)
+)
+
+test_that("CreateNamedVector returns named vector", {
+  name <- "name"
+  age <- "age"
+  id <- 'id'
+
+  # Test function returns a named vector
+  result <- functions$CreateNamedVector(df, name, id, NULL)
+  test <- stats::setNames(df[['id']], df[['name']])
+  testthat::expect_equal(result, test)
+
+  # Test function returns a named vector with correct names
+  testthat::expect_equal(names(result), df[[name]])
+
+  # Test function returns a named vector with correct values
+  testthat::expect_equal(result |> unname(), df[[id]])
+
+  # Test function returns a named vector with correct length
+  testthat::expect_equal(length(result), nrow(df))
+
+  # Test function returns a named vector with correct values when valid is FALSE
+  result_invalid <- functions$CreateNamedVector(df, name = name, value = id, valid == FALSE)
+  testthat::expect_equal(names(result_invalid), df[[name]][df$valid == FALSE])
+
+})
+
+test_that("IdToString works", {
+  expect_equal(functions$IdToString(df, column = name, id = 3),
+                'Charlie')
+  expect_equal(functions$IdToString(df, column = name, id = 5),
+               'Eve')
+  expect_equal(functions$IdToString(df, column = age, id = 5),
+               28)
+})
+
+test_that("StringToId works", {
+  expect_equal(functions$StringToId(df, column = name, value = 'Bob'),
+               2)
+  expect_equal(functions$StringToId(df, column = name, value = 'Eve'),
+               5)
 })
 
 
