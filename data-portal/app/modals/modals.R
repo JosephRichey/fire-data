@@ -57,12 +57,12 @@ trainingModal <- function(ns,
                           trainers,
                           trainer) {
 
-  # browser()
   modalDialog(
     title = if(edit) "Edit Training" else "Add Training",
     dateInput(ns('training_date'), 'Training Date', value = training_date),
     timeInput(ns('start_time'), "Start Time", value = start_time, minute.steps = 5),
     timeInput(ns('end_time'), "End Time", value = end_time, minute.steps = 5),
+    numericInput(ns('credit_hours'), 'Training Hours', value = 0, min = 0, step = 0.25),
     selectInput(ns('training_category'), 'Training Category', choices = type_choices, selected = type),
     selectInput(ns('training_topic'), 'Training Topic', choices = c(), selected = topic),
     textAreaInput(ns('training_description'), 'Training Description', value = training_description),

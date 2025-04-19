@@ -196,7 +196,7 @@ ConvertToLocalPosix <- function(dt,
   dt_local <- lubridate::with_tz(dt_utc, tzone = tz_local)
 
   if(input == 'datetime' && output == 'date') {
-    return(as.Date(dt_local))
+    return(as.Date(dt_local, tz = tz_local))
   }
 
   # Default is to return as datetime.
@@ -206,14 +206,20 @@ ConvertToLocalPosix <- function(dt,
 #' @export
 BuildDateTime <- function(time,
                           date,
-                          input = c("local", "not_local"),
+                          input = c("local", "UTC"),
                           return_type = c('UTC', 'local')) {
   input <- match.arg(input)
   return_type <- match.arg(return_type)
 
   tz_local <- GetSetting("global", key = "ltz")
 
-  # Combine date and time (time is expected to be a string like "14:30")
+  # If input is posix, strip out time. shinyinputs automatically add a date.
+  if(is.list(time)) {
+    time <- time |>
+      hms::as_hms() |>
+      as.character()
+  }
+
   dt <- as.POSIXct(
     paste(date, time),
     tz = if (input == 'local') tz_local else 'UTC'
@@ -340,6 +346,25 @@ StringToId <- function(df, column, value) {
   return(v)
 }
 
+#' @export
+GetTrainingClassificationId <- function(df, category, topic = NULL) {
+  v <- df |>
+    filter(
+      training_category == category,
+      if (is.null(topic)) is.na(training_topic) else training_topic == topic
+    ) |>
+    select(id) |>
+    pull()
+
+  if (length(v) != 1) {
+    log_error(glue::glue("Expected exactly one match for category = '{category}', topic = '{topic}', but found {length(v)}."),
+             namespace = "GetTrainingClassificationId")
+    stop()
+  }
+
+  return(v)
+}
+
 
 #' @export
 FixColNames <- function(Data) {
@@ -364,29 +389,34 @@ as.MT.Date <- function(date_time) {
 
 
 #' @export
-#' Not tested extensively at the limits. This function is only meant to prevent people from entering duplicates.
-#  Theoretically, you could create a training that crashes the entire app since you can log in early and log out late.
-VerifyNoOverlap <- function(start_time, end_time) {
+#' This will return a string of trainings that overlap. This also considers
+#' the early check in and late check out times.
+CheckTrainingsOverlap <- function(start_time, end_time, df) {
 
-  UTC_start_time <- (start_time |> force_tz(GetSetting('global', key = 'ltz')) + .01) |> with_tz('UTC')
-  UTC_end_time <- (end_time |> force_tz(GetSetting('global', key = 'ltz')) + .01) |> with_tz('UTC')
+  # browser()
 
-  # FIXME This needs to be passed as an argument
-  # Overlap <- app_data$Training |>
-  #   dplyr::filter(
-  #     # starts during an existing training
-  #     (UTC_start_time >= training_start_time & UTC_start_time <= training_end_time) |
-  #     # ends during an existing training
-  #     (UTC_end_time >= training_start_time & UTC_end_time <= training_end_time) |
-  #     # starts before and ends after an existing training
-  #     (UTC_start_time <= training_start_time & UTC_end_time >= training_end_time)
-  #   )
+  input_interval <- lubridate::interval(
+    start_time - minutes(GetSetting('training', key = 'early_check_in')),
+    end_time + minutes(GetSetting('training', key = 'late_check_out'))
+  )
 
-  Overlap <- data.frame(var = 1)
-
+  Overlap <- df |>
+    filter(
+      lubridate::int_overlaps(
+        lubridate::interval(
+          start_time - minutes(GetSetting('training', key = 'early_check_in')),
+          end_time + minutes(GetSetting('training', key = 'late_check_out'))
+        ),
+        input_interval
+      )
+    )
 
   if (nrow(Overlap) > 0) {
-    return(FALSE)
+    return(
+      glue::glue(
+        "Training overlaps with existing training(s) on {paste(Overlap$start_time, collapse = ', ')}"
+      )
+      )
   } else {
     return(TRUE)
   }

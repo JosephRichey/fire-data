@@ -436,3 +436,45 @@ test_that("VerifyNoOverlap function works", {
                         label = "function returns true when new training is outside of another training")
 
 })
+
+test_that("GetTrainingClassificationId returns correct ID for category and topic", {
+  df <- data.frame(
+    id = 1:5,
+    training_category = c("EMS", "EMS", "Fire", "Wildland", "Wildland"),
+    training_topic = c("Cardiovascular", "Trauma", NA, NA, "Live Fire"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_equal(functions$GetTrainingClassificationId(df, "EMS", "Trauma"), 2)
+  expect_equal(functions$GetTrainingClassificationId(df, "EMS", "Cardiovascular"), 1)
+  expect_equal(functions$GetTrainingClassificationId(df, "Wildland", "Live Fire"), 5)
+  expect_equal(functions$GetTrainingClassificationId(df, "Fire"), 3)
+  expect_equal(functions$GetTrainingClassificationId(df, "Wildland"), 4)
+})
+
+test_that("GetTrainingClassificationId errors when no match", {
+  df <- data.frame(
+    id = 1:2,
+    training_category = c("EMS", "Fire"),
+    training_topic = c("Trauma", NA),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(functions$GetTrainingClassificationId(df, "EMS", "Nonexistent"),
+               "Expected exactly one match")
+
+  expect_error(functions$GetTrainingClassificationId(df, "Wildland"),
+               "Expected exactly one match")
+})
+
+test_that("GetTrainingClassificationId errors on multiple matches", {
+  df <- data.frame(
+    id = 1:2,
+    training_category = c("EMS", "EMS"),
+    training_topic = c("Trauma", "Trauma"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(functions$GetTrainingClassificationId(df, "EMS", "Trauma"),
+               "Expected exactly one match")
+})

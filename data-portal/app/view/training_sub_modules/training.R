@@ -14,6 +14,7 @@ box::use(
   shinyalert[...],
   rhandsontable[...],
   magrittr[...],
+  logger[...],
 )
 
 box::use(
@@ -21,13 +22,8 @@ box::use(
   ../../logic/functions,
   ../../logic/app_data,
   ../../modals/modals,
+  ../../logic/logging,
 )
-
-# trainers <- app_data$Firefighter |>
-#   filter(trainer == TRUE) |>
-#   select(full_name, firefighter_id) |>
-#   (\(df) with(df, setNames(firefighter_id, full_name)))()
-
 
 #' @export
 UI <- function(id) {
@@ -94,7 +90,7 @@ Server <- function(id, rdfs) {
 
       ##### UI Dynamic Rendering #####
       output$training_officer_filter <- renderUI({
-        # browser()
+        log_info("Rendering training_officer_filter", namespace = "Training")
         pickerInput(
           session$ns('filter_training_officer'),
           'Training Officer',
@@ -102,12 +98,15 @@ Server <- function(id, rdfs) {
             df = rdfs$firefighter,
             name = full_name,
             value = id,
-            filterExpr = trainer == TRUE),
+            # Trainer filter is all those who can lead trainings or have in the past.
+            filterExpr = id %in% rdfs$training$trainer |
+              id %in% rdfs$firefighter$trainer),
           selected = functions$BuildNamedVector(
             df = rdfs$firefighter,
             name = full_name,
             value = id,
-            filterExpr = trainer == TRUE),
+            filterExpr = id %in% rdfs$training$trainer |
+              id %in% rdfs$firefighter$trainer),
           multiple = TRUE,
           options = list(`actions-box` = TRUE)
         )
@@ -120,6 +119,7 @@ Server <- function(id, rdfs) {
       # This is everything that's visible in the table after filters are applied.
       # Use it to generate View_Trainings and grab inputs from view_trainings.
       displayedTrainings <- reactive({
+        log_info("Rendering dispayedTrainings reactive.", name = "Training")
         Table_Data <- rdfs$training |>
           mutate(
             date = functions$ConvertToLocalPosix(
@@ -163,11 +163,15 @@ Server <- function(id, rdfs) {
         colnames(Table_Data) <- gsub("Training ", "", colnames(Table_Data))
         rownames(Table_Data) <- Table_Data$Id
         Table_Data$Id <- NULL
+
+        log_info(glue::glue("Rendering dispayedTrainings reactive complete with {nrow(Table_Data)} rows."),
+                 namespace = "Training")
         return(Table_Data)
       })
 
       # Display current training data
       output$view_trainings <- renderDT({
+        log_info("Rendering view_trainings table", namespace = "Training")
         Table_Data <- displayedTrainings()
 
         sort_col <- which(names(Table_Data) == functions$GetSetting('training', key = 'sort_col'))
@@ -194,6 +198,7 @@ Server <- function(id, rdfs) {
 
       # Enter information to create the training.
       observeEvent(input$add_training, {
+        log_info("Adding Training", namespace = "Add Training")
         showModal(
           modals$trainingModal(ns,
                                edit = FALSE,
@@ -216,12 +221,11 @@ Server <- function(id, rdfs) {
 
       # Update the add training topic based on the training type.
       observe({
-        #FIXME For some reason, this isn't alwasy updating, especially when doing repeated updates.
-        # It probably has to do with the fact that there's not change in the input, so the observe isn't triggering.
         req(input$training_category)
         x <- input$training_category
 
-        # browser()
+        log_info("Updating training topic based on training type", namespace = "Add Training")
+        log_info(paste0("Training Category: ", input$training_category), namespace = "Add Training")
 
         topics <- app_data$Training_Classifcaion |>
           filter(training_category == x) |>
@@ -231,70 +235,113 @@ Server <- function(id, rdfs) {
           sort()
 
         if(length(topics) == 0) {
-          updateSelectInput(session, "training_topic", choices = NULL)
+          log_info(glue::glue("No topics found for training category {input$training_catgory}"),
+                              namespace = "Add Training")
+
+          log_info("Setting training topic to NULL", namespace = "Add Training")
+          updateSelectInput(session, "training_topic", choices = c('No Topics Found'))
+
+          log_info("Disabling training topic input", namespace = "Add Training")
           session$sendCustomMessage("disableInput", ns('training_topic'))
+
         } else {
-          session$sendCustomMessage("enableInput", ns('training_topic'))
+          log_info(glue::glue("Topics found for training category {input$training_category}"),
+                   namespace = "Add Training")
+
+          log_info("Setting training topics", namespace = "Add Training")
           topics |>
             (\(x) updateSelectInput(session, "training_topic", choices = x))()
+
+          log_info("Enabling training topic input", namespace = "Add Training")
+          session$sendCustomMessage("enableInput", ns('training_topic'))
         }
 
-      })
+      }) |>
+        bindEvent(input$training_category, input$add_training, ignoreInit = TRUE)
+
+
+      observe({
+        log_info("Updating credit hours", namespace = "Add Training")
+
+        updateNumericInput(session,
+                           "credit_hours",
+                           value = difftime(
+                             input$end_time,
+                             input$start_time,
+                             units = "hours") |>
+                             as.numeric()
+                           )
+      }) |>
+        bindEvent(input$start_time, input$end_time, ignoreInit = TRUE)
 
 
       # # Create the training
       observeEvent(input$submit_add_training, {
         removeModal()
+        log_info("Submitting add training", namespace = "Add Training")
+        # browser()
 
-        utc_start_time <- functions$BuiltDateTime(input$start_time, input$training_date, 'local')
-        utc_end_time <- functions$BuiltDateTime(input$end_time, input$training_date, 'local')
+        local_start_time <- functions$BuildDateTime(input$start_time, input$training_date, 'local', 'local')
+        local_end_time <- functions$BuildDateTime(input$end_time, input$training_date, 'local', 'local')
 
-        # FIXME Disabling this until final build
-        # if(!functions$VerifyNoOverlap(input$add_start_time, input$add_end_time)) {
-        #   showModal(
-        #     modals$warningModal("Training times overlap with existing training. Please select a different time.")
-        #   )
-        #   return()
-        # }
+        #This function will return a character with details if there is an overlap.
+        overlap_status <- functions$CheckTrainingsOverlap(
+          start_time = local_start_time,
+          end_time = local_end_time,
+          df = rdfs$training)
 
-        # Use sqlInterpolate
-        sql_command <- "INSERT INTO ?training_table
-        (training_type, topic, training_description,
-        start_time, end_time,
-        trainer, training_delete) VALUES
-        (?training_type, ?topic, ?training_description, ?start_time, ?end_time, ?trainer, NULL);"
-
-        safe_sql <- sqlInterpolate(
-          app_data$CON,
-          sql_command,
-          training_table = SQL('training'),
-          training_type = input$training_type,
-          topic = input$topic,
-          training_description = input$training_description,
-          start_time = utc_start_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
-          end_time = utc_end_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
-          trainer = input$trainer
-        )
-
-        # Execute the safely interpolated SQL command
-        write_result <- dbExecute(app_data$CON, safe_sql)
-
-        # FIXME Abstract
-        if(write_result == 1) {
+        if(is.character(overlap_status)) {
+          log_warn(glue::glue("Training times overlap with existing training. {input$start_time} - {input$end_time}"),
+                   namespace = "Add Training")
+          log_warn(glue::glue("{overlap_status}"), namespace = "Add Training")
           showModal(
-            modalDialog(
-              title = "Success",
-              "Your training has been successfully added. You may now close this window.",
-              easyClose = TRUE
-            )
+            modals$warningModal(glue::glue("{overlap_status}. Please select a different time.
+                                           Trainings cannot overlap including early check in and late check out periods."))
           )
-        } else {
-          showModal(
-            modals$errorModal(paste("Training add failed with write result equal to", write_result))
-          )
+          return()
         }
 
-        updateReactiveTraining()
+
+
+        # Use sqlInterpolate
+        # sql_command <- "INSERT INTO ?training_table
+        # (classification_id, training_description,
+        # start_time, end_time,
+        # credit_hours, trainer, is_deleted) VALUES
+        # (?classification_id, ?training_description,
+        # ?start_time, ?end_time, ?credit_hours, ?trainer, NULL);"
+        #
+        # safe_sql <- sqlInterpolate(
+        #   app_data$CON,
+        #   sql_command,
+        #   training_table = SQL('training'),
+        #   training_type = input$training_type,
+        #   topic = input$topic,
+        #   training_description = input$training_description,
+        #   start_time = utc_start_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
+        #   end_time = utc_end_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
+        #   trainer = input$trainer
+        # )
+        #
+        # # Execute the safely interpolated SQL command
+        # write_result <- dbExecute(app_data$CON, safe_sql)
+        #
+        # # FIXME Abstract
+        # if(write_result == 1) {
+        #   showModal(
+        #     modalDialog(
+        #       title = "Success",
+        #       "Your training has been successfully added. You may now close this window.",
+        #       easyClose = TRUE
+        #     )
+        #   )
+        # } else {
+        #   showModal(
+        #     modals$errorModal(paste("Training add failed with write result equal to", write_result))
+        #   )
+        # }
+        #
+        # updateReactiveTraining()
 
 
       })

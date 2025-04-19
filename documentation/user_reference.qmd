@@ -3,3 +3,19 @@ title: "user_reference"
 format: html
 ---
 
+# Training Menu
+
+## Trainings Tab
+
+This is the tab to add, edit, delete, and view trainings. The filters can be configured to a specific date range (training see start_date_filter and end_date_filter in the settings table). Training categories are set by all trainings that have every existed in the training classification table. Any trainings that are no longer active have an * at the beginning of the training name. 
+Training officer is populated by creating a list of anyone who has ever done a training for the department, and anyone who is eligible to provide training (marked as a trainer in the personnel tab).
+
+
+### Add Training
+- Click the "Add Training" button to open the add training menu.
+- Training date will be prepopuldated with today's date
+- Start and end time will be prepopulated with the default training time (see settings table)
+- As you select training category, the possible training topics will populate.
+  - If you have no topics for a training cateogyr, the field will gray out.
+- Training description is a free text field.
+- Training officer is a drop down list of all people who are eligible to provide training (marked as a trainer in the personnel tab).
