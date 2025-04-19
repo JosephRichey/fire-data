@@ -78,4 +78,5 @@ id,domain,setting_group,setting_key,setting_value,value_type
 77,training,view_trainings,sort_col,"Date",string
 78,training,view_trainings,sort_order,"desc",string
 79,training,view_trainings,default_length,10,numeric
-
+80,training,add_trainings,default_start_time,"18:00:00",string
+81,training,add_trainings,default_end_time,"20:00:00",string

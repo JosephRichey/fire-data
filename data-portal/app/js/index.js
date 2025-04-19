@@ -15,23 +15,23 @@ function updateActiveTab() {
 updateActiveTab();
 
 // Run whenever the route changes
-window.addEventListener('hashchange', updateActiveTab);
+globalThis.addEventListener('hashchange', updateActiveTab);
 
-export function finalize_incident(ns, id) {
+globalThis.finalize_incident = function(ns, id) {
   console.log("working from finalize_incident");
   var fullInputId = ns + "finalize_incident";
   console.log("Setting input with id: " + fullInputId);
   Shiny.setInputValue(fullInputId, id, {priority: "event"});
 };
 
-export function show_details(ns, id) {
+globalThis.show_details = function(ns, id) {
   console.log("working from show_details");
   var fullInputId = ns + "show_details";
   console.log("Setting input with id: " + fullInputId);
   Shiny.setInputValue(fullInputId, id, {priority: "event"});
 };
 
-export function toggle_firefighter(ns, id) {
+globalThis.toggle_firefighter = function(ns, id) {
   console.log("working from toggle_firefighter");
   var fullInputId = ns + "toggle_firefighter";
   console.log("Setting input with id: " + fullInputId);
@@ -46,4 +46,15 @@ Shiny.addCustomMessageHandler('txt', function(txt) {
         console.error("Failed to copy text: ", err);
     });
 });
+
+Shiny.addCustomMessageHandler("disableInput", function(id) {
+  document.getElementById(id)?.setAttribute("disabled", "disabled");
+  console.log("Disabled input with id: " + id);
+});
+
+Shiny.addCustomMessageHandler("enableInput", function(id) {
+  document.getElementById(id)?.removeAttribute("disabled");
+  console.log("Enabled input with id: " + id);
+});
+
 

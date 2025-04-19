@@ -43,7 +43,7 @@ Training_Classifcaion <- dbGetQuery(CON, "SELECT * FROM training_classification"
 
 
 #' @export
-Training_Category_Filter <- Training_Classifcaion |>
+training_category_filter <- Training_Classifcaion |>
   filter(!is.na(training_category)) |>
   mutate(training_category = if_else(
     is_active == 1,
@@ -55,7 +55,7 @@ Training_Category_Filter <- Training_Classifcaion |>
   unique()
 
 #' @export
-Training_Category_Active <- Training_Classifcaion |>
+training_category_active <- Training_Classifcaion |>
   filter(is_active == 1) |>
   pull(training_category) |>
   unique()
