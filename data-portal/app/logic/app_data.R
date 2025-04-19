@@ -38,6 +38,7 @@ log_info(glue::glue("Extracted local date: {local_date}"), namespace = "app_data
 
 
 ##### Training #####
+#' @export
 Training_Classifcaion <- dbGetQuery(CON, "SELECT * FROM training_classification")
 
 

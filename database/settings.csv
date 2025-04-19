@@ -74,3 +74,8 @@ id,domain,setting_group,setting_key,setting_value,value_type
 73,training,training_category,,Hazmat,string
 74,training,training_topic,EMS,Cardiovacular,string
 75,training,training_topic,EMS,Medical,string
+76,global,,sidebar_open,TRUE,boolean
+77,training,view_trainings,sort_col,"Date",string
+78,training,view_trainings,sort_order,"desc",string
+79,training,view_trainings,default_length,10,numeric
+

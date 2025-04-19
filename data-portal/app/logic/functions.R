@@ -150,10 +150,16 @@ FormatLocal <- function(dt, input = c("datetime", "date"),
     "datetime" = as.POSIXct(dt, tz = tz)
   )
 
+  if(output == "date") {
+    #FIXME
+    # If this doesn't ever fire, then global date_format can be removed as a setting
+    stop('Testing if this combination is every used. See functions.R, FormatLocal')
+  }
+
   # Format as string based on desired output
   fmt <- switch(
     output,
-    "date" = GetSetting('global', key = 'date_format'),
+    # "date" = GetSetting('global', key = 'date_format'),
     "time" = if (seconds) "%H:%M:%S" else "%H:%M",
     "datetime" = GetSetting('global', key = 'date_time_format')
   )
@@ -189,15 +195,12 @@ ConvertToLocalPosix <- function(dt,
   # Convert to local timezone
   dt_local <- lubridate::with_tz(dt_utc, tzone = tz_local)
 
-  # Handle output formats
-  fmt <- switch(
-    output,
-    "datetime" = GetSetting("global", "date_time_format"),
-    "date" = GetSetting("global", "date_format")
-  )
+  if(input == 'datetime' && output == 'date') {
+    return(as.Date(dt_local))
+  }
 
-  # Always return as string
-  format(dt_local, fmt, tz = tz_local, usetz = FALSE)
+  # Default is to return as datetime.
+  return(dt_local)
 }
 
 #' @export
@@ -291,7 +294,7 @@ UpdateReactives <- function(
 }
 
 #' @export
-CreateNamedVector <- function(df, name, value, filterExpr = NULL) {
+BuildNamedVector <- function(df, name, value, filterExpr = NULL) {
   # Convert arguments to quosures
   name <- enquo(name)
   value <- enquo(value)

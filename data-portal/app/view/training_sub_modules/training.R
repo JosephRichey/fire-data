@@ -94,53 +94,71 @@ Server <- function(id, rdfs) {
 
       ##### UI Dynamic Rendering #####
       output$training_officer_filter <- renderUI({
-        browser()
+        # browser()
         pickerInput(
           session$ns('filter_training_officer'),
           'Training Officer',
-          choices = rdfs$firefighter |>
-            filter(trainer == TRUE) |>
-            select(full_name, id) |>
-            (\(df) with(df, setNames(id, full_name)))(),
-          selected = rdfs$firefighter |>
-            filter(trainer == TRUE) |>
-            select(full_name, id) |>
-            (\(df) with(df, setNames(id, full_name)))(),
+          choices = functions$BuildNamedVector(
+            df = rdfs$firefighter,
+            name = full_name,
+            value = id,
+            filterExpr = trainer == TRUE),
+          selected = functions$BuildNamedVector(
+            df = rdfs$firefighter,
+            name = full_name,
+            value = id,
+            filterExpr = trainer == TRUE),
           multiple = TRUE,
           options = list(`actions-box` = TRUE)
         )
       })
 
-
-
       ##### GLOBAL #####
-      r_Training <- reactive(rdfs$training)
-
       ns <- session$ns
 
-
       ##### Trainings #####
-      # This is everything that's visible in the table after filters are applied. Use it to generate View_Trainings.
+      # This is everything that's visible in the table after filters are applied.
+      # Use it to generate View_Trainings and grab inputs from view_trainings.
       displayedTrainings <- reactive({
-        print('flag1')
-        browser()
-        Table_Data <- r_Training() #|>
-          # mutate(
-          #   date = start_time |> functions$FormatLocalDate(asPosix = TRUE),
-          #   start_time = start_time |> functions$FormatLocalTime(),
-          #   end_time = end_time |> functions$FormatLocalTime()
-          # ) |>
-          # filter(
-          #   date >= input$training_filter_range[1] &
-          #     date <= input$training_filter_range[2] &
-          #     training_type %in% input$filter_training_type &
-          #     is.na(training_delete) &
-          #     trainer %in% input$filter_training_officer
-          # ) |>
-          # select(training_id, training_type, topic, training_description,
-          #        trainer, date, start_time, end_time) |>
-          # mutate(trainer = names(trainers)[match(trainer, trainers)])
+        # browser()
+        Table_Data <- rdfs$training |>
+          mutate(
+            date = functions$ConvertToLocalPosix(
+              dt = start_time,
+              input = 'datetime',
+              output = 'date'),
+            start_time = functions$FormatLocal(
+              dt = start_time,
+              input = 'datetime',
+              output = 'time',
+              seconds = FALSE),
+            end_time = functions$FormatLocal(
+              dt = end_time,
+              input = 'datetime',
+              output = 'time',
+              seconds = FALSE)
+          ) |>
+          # Bring in firefighter and training classification data
+          left_join(app_data$Training_Classifcaion |>
+                      select(-is_active),
+                    by = c("classification_id" = 'id')) |>
+          left_join(rdfs$firefighter |>
+                      select(full_name, id),
+                    by = c("trainer" = 'id')) |>
+          filter(
+            date >= input$training_filter_range[1] &
+              date <= input$training_filter_range[2] &
+              training_category %in% input$filter_training_category &
+              is.na(is_deleted) &
+              # If input$filter_training_officer is not itialized (accordian
+              # hasn't been expanded), then use all training officers.
+              trainer %in% (input$filter_training_officer %||% rdfs$firefighter$id)
+          ) |>
+          select(id, training_category, training_topic, training_description,
+                 full_name, date, start_time, end_time) |>
+          rename(trainer = full_name)
 
+        # Clean up names, remove ID column, and set row names to PK.
         Table_Data <- functions$FixColNames(Table_Data)
         colnames(Table_Data) <- gsub("Training ", "", colnames(Table_Data))
         rownames(Table_Data) <- Table_Data$Id
@@ -150,31 +168,27 @@ Server <- function(id, rdfs) {
 
       # Display current training data
       output$view_trainings <- renderDT({
-        print('flag3')
-
-         browser()
+        # browser()
         Table_Data <- displayedTrainings()
-      #
-      #   sort_col <- which(names(Table_Data) == "Date")
-      #
-        DT::datatable(Table_Data)
-      #     Table_Data,
-      #     selection = 'single',
-      #     rownames = FALSE,
-      #     height = "100%",
-      #     options = list(
-      #       lengthMenu = list(c(10, 25, -1), c('10', '25', 'All')),
-      #       pageLength = 10,
-      #       columnDefs = list(
-      #         list(className = 'dt-center', targets = "_all")
-      #       ),
-      #       order = list(list(sort_col - 1, 'desc')),
-      #       scrollX = TRUE
-      #     )
-      #   ) #|>
-      #     # formatDate(columns = c("Date"), method = "toLocaleDateString")
-      #
-      #
+
+        sort_col <- which(names(Table_Data) == functions$GetSetting('training', key = 'sort_col'))
+
+        DT::datatable(
+          Table_Data,
+          selection = 'single',
+          rownames = FALSE,
+          height = "100%",
+          options = list(
+            lengthMenu = list(c(10, 25, -1), c('10', '25', 'All')),
+            pageLength = functions$GetSetting('training', key = 'default_length'),
+            columnDefs = list(
+              list(className = 'dt-center', targets = "_all")
+            ),
+            order = list(list(sort_col - 1, functions$GetSetting('training', key = 'sort_order'))),
+            scrollX = TRUE
+          )
+        ) |>
+          formatDate(columns = c("Date"), method = "toLocaleDateString")
       })
 
       # Update the add training topic based on the training type.

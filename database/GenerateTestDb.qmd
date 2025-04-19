@@ -368,7 +368,7 @@ training_classification <- data.frame(
 
 training <- data.frame(
   id = 1:50,
-  classification = sample(1:7, 50, replace = TRUE),
+  classification_id = sample(1:7, 50, replace = TRUE),
   training_description = sapply(1:05, function(x) lorem::ipsum_words(n = 6)),
   start_time = sapply(1:50, function(x) 
     ymd_hms(

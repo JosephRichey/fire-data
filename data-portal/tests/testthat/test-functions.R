@@ -87,26 +87,16 @@ test_that("FormatLocal errors on invalid input/output combos", {
 test_that("ConvertToLocalPosix converts datetime string from UTC to local time", {
   input <- "2025-04-10 14:30:00"
 
-  expected <- format(
-    lubridate::with_tz(as.POSIXct(input, tz = "UTC"), tzone = local_tz),
-    functions$GetSetting("global", "date_time_format"),
-    tz = local_tz,
-    usetz = FALSE
-  )
+  expected <- lubridate::with_tz(as.POSIXct(input, tz = "UTC"), tzone = local_tz)
 
   result <- functions$ConvertToLocalPosix(input, input = "datetime", output = "datetime")
   expect_equal(result, expected)
 })
 
-test_that("ConvertToLocalPosix converts UTC datetime to local date string", {
+test_that("ConvertToLocalPosix converts UTC datetime to local date posix", {
   input <- "2025-04-10 01:45:00"
 
-  expected <- format(
-    lubridate::with_tz(as.POSIXct(input, tz = "UTC"), tzone = local_tz),
-    functions$GetSetting("global", "date_format"),
-    tz = local_tz,
-    usetz = FALSE
-  )
+  expected <- as.Date('2025-04-10')
 
   result <- functions$ConvertToLocalPosix(input, input = "datetime", output = "date")
   expect_equal(result, expected)
@@ -131,12 +121,7 @@ test_that("ConvertToLocalPosix works with POSIXct input", {
   input <- as.POSIXct("2025-04-10 05:00:00", tz = "UTC")
 
 
-  expected <- format(
-    lubridate::with_tz(input, tzone = local_tz),
-    functions$GetSetting("global", "date_time_format"),
-    tz = local_tz,
-    usetz = FALSE
-  )
+  expected <- lubridate::with_tz(input, tzone = local_tz)
 
   result <- functions$ConvertToLocalPosix(input, input = "datetime", output = "datetime")
   expect_equal(result, expected)
@@ -371,13 +356,13 @@ df <- data.frame(
             TRUE, FALSE, TRUE, FALSE, TRUE)
 )
 
-test_that("CreateNamedVector returns named vector", {
+test_that("BuildNamedVector returns named vector", {
   name <- "name"
   age <- "age"
   id <- 'id'
 
   # Test function returns a named vector
-  result <- functions$CreateNamedVector(df, name, id, NULL)
+  result <- functions$BuildNamedVector(df, name, id, NULL)
   test <- stats::setNames(df[['id']], df[['name']])
   testthat::expect_equal(result, test)
 
@@ -391,7 +376,7 @@ test_that("CreateNamedVector returns named vector", {
   testthat::expect_equal(length(result), nrow(df))
 
   # Test function returns a named vector with correct values when valid is FALSE
-  result_invalid <- functions$CreateNamedVector(df, name = name, value = id, valid == FALSE)
+  result_invalid <- functions$BuildNamedVector(df, name = name, value = id, valid == FALSE)
   testthat::expect_equal(names(result_invalid), df[[name]][df$valid == FALSE])
 
 })

@@ -198,15 +198,15 @@ CREATE TABLE training_classification (
 
 CREATE TABLE training (
 	id int PRIMARY KEY AUTO_INCREMENT,
-    classification int,
+    classification_id int,
     training_description varchar(1000),
     start_time datetime,
     end_time datetime,
     credit_hours float,
     trainer int,
-    is_deleted boolean,
+    is_deleted date,
     foreign key (trainer) references firefighter(id),
-    foreign key (classification) references training_classification(id)
+    foreign key (classification_id) references training_classification(id)
 );
 
 # Stores attendance of the trainings.

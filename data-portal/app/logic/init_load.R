@@ -10,15 +10,5 @@ box::use(
   ./app_data,
 )
 
-# Define training categories and types
-training_categories <- functions$GetSetting('training', group = 'training_category')
+# Pull in training categories and topics
 
-GetTrainingTopics <- function(category) {
-  # Get the training topics for a specific category
-  training_topics <- functions$GetSetting('training', key = category)
-  return(training_topics)
-}
-
-#' @export
-Training_Dictionary <- purrr::set_names(training_categories) |>
-  purrr::map(~ GetTrainingTopics(.))
