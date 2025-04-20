@@ -126,15 +126,17 @@ Server <- function(id, rdfs) {
               dt = start_time,
               input = 'datetime',
               output = 'date'),
-            start_time = functions$FormatLocal(
+            start_time = functions$FormatDateTime(
               dt = start_time,
               input = 'datetime',
               output = 'time',
+              target_tz = 'local',
               seconds = FALSE),
-            end_time = functions$FormatLocal(
+            end_time = functions$FormatDateTime(
               dt = end_time,
               input = 'datetime',
               output = 'time',
+              target_tz = 'local',
               seconds = FALSE)
           ) |>
           # Bring in firefighter and training classification data
@@ -263,6 +265,8 @@ Server <- function(id, rdfs) {
       observe({
         log_info("Updating credit hours", namespace = "Add Training")
 
+        req(input$start_time, input$end_time)
+
         updateNumericInput(session,
                            "credit_hours",
                            value = difftime(
@@ -272,7 +276,7 @@ Server <- function(id, rdfs) {
                              as.numeric()
                            )
       }) |>
-        bindEvent(input$start_time, input$end_time, ignoreInit = TRUE)
+        bindEvent(input$start_time, input$end_time, input$add_training, ignoreInit = TRUE)
 
 
       # # Create the training
@@ -284,64 +288,72 @@ Server <- function(id, rdfs) {
         local_start_time <- functions$BuildDateTime(input$start_time, input$training_date, 'local', 'local')
         local_end_time <- functions$BuildDateTime(input$end_time, input$training_date, 'local', 'local')
 
+        classification_id <- functions$GetTrainingClassificationId(
+          df = app_data$Training_Classifcaion,
+          category = input$training_category,
+          topic = input$training_topic
+        )
+
         #This function will return a character with details if there is an overlap.
         overlap_status <- functions$CheckTrainingsOverlap(
           start_time = local_start_time,
           end_time = local_end_time,
           df = rdfs$training)
 
+        # browser()
+
         if(is.character(overlap_status)) {
-          log_warn(glue::glue("Training times overlap with existing training. {input$start_time} - {input$end_time}"),
+          log_warn(glue::glue("Training times overlap with existing training. User input:
+                              {input$training_date} {input$start_time |> as_hms()} - {input$end_time |> as_hms()}"),
                    namespace = "Add Training")
           log_warn(glue::glue("{overlap_status}"), namespace = "Add Training")
-          showModal(
-            modals$warningModal(glue::glue("{overlap_status}. Please select a different time.
-                                           Trainings cannot overlap including early check in and late check out periods."))
-          )
+
+          modals$WarningAlert(paste(overlap_status,"\n Your training will not be added."))
+
           return()
         }
 
 
-
+        # browser()
         # Use sqlInterpolate
-        # sql_command <- "INSERT INTO ?training_table
-        # (classification_id, training_description,
-        # start_time, end_time,
-        # credit_hours, trainer, is_deleted) VALUES
-        # (?classification_id, ?training_description,
-        # ?start_time, ?end_time, ?credit_hours, ?trainer, NULL);"
-        #
-        # safe_sql <- sqlInterpolate(
-        #   app_data$CON,
-        #   sql_command,
-        #   training_table = SQL('training'),
-        #   training_type = input$training_type,
-        #   topic = input$topic,
-        #   training_description = input$training_description,
-        #   start_time = utc_start_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
-        #   end_time = utc_end_time |> format("%Y-%m-%d %H:%M:%S", tz = 'UTC', usetz = FALSE),
-        #   trainer = input$trainer
-        # )
-        #
-        # # Execute the safely interpolated SQL command
-        # write_result <- dbExecute(app_data$CON, safe_sql)
-        #
-        # # FIXME Abstract
-        # if(write_result == 1) {
-        #   showModal(
-        #     modalDialog(
-        #       title = "Success",
-        #       "Your training has been successfully added. You may now close this window.",
-        #       easyClose = TRUE
-        #     )
-        #   )
-        # } else {
-        #   showModal(
-        #     modals$errorModal(paste("Training add failed with write result equal to", write_result))
-        #   )
-        # }
-        #
-        # updateReactiveTraining()
+        sql_command <- "INSERT INTO ?training_table
+        (classification_id, training_description,
+        start_time, end_time,
+        credit_hours, trainer, is_deleted) VALUES
+        (?classification_id, ?training_description,
+        ?start_time, ?end_time, ?credit_hours, ?trainer, NULL);"
+
+        safe_sql <- sqlInterpolate(
+          app_data$CON,
+          sql_command,
+          training_table = SQL('training'),
+          classification_id = classification_id,
+          training_description = input$training_description,
+          start_time = local_start_time |> functions$FormatDateTime(input = 'datetime', output = 'datetime', target_tz = 'UTC'),
+          end_time = local_end_time |> functions$FormatDateTime(input = 'datetime', output = 'datetime', target_tz = 'UTC'),
+          credit_hours = input$credit_hours,
+          trainer = input$trainer
+        )
+
+        # Execute the safely interpolated SQL command
+        result <- tryCatch(
+          {
+            dbExecute(app_data$CON, safe_sql)
+          },
+          error = function(e) {
+            log_error(glue::glue("Database write failed: {e$message}"), namespace = "Add Training")
+            NA
+          }
+        )
+
+        functions$CheckWriteResult(result,
+                                   successMessage = "Your training has been successfully added. You may now close this window.",
+                                   failureContext = "adding a training",
+                                   expectedMin = 1,
+                                   expectedMax = 1
+                                   )
+
+        functions$UpdateReactives(rdfs, 'training')
 
 
       })

@@ -8,6 +8,7 @@ box::use(
   logger[...],
   glue[glue],
   rlang[...],
+  shinyalert[...],
 )
 
 box::use(
@@ -124,12 +125,20 @@ GetSetting <- function(domain, key = NULL, group = NULL) {
 }
 
 #' @export
-FormatLocal <- function(dt, input = c("datetime", "date"),
+#' dt - datetime object in local timezone
+#' input - type of input
+#' output - type of output
+#' target_tz - local or UTC
+#' seconds - whether to include seconds in the output
+#' returns - formatted string in local timezone or UTC, depedning on input
+FormatDateTime <- function(dt, input = c("datetime", "date"),
                         output = c("datetime", "date", "time"),
+                        target_tz = c("local", "UTC"),
                         seconds = FALSE) {
 
   input <- match.arg(input)
   output <- match.arg(output)
+  target_tz <- match.arg(target_tz)
 
   # Restrict incompatible input-output combinations
   invalid_combo <- (input == "date"   && output == "time")     ||
@@ -140,7 +149,11 @@ FormatLocal <- function(dt, input = c("datetime", "date"),
     stop(glue::glue("Invalid conversion: cannot format input type '{input}' as output type '{output}'"))
   }
 
-  tz <- GetSetting('global', key = 'ltz')
+  tz <- switch(
+    target_tz,
+    "local" = GetSetting('global', key = 'ltz'),
+    "UTC" = "UTC"
+  )
 
   # dt should already by POSIXct or date, but just to be safe
   # Normalize input to POSIXct based on type
@@ -163,6 +176,11 @@ FormatLocal <- function(dt, input = c("datetime", "date"),
     "time" = if (seconds) "%H:%M:%S" else "%H:%M",
     "datetime" = GetSetting('global', key = 'date_time_format')
   )
+
+  # UTC outputs go to the database and must be in this format
+  if(output == 'datetime' & target_tz == 'UTC') {
+    fmt <- "%Y-%m-%d %H:%M:%S"
+  }
 
   format(dt, fmt, tz = tz, usetz = FALSE)
 }
@@ -348,6 +366,15 @@ StringToId <- function(df, column, value) {
 
 #' @export
 GetTrainingClassificationId <- function(df, category, topic = NULL) {
+
+  # To get the updateSelectStatemnet to work, there has to be topic given.
+  # If no topic exists, it is set to No Topics Found
+  # Swithc this to null so we can do a proper search.
+
+  if(topic == "No Topics Found") {
+    topic <- NULL
+  }
+
   v <- df |>
     filter(
       training_category == category,
@@ -452,4 +479,45 @@ GenerateThreshold <- function(date, leadTime, leadTimeUnit, expireCalc = FALSE) 
     )
   }
 }
+
+
+#' Check the result of a database write and show success/error modals
+#'
+#' @param result Number returned by dbExecute
+#' @param successMessage Text for success modal
+#' @param failureContext Optional text for failure detail (e.g., "inserting training")
+#' @param expectedMin Number of rows expected (defaults to 1)
+#' @param expectedMax Number of rows expected (defaults to 1)
+#'
+#' @export
+CheckWriteResult <- function(result,
+                             successMessage = "Write successful.",
+                             failureContext = NULL,
+                             expectedMin = 1,
+                             expectedMax = 1) {
+  if (!is.numeric(result) || is.na(result) || result < expectedMin ||
+      result > expectedMax) {
+    log_error(glue::glue(
+      "Database write failed {failureContext}. ",
+      "Result: {result}"
+    ), namespace = "CheckWriteResult")
+
+    shinyalert(
+      title = "Error",
+      text = glue::glue("Database write failed {failureContext}. ",
+                        "Result: {result}
+                        Please contact your application administrator."),
+      type = "error",
+      closeOnClickOutside = TRUE
+    )
+  } else {
+    shinyalert(
+      title = "Success",
+      text = successMessage,
+      type = "success",
+      closeOnClickOutside = TRUE
+    )
+  }
+}
+
 

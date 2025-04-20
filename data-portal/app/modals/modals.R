@@ -2,16 +2,21 @@ box::use(
   shiny[...],
   shinyTime[...],
   bslib[...],
+  shinyalert[...],
 )
 
 box::use(
   ../logic/app_data,
 )
 
+#FIXME Going to replace error and warning modals with shinyalerts.
 #' @export
 errorModal <- function(message) {
   modalDialog(
-    title = "Application Error",
+    title = tagList(
+      bsicons::bs_icon("exclamation-triangle", fill = "red"),
+      " Application Error"
+    ),
     "There has been an error. ",
     message,
     footer = tagList(
@@ -19,6 +24,41 @@ errorModal <- function(message) {
     )
   )
 }
+
+#' @export
+WarningAlert <- function(message) {
+  shinyalert(
+    title = "Warning",
+    type = "warning",
+    text = message,
+    closeOnClickOutside = TRUE,
+    confirmButtonText = "OK"
+  )
+}
+
+#' @export
+ErrorAlert <- function(message) {
+  shinyalert(
+    title = "Error",
+    type = "error",
+    text = message,
+    closeOnClickOutside = TRUE,
+    confirmButtonText = "OK"
+  )
+}
+
+#' @export
+SuccessAlert <- function(message) {
+  shinyalert(
+    title = "Success!",
+    type = "success",
+    text = message,
+    closeOnClickOutside = TRUE,
+    confirmButtonText = "OK"
+  )
+}
+
+
 
 #' @export
 warningModal <- function(message) {
