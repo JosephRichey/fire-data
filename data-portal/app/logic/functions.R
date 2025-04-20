@@ -418,16 +418,15 @@ as.MT.Date <- function(date_time) {
 #' @export
 #' This will return a string of trainings that overlap. This also considers
 #' the early check in and late check out times.
-CheckTrainingsOverlap <- function(start_time, end_time, df) {
-
-  # browser()
+CheckTrainingsOverlap <- function(startTime, endTime, df, editTrainingId = NULL) {
 
   input_interval <- lubridate::interval(
-    start_time - minutes(GetSetting('training', key = 'early_check_in')),
-    end_time + minutes(GetSetting('training', key = 'late_check_out'))
+    startTime - minutes(GetSetting('training', key = 'early_check_in')),
+    endTime + minutes(GetSetting('training', key = 'late_check_out'))
   )
 
   Overlap <- df |>
+    filter(is.na(is_deleted)) |>
     filter(
       lubridate::int_overlaps(
         lubridate::interval(
@@ -437,6 +436,13 @@ CheckTrainingsOverlap <- function(start_time, end_time, df) {
         input_interval
       )
     )
+
+  # If editTrainingId is provided, exclude it from the overlap check
+  # When editing an exisitng training, we don't want to include it in the overlap check
+  if(!is.null(editTrainingId)) {
+    Overlap <- Overlap |>
+      filter(id != editTrainingId)
+  }
 
   if (nrow(Overlap) > 0) {
     return(
@@ -492,19 +498,19 @@ GenerateThreshold <- function(date, leadTime, leadTimeUnit, expireCalc = FALSE) 
 #' @export
 CheckWriteResult <- function(result,
                              successMessage = "Write successful.",
-                             failureContext = NULL,
+                             context = NULL,
                              expectedMin = 1,
                              expectedMax = 1) {
   if (!is.numeric(result) || is.na(result) || result < expectedMin ||
       result > expectedMax) {
     log_error(glue::glue(
-      "Database write failed {failureContext}. ",
+      "Database write failed {context}. ",
       "Result: {result}"
     ), namespace = "CheckWriteResult")
 
     shinyalert(
       title = "Error",
-      text = glue::glue("Database write failed {failureContext}. ",
+      text = glue::glue("Database write failed {context}. ",
                         "Result: {result}
                         Please contact your application administrator."),
       type = "error",
@@ -517,6 +523,11 @@ CheckWriteResult <- function(result,
       type = "success",
       closeOnClickOutside = TRUE
     )
+
+    log_success(glue::glue(
+      "Database write successful {context}. ",
+      "Result: {result}"
+    ), namespace = "CheckWriteResult")
   }
 }
 

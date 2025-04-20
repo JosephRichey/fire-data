@@ -100,7 +100,7 @@ CREATE TABLE certification (
     type_id INT,
     firefighter_id INT,
     expiration_date date,
-    is_deleted date,
+    is_deleted datetime,
     foreign key (type_id) references certification_type(id),
     foreign key (firefighter_id) references firefighter(id)
 );
@@ -163,7 +163,7 @@ CREATE TABLE equipment (
     next_check_date date,
     expiration_date date,
     snooze_expires date,
-    is_deleted date,
+    is_deleted datetime,
     foreign key (equipment_type_id) references equipment_type(id),
     foreign key (firefighter_id) references firefighter(id),
     foreign key (apparatus_id) references apparatus(id)
@@ -204,7 +204,7 @@ CREATE TABLE training (
     end_time datetime,
     credit_hours float,
     trainer int,
-    is_deleted date,
+    is_deleted datetime,
     foreign key (trainer) references firefighter(id),
     foreign key (classification_id) references training_classification(id)
 );
@@ -244,7 +244,7 @@ CREATE TABLE incident (
     canceled bool,
     dropped bool,
     finalized bool,
-    is_deleted date,
+    is_deleted datetime,
     # Retain for audit
     foreign key (dispatch_id) references dispatch_code(id)
 );
@@ -256,7 +256,7 @@ CREATE TABLE response (
     response_start datetime,
     response_end datetime,
     notes text,
-    is_deleted date,
+    is_deleted datetime,
     # Retain for audit
     foreign key (incident_id) REFERENCES incident(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
