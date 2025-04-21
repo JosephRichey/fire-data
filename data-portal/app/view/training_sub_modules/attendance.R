@@ -56,7 +56,7 @@ Output <- function(id) {
       card_body(
         rHandsontableOutput(ns('View_Attendance'),
                             width = "auto", height = "100%"),
-        textOutput(ns('excused_firefighters')),
+        textOutput(ns('View_Excused')),
         htmlOutput(ns("save_warning"))
       ),
       actionButton(ns("submit_attendance_update"),
@@ -78,8 +78,48 @@ Server <- function(id, rdfs) {
       ##### GLOBAL #####
       ns <- session$ns
 
+
+      ##### RENDERED UI ELEMENTS #####
+      # Text to indicate which training is being edited.
+      output$which_attendance <- renderText({
+        if(is.null(r_Target_Training())) {
+          return("No training selected.")
+        } else {
+          target_training <- rdfs$training |>
+            filter(id == r_Target_Training()[1, "id"]) |>
+            left_join(
+              app_data$Training_Classifcaion,
+              by = c("classification_id" = "id"))
+
+          return(
+            paste(
+              "Editing attendance for",
+              target_training$training_category,
+              "training on",
+              target_training$start_time |>
+                functions$FormatDateTime(
+                  input = 'datetime',
+                  output = 'date',
+                  target_tz = 'local'),
+              "running from",
+              target_training$start_time |>
+                functions$FormatDateTime(
+                  input = 'datetime',
+                  output = 'time',
+                  target_tz = 'local'),
+              "to",
+              target_training$end_time |>
+                functions$FormatDateTime(
+                  input = 'datetime',
+                  output = 'time',
+                  target_tz = 'local')
+            )
+          )
+        }
+      })
+
       ##### Attendance #####
-      # All trainings that can have their attendance modified
+      # Define reactiv of trainings that can have their attendance modified
       r_Eligible_Trainings <- reactive({
         Table_Data <- rdfs$training |>
           mutate(
@@ -104,35 +144,23 @@ Server <- function(id, rdfs) {
         return(Table_Data)
       })
 
-      # This holds the data that will be displayed in the editable attendance table.
-      r_Editable_Attendance <- reactive({
-        browser()
-
-        req(r_Target_Training())
-
-        Table_Data <- r_Attendance() |>
-          filter(training_id == r_Target_Training()[1, "training_id"]) |>
-          #FIXME This happens often enough should probably be a function
-          # mutate(firefighter_id = names(app_data$Firefighter$full_name)[match(firefighter_id, app_data$Firefighter$firefighter_id)])
-          left_join(app_data$Firefighter, by = c("firefighter_id" = "firefighter_id")) |>
-          select(attendance_id, full_name, check_in, check_out, credit, excused) |>
-          mutate(
-            check_in = check_in |> functions$FormatLocalTime(),
-            check_out = check_out |> functions$FormatLocalTime(),
-            credit = ifelse(credit == 1, TRUE, FALSE),
-            excused = ifelse(excused == 1, TRUE, FALSE)
+      # First, user hits select training. Show modal with DT.
+      observe({
+        showModal(
+          modalDialog(
+            title = "Select Training",
+            DTOutput(ns('Select_Training_Table')),
+            footer = tagList(
+              modalButton("Cancel"),
+              actionButton(ns("load_training_attendance"), "Select", class = "btn-primary")
+            )
           )
+        )
 
-        Table_Data <- functions$FixColNames(Table_Data, prefix = "Attendance ")
-        rownames(Table_Data) <- Table_Data$Id
-        Table_Data$Id <- NULL
-        return(Table_Data)
-      })
+      }) |>
+        bindEvent(input$select_training)
 
-      # This holds the data about which training we're editing attendance for.
-      r_Target_Training <- reactiveVal(NULL)
-
-
+      # DT that allows selecting which training edit attendnace for.
       output$Select_Training_Table <- DT::renderDataTable({
         Table_Data <- r_Eligible_Trainings()
 
@@ -157,27 +185,16 @@ Server <- function(id, rdfs) {
           formatDate(columns = c("Date"), method = "toLocaleDateString")
       })
 
-      observe({
-        showModal(
-          modalDialog(
-            title = "Select Training",
-            DTOutput(ns('Select_Training_Table')),
-            footer = tagList(
-              modalButton("Cancel"),
-              actionButton(ns("load_training_attendance"), "Select", class = "btn-primary")
-            )
-          )
-        )
+      # This holds the data about which training we're editing attendance for.
+      r_Target_Training <- reactiveVal(NULL)
 
-      }) |>
-        bindEvent(input$select_training)
-
+      # Once selected, cache which training is being edited. Enable all buttons.
       observe({
         removeModal()
 
         r_Target_Training(
           r_Eligible_Trainings()[input$Select_Training_Table_rows_selected,] |>
-            rownames_to_column("training_id")
+            rownames_to_column("id")
         )
 
         updateActionButton(session, "add_attendance", disabled = FALSE)
@@ -188,21 +205,71 @@ Server <- function(id, rdfs) {
       }) |>
         bindEvent(input$load_training_attendance)
 
-      # output$View_Attendance <- renderRHandsontable({
-      #
-      #   Table_Data <- r_Editable_Attendance()
-      #
-      #   if(is.null(Table_Data)) {
-      #     return(NULL)
-      #   }
-      #
-      #   rhandsontable(Table_Data,
-      #                 rowHeaders = FALSE,
-      #                 contextMenu = FALSE) |>
-      #     hot_col(col = "Full Name", readOnly = TRUE)
-      #
-      #
-      # })
+      # This holds the data that will be displayed in the editable attendance table.
+      r_Editable_Attendance <- reactive({
+
+        req(r_Target_Training())
+
+        Table_Data <- rdfs$attendance |>
+          filter(training_id == r_Target_Training()[1, "id"]) |>
+          left_join(rdfs$firefighter, by = c("firefighter_id" = "id")) |>
+          select(id, full_name, check_in, check_out, credit, excused) |>
+          mutate(
+            check_in = check_in |>
+              functions$FormatDateTime(
+                input = 'datetime',
+                output = 'time',
+                target_tz = 'local'),
+            check_out = check_out |>
+              functions$FormatDateTime(
+                input = 'datetime',
+                output = 'time',
+                target_tz = 'local'),
+            credit = ifelse(credit == 1, TRUE, FALSE),
+            excused = ifelse(excused == 1, TRUE, FALSE)
+          )
+
+        Table_Data <- functions$FixColNames(Table_Data, prefix = "Attendance ")
+        rownames(Table_Data) <- Table_Data$Id
+        Table_Data$Id <- NULL
+        return(Table_Data)
+      })
+
+
+      # Show rows with attendance. Don't show excused.
+      output$View_Attendance <- renderRHandsontable({
+        # browser()
+        Table_Data <- r_Editable_Attendance() |>
+          filter(!Excused) |>
+          select(-Excused)
+
+        if(is.null(Table_Data)) {
+          return(NULL)
+        }
+
+        rhandsontable(Table_Data,
+                      rowHeaders = FALSE,
+                      contextMenu = FALSE) |>
+          hot_col(col = "Full Name", readOnly = TRUE)
+
+      })
+
+      output$View_Excused <- renderText({
+        req(r_Target_Training())
+
+        excused <- rdfs$attendance |>
+          filter(id == r_Target_Training()[1, "id"]) |>
+          filter(excused == 1) |>
+          left_join(rdfs$firefighter, by = c("firefighter_id" = "id")) |>
+          pull(full_name)
+
+        if(length(excused) == 0) {
+          return("No firefighters have been excused.")
+        } else {
+          return(paste("The following firefighters have been excused:", paste(excused, collapse = ", ")))
+        }
+      })
+
 
       # observe({
       #   cat("Delete Attendee", file = stderr())
@@ -264,27 +331,8 @@ Server <- function(id, rdfs) {
       #   bindEvent(input$submit_delete_attendance)
       #
       # ##### TESTING #####
-      output$View_Attendance <- renderRHandsontable({
-        browser()
-
-        Table_Data <- r_Editable_Attendance() |>
-          select(-Excused)
-
-        if(is.null(Table_Data)) {
-          return(NULL)
-        }
-
-        rhandsontable(Table_Data,
-                      rowHeaders = FALSE,
-                      contextMenu = FALSE) |>
-          hot_col(col = "Full Name", readOnly = TRUE)
-
-
-      })
 
       observe({
-        cat("Excuse Attendee", file = stderr())
-        #####################################################
         firefighter_choices <- app_data$Firefighter |>
           filter(active_status == 1) |>
           pull(full_name)
@@ -343,21 +391,7 @@ Server <- function(id, rdfs) {
       }) |>
         bindEvent(input$submit_excuse_attendance)
 
-      output$excused_firefighters <- renderText({
-        req(r_Target_Training())
 
-        excused <- r_Attendance() |>
-          filter(training_id == r_Target_Training()[1, "training_id"]) |>
-          filter(excused == 1) |>
-          left_join(app_data$Firefighter, by = c("firefighter_id" = "firefighter_id")) |>
-          pull(full_name)
-
-        if(length(excused) == 0) {
-          return("No firefighters have been excused.")
-        } else {
-          return(paste("The following firefighters have been excused:", paste(excused, collapse = ", ")))
-        }
-      })
 
 
       # ##### TESTING #####
@@ -530,31 +564,7 @@ Server <- function(id, rdfs) {
       # }) |>
       #   bindEvent(input$submit_attendance_update)
       #
-      # ##### Rendered messages displayed to user #####
-      output$which_attendance <- renderText({
-        if(is.null(r_Target_Training())) {
-          return("No training selected.")
-        } else {
-          target_training <- r_Training() |>
-            filter(training_id == r_Target_Training()[1, "training_id"])
 
-          return(
-            paste(
-              "Editing attendance for",
-              target_training$training_type,
-              "training on",
-              target_training$start_time |>
-                functions$FormatLocalDate(asPosix = TRUE),
-              "running from",
-              target_training$start_time |>
-                functions$FormatLocalTime(),
-              "to",
-              target_training$end_time |>
-                functions$FormatLocalTime()
-            )
-          )
-        }
-      })
       #
       # output$save_warning <- renderText({
       #   req(input$View_Attendance)

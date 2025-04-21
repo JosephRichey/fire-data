@@ -163,16 +163,10 @@ FormatDateTime <- function(dt, input = c("datetime", "date"),
     "datetime" = as.POSIXct(dt, tz = tz)
   )
 
-  if(output == "date") {
-    #FIXME
-    # If this doesn't ever fire, then global date_format can be removed as a setting
-    stop('Testing if this combination is every used. See functions.R, FormatLocal')
-  }
-
   # Format as string based on desired output
   fmt <- switch(
     output,
-    # "date" = GetSetting('global', key = 'date_format'),
+    "date" = GetSetting('global', key = 'date_format'),
     "time" = if (seconds) "%H:%M:%S" else "%H:%M",
     "datetime" = GetSetting('global', key = 'date_time_format')
   )
