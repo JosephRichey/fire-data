@@ -119,7 +119,7 @@ Server <- function(id, rdfs) {
       # This is everything that's visible in the table after filters are applied.
       # Use it to generate View_Trainings and grab inputs from view_trainings.
       displayedTrainings <- reactive({
-        log_info("Rendering dispayedTrainings reactive.", name = "Training")
+        log_info("Rendering dispayedTrainings reactive.", namespace = "Training")
         Table_Data <- rdfs$training |>
           mutate(
             date = functions$ConvertToLocalPosix(
@@ -173,7 +173,15 @@ Server <- function(id, rdfs) {
       # Display current training data
       output$view_trainings <- renderDT({
         log_info("Rendering view_trainings table", namespace = "Training")
-        Table_Data <- displayedTrainings()
+
+        # Grab custom columns order from settings
+        col_order <- functions$GetSetting("training", key = "display_cols_order") |>
+          strsplit(",\\s*") |>
+          unlist()
+
+
+        Table_Data <- displayedTrainings()|>
+          select(all_of(col_order))
 
         sort_col <- which(names(Table_Data) == functions$GetSetting('training', key = 'sort_col'))
 

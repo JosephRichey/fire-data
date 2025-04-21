@@ -80,4 +80,4 @@ if (interactive()) {
 log_threshold(INFO)
 
 # 3. Generate some log messages
-log_info("Connection to AWS from {log_group} {log_stream}")
+log_info("Connection to AWS from {log_group} {log_stream}", namepsace = 'logging')
