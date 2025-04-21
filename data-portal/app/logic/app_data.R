@@ -39,18 +39,18 @@ log_info(glue::glue("Extracted local date: {local_date}"), namespace = "app_data
 
 ##### Training #####
 #' @export
-Training_Classifcaion <- dbGetQuery(CON, "SELECT * FROM training_classification")
+Training_Classifcaion <- dbGetQuery(CON, "SELECT * FROM training_classification") |>
+  mutate(training_category = if_else(
+    is_active == 1,
+    training_category,
+    paste("*", training_category)
+  )
+  )
 
 
 #' @export
 training_category_filter <- Training_Classifcaion |>
   filter(!is.na(training_category)) |>
-  mutate(training_category = if_else(
-    is_active == 1,
-    training_category,
-    paste("*", training_category)
-    )
-  ) |>
   pull(training_category) |>
   unique()
 

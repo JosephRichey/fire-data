@@ -5,9 +5,6 @@ id,domain,setting_group,setting_key,setting_value,value_type
 51,incident,response_area,area,Primary,string
 52,incident,response_area,area,Mutual Aid,string
 53,incident,response_area,area,Outside Aid,string
-54,incident,response_units,units,EMS,string
-55,incident,response_units,units,Fire,string
-56,incident,response_units,units,Wildland,string
 57,incident,input_settings,canceled,TRUE,boolean
 58,incident,input_settings,dropped,TRUE,boolean
 59,incident,input_settings,address,FALSE,boolean
@@ -21,12 +18,6 @@ id,domain,setting_group,setting_key,setting_value,value_type
 67,global,time,ltz,America/Denver,string
 68,global,time,date_format,%m-%d-%Y,string
 69,global,time,date_time_format,%m-%d-%Y %H:%M:%S,string
-70,training,training_category,,EMS,string
-71,training,training_category,,Fire,string
-72,training,training_category,,Wildland,string
-73,training,training_category,,Hazmat,string
-74,training,training_topic,EMS,Cardiovacular,string
-75,training,training_topic,EMS,Medical,string
 76,global,,sidebar_open,TRUE,boolean
 77,training,view_trainings,sort_col,"Date",string
 78,training,view_trainings,sort_order,"desc",string
@@ -35,3 +26,4 @@ id,domain,setting_group,setting_key,setting_value,value_type
 81,training,add_trainings,default_end_time,"20:00:00",string
 82,training,training_check_in,early_check_in,15,numeric
 83,training,training_check_out,late_check_out,30,numeric
+84,training,display_cols_order,"Category, Topic, Description, Trainer, Date, Start Time, End Time",string

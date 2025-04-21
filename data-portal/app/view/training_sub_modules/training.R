@@ -160,8 +160,7 @@ Server <- function(id, rdfs) {
           rename(trainer = full_name)
 
         # Clean up names, remove ID column, and set row names to PK.
-        Table_Data <- functions$FixColNames(Table_Data)
-        colnames(Table_Data) <- gsub("Training ", "", colnames(Table_Data))
+        Table_Data <- functions$FixColNames(Table_Data, prefix = "Training ")
         rownames(Table_Data) <- Table_Data$Id
         Table_Data$Id <- NULL
 

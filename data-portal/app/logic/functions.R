@@ -100,7 +100,7 @@ GetSetting <- function(domain, key = NULL, group = NULL) {
 
   # If no matching key, return nothing and show a warning
   if (nrow(Filtered) == 0) {
-    log_warn(glue("No setting found for domain '{domain}' and key '{key}'"),
+    log_error(glue("No setting found for domain '{domain}' and key '{key}'"),
              namespace = "GetSetting")
     return(NA)
   }
@@ -394,11 +394,15 @@ GetTrainingClassificationId <- function(df, category, topic = NULL) {
 
 
 #' @export
-FixColNames <- function(Data) {
-  colnames(Data) <- gsub("_", " ", colnames(Data))
-  colnames(Data) <- stringr::str_to_title(colnames(Data))
+FixColNames <- function(data, prefix = NULL) {
+  colnames(data) <- gsub("_", " ", colnames(data))
+  colnames(data) <- stringr::str_to_title(colnames(data))
 
-  return(Data)
+  if(!is.null(prefix)) {
+    colnames(data) <- gsub(prefix, "", colnames(data))
+  }
+
+  return(data)
 }
 
 #' @export
