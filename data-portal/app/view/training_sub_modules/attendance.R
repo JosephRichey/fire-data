@@ -13,12 +13,14 @@ box::use(
   bsicons[...],
   shinyalert[...],
   rhandsontable[...],
+  logger[...],
 )
 
 box::use(
   ../../logic/app_data,
   ../../logic/functions,
   ../../modals/modals,
+  ../../logic/logging,
 )
 
 #' @export
@@ -54,8 +56,11 @@ Output <- function(id) {
     card(
       card_header(textOutput(ns("which_attendance"))),
       card_body(
-        rHandsontableOutput(ns('View_Attendance'),
-                            width = "auto", height = "100%"),
+        div(
+          class = 'centered-table',
+          rHandsontableOutput(ns('View_Attendance'),
+                              width = "100%", height = "100%"),
+        ),
         textOutput(ns('View_Excused')),
         htmlOutput(ns("save_warning"))
       ),
@@ -82,9 +87,11 @@ Server <- function(id, rdfs) {
       ##### RENDERED UI ELEMENTS #####
       # Text to indicate which training is being edited.
       output$which_attendance <- renderText({
+
         if(is.null(r_Target_Training())) {
           return("No training selected.")
         } else {
+          log_info(glue::glue("Taregt training is {r_Target_Training()[1, 'id']}."), namespace = "Attendance")
           target_training <- rdfs$training |>
             filter(id == r_Target_Training()[1, "id"]) |>
             left_join(
@@ -138,6 +145,8 @@ Server <- function(id, rdfs) {
                  full_name, date) |>
           rename(trainer = full_name)
 
+        log_info(glue::glue("There are {nrow(Table_Data)} eligible trainings for editing."), namespace = "Attendance")
+
         Table_Data <- functions$FixColNames(Table_Data, prefix = "Training ")
         rownames(Table_Data) <- Table_Data$Id
         Table_Data$Id <- NULL
@@ -146,6 +155,7 @@ Server <- function(id, rdfs) {
 
       # First, user hits select training. Show modal with DT.
       observe({
+        log_info("Showing training selection modal.", namespace = "Attendance")
         showModal(
           modalDialog(
             title = "Select Training",
@@ -162,6 +172,7 @@ Server <- function(id, rdfs) {
 
       # DT that allows selecting which training edit attendnace for.
       output$Select_Training_Table <- DT::renderDataTable({
+        log_info("Rendering training selection table.", namespace = "Attendance")
         Table_Data <- r_Eligible_Trainings()
 
         sort_col <- which(names(Table_Data) == "Date")
@@ -190,6 +201,7 @@ Server <- function(id, rdfs) {
 
       # Once selected, cache which training is being edited. Enable all buttons.
       observe({
+        log_info("Training selected. Caching values.", namespace = "Attendance")
         removeModal()
 
         r_Target_Training(
@@ -197,6 +209,7 @@ Server <- function(id, rdfs) {
             rownames_to_column("id")
         )
 
+        log_info("Enabling attendance edit buttons.", namespace = "Attendance")
         updateActionButton(session, "add_attendance", disabled = FALSE)
         updateActionButton(session, "modify_attendance", disabled = FALSE)
         updateActionButton(session, "delete_attendance", disabled = FALSE)
@@ -209,6 +222,7 @@ Server <- function(id, rdfs) {
       r_Editable_Attendance <- reactive({
 
         req(r_Target_Training())
+        log_info("Loading attendance data.", namespace = "Attendance")
 
         Table_Data <- rdfs$attendance |>
           filter(training_id == r_Target_Training()[1, "id"]) |>
@@ -240,13 +254,16 @@ Server <- function(id, rdfs) {
       output$View_Attendance <- renderRHandsontable({
         # browser()
         Table_Data <- r_Editable_Attendance() |>
+          rownames_to_column("Id") |>
           filter(!Excused) |>
-          select(-Excused)
+          select(-Excused) |>
+          column_to_rownames("Id")
 
         if(is.null(Table_Data)) {
           return(NULL)
         }
 
+        log_info("Rendering attendance table.", namespace = "Attendance")
         rhandsontable(Table_Data,
                       rowHeaders = FALSE,
                       contextMenu = FALSE) |>
@@ -254,11 +271,13 @@ Server <- function(id, rdfs) {
 
       })
 
+      # Show firefighters that have been excused
       output$View_Excused <- renderText({
         req(r_Target_Training())
+        log_info("Rendering excused firefighter list.", namespace = "Attendance")
 
         excused <- rdfs$attendance |>
-          filter(id == r_Target_Training()[1, "id"]) |>
+          filter(training_id == r_Target_Training()[1, "id"]) |>
           filter(excused == 1) |>
           left_join(rdfs$firefighter, by = c("firefighter_id" = "id")) |>
           pull(full_name)
@@ -269,6 +288,167 @@ Server <- function(id, rdfs) {
           return(paste("The following firefighters have been excused:", paste(excused, collapse = ", ")))
         }
       })
+
+      # Submit edits from rHandsOnTable
+      observe({
+        log_info("Submitting attendance updates.", namespace = "Attendance")
+        log_info("Validating inputs.", namespace = "Attendance")
+        new_data <- input$View_Attendance |>
+          hot_to_r() |>
+          rownames_to_column("Id")
+
+        ### Validate values entered are correct ###
+        if (any(is.na(new_data))) {
+          log_warning("Missing values in attendance table.", namespace = "Attendance Update")
+          modals$WarningAlert("Please fill in all fields.")
+          return()
+        }
+
+        if(any(!grepl('^\\d{2}:\\d{2}$',new_data$'Check In')) |
+           any(!grepl('^\\d{2}:\\d{2}$',new_data$'Check Out'))) {
+
+          log_warning("Invalid time format in attendance table.", namespace = "Attendance Update")
+          modals$WarningAlert("Please enter times in the format HH:MM.")
+
+          return()
+        }
+
+        if(any(new_data$'Check In' > new_data$'Check Out')) {
+          #Overnight trainings aren't currently supported (i.e., clockin in at 22:00 and out at 06:00)
+          log_warning("Check out time is before check in time.", namespace = "Attendance Update")
+          modals$WarningAlert("Check out time must be after check in time.")
+
+          return()
+        }
+
+        log_info("Validating inputs complete.", namespace = "Attendance")
+
+        ### Write updates to DB ###
+        Original <- r_Editable_Attendance() |>
+          rownames_to_column("Id") |>
+          filter(!Excused) |>
+          select(-Excused)
+
+        Needs_Update <- new_data |>
+          left_join(Original, by = "Id", suffix = c(" New", " Og")) |>
+          filter(
+            `Check In New` != `Check In Og` |
+              `Check Out New` != `Check Out Og` |
+              `Credit New` != `Credit Og`
+          )
+
+        log_info(glue::glue("There are {nrow(Needs_Update)} rows that need to be updated."), namespace = "Attendance")
+
+        write_results <- c()
+
+        log_info("Updating attendance in database.", namespace = "Attendance")
+
+        for(i in 1:nrow(Needs_Update)) {
+          sql_statement <- paste0(
+            "UPDATE attendance SET check_in = ?check_in, check_out = ?check_out, credit = ",
+            ifelse(Needs_Update[i, "Credit New"], 1, 0),
+            " WHERE id = ", Needs_Update[i, "Id"], ";")
+
+          safe_sql <- sqlInterpolate(
+            app_data$CON,
+            sql_statement,
+            check_in = Needs_Update[i, "Check In New"] |>
+              functions$BuildDateTime(r_Target_Training()[1,'Date'], 'local', 'UTC') |>
+              functions$FormatDateTime(input = 'datetime', output = 'datetime', target_tz = 'UTC'),
+            check_out = Needs_Update[i, "Check Out New"] |>
+              functions$BuildDateTime(r_Target_Training()[1,'Date'], 'local', 'UTC') |>
+              functions$FormatDateTime(input = 'datetime', output = 'datetime', target_tz = 'UTC')
+          )
+
+          # Execute the SQL command
+          result <- tryCatch(
+            {
+              dbExecute(app_data$CON, safe_sql)
+            },
+            error = function(e) {
+              log_error(glue::glue("Database write failed: {e$message}"), namespace = "Update Attendance")
+              NA
+            }
+          )
+
+          log_success(glue::glue("Attendance updated for {Needs_Update[i, 'Full Name']}."), namespace = "Attendance")
+
+          write_results <- c(write_results, result)
+        }
+
+        functions$CheckWriteResult(sum(write_results),
+                                   successMessage = "Your attendance has been successfully update. You may now close this window.",
+                                   context = "updating attendance",
+                                   expectedMin = nrow(Needs_Update),
+                                   expectedMax = nrow(Needs_Update)
+          )
+
+        functions$UpdateReactives(rdfs, 'attendance')
+
+      }) |>
+        bindEvent(input$submit_attendance_update)
+
+
+      # observeEvent(input$submit_add_attendance, {
+      #
+      #   if(length(input$add_attendance_firefighters) == 0) {
+      #     shinyalert(
+      #       title = "Warning",
+      #       type = "warning",
+      #       text = "Please select a firefighter to add attendance for."
+      #     )
+      #     return()
+      #   }
+      #
+      #
+      #   removeModal()
+      #
+      #   write_result <- c()
+      #
+      #   for(i in input$add_attendance_firefighters) {
+      #
+      #     firefighter_id <- app_data$Firefighter$firefighter_id[app_data$Firefighter$full_name == i]
+      #
+      #     sql_statement <- paste0("INSERT INTO attendance (training_id, firefighter_id, check_in, check_out, credit, excused) VALUES (",
+      #                             r_Target_Training()[1, "training_id"], ", ",
+      #                             firefighter_id, ", '",
+      #                             input$add_attendance_check_in |>
+      #                               functions$BuiltDateTime(r_Target_Training()[1,'Date'], 'local') |>
+      #                               functions$FormatUtcDateTime(), "', '",
+      #                             input$add_attendance_check_out |>
+      #                               functions$BuiltDateTime(r_Target_Training()[1,'Date'], 'local') |>
+      #                               functions$FormatUtcDateTime(), "', ",
+      #                             if_else(input$add_attendance_attendance_credit == 'Credit', "1", "0"), ", ",
+      #                             "0);")
+      #     write_result <- c(write_result, dbExecute(app_data$CON, sql_statement))
+      #
+      #
+      #   }
+      #
+      #
+      #   #FIXME Bypassing test for now. Will need a more robust check.
+      #   if(TRUE) {
+      #     showModal(
+      #       modalDialog(
+      #         title = "Success",
+      #         "Your attendance has been successfully added. You may now close this window.",
+      #         easyClose = TRUE
+      #       )
+      #     )
+      #   } else {
+      #     showModal(
+      #       modals$errorModal(paste("Attendance add failed with write result equal to", write_result))
+      #     )
+      #   }
+      #
+      #   updateReactiveAttendance()
+      #
+      # })
+
+
+
+
+
 
 
       # observe({
@@ -424,165 +604,29 @@ Server <- function(id, rdfs) {
       # }) |>
       #   bindEvent(input$add_attendance)
       #
-      # observeEvent(input$submit_add_attendance, {
-      #
-      #
-      #   if(length(input$add_attendance_firefighters) == 0) {
-      #     shinyalert(
-      #       title = "Warning",
-      #       type = "warning",
-      #       text = "Please select a firefighter to add attendance for."
-      #     )
-      #     return()
-      #   }
-      #
-      #
-      #   removeModal()
-      #
-      #   write_result <- c()
-      #
-      #   for(i in input$add_attendance_firefighters) {
-      #
-      #     firefighter_id <- app_data$Firefighter$firefighter_id[app_data$Firefighter$full_name == i]
-      #
-      #     sql_statement <- paste0("INSERT INTO attendance (training_id, firefighter_id, check_in, check_out, credit, excused) VALUES (",
-      #                             r_Target_Training()[1, "training_id"], ", ",
-      #                             firefighter_id, ", '",
-      #                             input$add_attendance_check_in |>
-      #                               functions$BuiltDateTime(r_Target_Training()[1,'Date'], 'local') |>
-      #                               functions$FormatUtcDateTime(), "', '",
-      #                             input$add_attendance_check_out |>
-      #                               functions$BuiltDateTime(r_Target_Training()[1,'Date'], 'local') |>
-      #                               functions$FormatUtcDateTime(), "', ",
-      #                             if_else(input$add_attendance_attendance_credit == 'Credit', "1", "0"), ", ",
-      #                             "0);")
-      #     write_result <- c(write_result, dbExecute(app_data$CON, sql_statement))
-      #
-      #
-      #   }
-      #
-      #
-      #   #FIXME Bypassing test for now. Will need a more robust check.
-      #   if(TRUE) {
-      #     showModal(
-      #       modalDialog(
-      #         title = "Success",
-      #         "Your attendance has been successfully added. You may now close this window.",
-      #         easyClose = TRUE
-      #       )
-      #     )
-      #   } else {
-      #     showModal(
-      #       modals$errorModal(paste("Attendance add failed with write result equal to", write_result))
-      #     )
-      #   }
-      #
-      #   updateReactiveAttendance()
-      #
-      # })
-      #
-      #
-      #
-      # observe({
-      #   cat("Editing Attendance", file = stderr())
-      #   new_data <- input$View_Attendance |>
-      #     hot_to_r() |>
-      #     rownames_to_column("Id")
-      #
-      #   # FIXME Removing this- can be empty with excused attendance
-      #   # if (any(is.na(new_data) | new_data == "")) {
-      #   #   shinyalert(
-      #   #     title = "Warning",
-      #   #     type = "warning",
-      #   #     text = "Please fill in all fields."
-      #   #   )
-      #   #   return()
-      #   # }
-      #
-      #   if(any(!grepl('^\\d{2}:\\d{2}$',new_data$'Check In')) |
-      #      any(!grepl('^\\d{2}:\\d{2}$',new_data$'Check Out'))) {
-      #
-      #     shinyalert(
-      #       title = "Warning",
-      #       type = "warning",
-      #       text = "Please enter times in the format HH:MM."
-      #     )
-      #     return()
-      #   }
-      #
-      #   if(any(new_data$'Check In' > new_data$'Check Out')) {
-      #     #FIXME This won't allow overnight trainings (i.e., clockin in at 22:00 and out at 06:00)
-      #     shinyalert(
-      #       title = "Warning",
-      #       type = "warning",
-      #       text = "Check out time must be after check in time."
-      #     )
-      #     return()
-      #   }
-      #
-      #   write_results <- c()
-      #
-      #   for(i in 1:nrow(new_data)) {
-      #     sql_statement <- paste0("UPDATE attendance SET check_in = ?check_in, check_out = ?check_out, credit = ", ifelse(new_data[i, "Credit"], 1, 0), ", excused = ", ifelse(new_data[i, "Excused"], 1, 0), " WHERE attendance_id = ", new_data[i, "Id"], ";")
-      #
-      #     safe_sql <- sqlInterpolate(
-      #       app_data$CON,
-      #       sql_statement,
-      #       check_in = new_data[i, "Check In"] |>
-      #         functions$BuiltDateTime(r_Target_Training()[1,'Date'], 'local') |>
-      #         functions$FormatUtcDateTime(),
-      #       check_out = new_data[i, "Check Out"] |>
-      #         functions$BuiltDateTime(r_Target_Training()[1,'Date'], 'local') |>
-      #         functions$FormatUtcDateTime()
-      #     )
-      #
-      #     #FIXME Needs to be in a try catch
-      #     write_results <- c(write_results, dbExecute(app_data$CON, safe_sql))
-      #
-      #   }
-      #
-      #   updateReactiveAttendance()
-      #
-      #   #FIXME Bypassing test for now. Will need a more robust check.
-      #   if(TRUE) {
-      #     showModal(
-      #       modalDialog(
-      #         title = "Success",
-      #         "Your attendance has been successfully updated. You may now close this window.",
-      #         easyClose = TRUE,
-      #         footer = tagList(
-      #           modalButton("Close")
-      #         )
-      #       )
-      #     )
-      #   } else {
-      #     showModal(
-      #       modals$errorModal(paste("Attendance update failed with write results equal to", write_results))
-      #     )
-      #   }
-      #
-      # }) |>
-      #   bindEvent(input$submit_attendance_update)
-      #
 
-      #
-      # output$save_warning <- renderText({
-      #   req(input$View_Attendance)
-      #
-      #   Table_Data <- r_Editable_Attendance()
-      #
-      #   changes <- all.equal(hot_to_r(input$View_Attendance), Table_Data, check.attributes = FALSE)
-      #   if(!isTRUE(changes)) {
-      #     return(
-      #       HTML(paste0(
-      #         "<span style='font-size: 1.2em; font-weight: bold; color: #9933CC;'>You have unsaved changes</span>"
-      #       ))
-      #
-      #     )
-      #   } else {
-      #     return(NULL)
-      #   }
-      #
-      # })
+
+
+      output$save_warning <- renderText({
+        req(input$View_Attendance)
+
+        # Don't check if excused is equal- handled elsewhere
+        Table_Data <- r_Editable_Attendance() |>
+          filter(!Excused) |>
+          select(-Excused)
+
+        changes <- all.equal(hot_to_r(input$View_Attendance), Table_Data, check.attributes = FALSE)
+        if(!isTRUE(changes)) {
+          return(
+            HTML(paste0(
+              "<span style='font-size: 1.2em; font-weight: bold; color: #9933CC;'>You have unsaved changes</span>"
+            ))
+
+          )
+        } else {
+          return(NULL)
+        }
+
+      })
     }
 )}
