@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS firefighter_response;
 DROP TABLE IF EXISTS apparatus_response;
 DROP TABLE IF EXISTS firefighter_apparatus;
 DROP TABLE IF EXISTS chain_of_command;
+DROP TABLE IF EXISTS hippa_log;
 DROP TABLE IF EXISTS firefighter;
 DROP TABLE IF EXISTS apparatus;
 DROP TABLE IF EXISTS incident_unit;
@@ -101,6 +102,7 @@ CREATE TABLE certification (
     firefighter_id INT,
     expiration_date date,
     is_deleted datetime,
+    deleted_by VARCHAR(255),
     foreign key (type_id) references certification_type(id),
     foreign key (firefighter_id) references firefighter(id)
 );
@@ -115,11 +117,12 @@ CREATE TABLE setting (
     value_type VARCHAR(255)
 );
 
-#CREATE TABLE user_log (#
-#	user_log_id INT PRIMARY KEY AUTO_INCREMENT,
-#    log_in datetime,
-#    log_out datetime # Will need to test if the app crashes if I can still get a reliable log out
-#);
+CREATE TABLE hippa_log (
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(255),
+    date_time datetime,
+    user_action VARCHAR(255)
+);
 
 # This shows all the apparatus that are active and can be used.
 CREATE TABLE apparatus (
@@ -164,6 +167,7 @@ CREATE TABLE equipment (
     expiration_date date,
     snooze_expires date,
     is_deleted datetime,
+    deleted_by VARCHAR(255),
     foreign key (equipment_type_id) references equipment_type(id),
     foreign key (firefighter_id) references firefighter(id),
     foreign key (apparatus_id) references apparatus(id)
@@ -205,6 +209,7 @@ CREATE TABLE training (
     credit_hours float,
     trainer int,
     is_deleted datetime,
+    deleted_by VARCHAR(255),
     foreign key (trainer) references firefighter(id),
     foreign key (classification_id) references training_classification(id)
 );
@@ -245,6 +250,7 @@ CREATE TABLE incident (
     dropped bool,
     finalized bool,
     is_deleted datetime,
+    deleted_by VARCHAR(255),
     # Retain for audit
     foreign key (dispatch_id) references dispatch_code(id)
 );
@@ -257,6 +263,7 @@ CREATE TABLE response (
     response_end datetime,
     notes text,
     is_deleted datetime,
+    deleted_by VARCHAR(255),
     # Retain for audit
     foreign key (incident_id) REFERENCES incident(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
