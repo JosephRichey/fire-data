@@ -248,7 +248,8 @@ CREATE TABLE incident (
     area varchar(255),
     canceled bool,
     dropped bool,
-    finalized bool,
+    is_reviewed bool,
+	is_locked bool,
     is_deleted datetime,
     deleted_by VARCHAR(255),
     # Retain for audit
