@@ -521,7 +521,7 @@ incident <- data.frame(
 ) |> 
   mutate(incident_end = incident_start + sample(300:36000, 50, replace = TRUE),
          .after = "incident_start") |> 
-  mutate(finalized = if_else(incident_end > Sys.time() - 60*60*24*7, 0, 1),
+  mutate(is_reviewed = if_else(incident_end > Sys.time() - 60*60*24*7, 0, 1),
          incident_start = as.POSIXct(incident_start) |> format(usets = FALSE),
          incident_end = as.POSIXct(incident_end)|> format(usets = FALSE)) |> 
   arrange(desc(incident_end))

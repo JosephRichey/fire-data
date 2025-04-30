@@ -171,6 +171,7 @@ Server <- function(id, rdfs) {
 
       # Display current training data
       output$view_trainings <- renderDT({
+        browser()
         log_info("Rendering view_trainings table", namespace = "Training")
 
         # Grab custom columns order from settings

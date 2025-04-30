@@ -26,4 +26,5 @@ id,domain,setting_group,setting_key,setting_value,value_type
 81,training,add_trainings,default_end_time,"20:00:00",string
 82,training,training_check_in,early_check_in,15,numeric
 83,training,training_check_out,late_check_out,30,numeric
-84,training,display_cols_order,"Category, Topic, Description, Trainer, Date, Start Time, End Time",string
+84,training,,display_cols_order,"Category, Topic, Description, Trainer, Date, Start Time, End Time",string
+85,training,,training_edit_restriction,30,numeric
