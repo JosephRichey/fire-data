@@ -5,6 +5,10 @@ box::use(
   lubridate[with_tz],
 )
 
+box::use(
+  ./logging,
+)
+
 #' @export
 TZ <- Sys.getenv("LOCAL_TZ")
 
