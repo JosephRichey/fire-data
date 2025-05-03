@@ -23,6 +23,7 @@ DROP TABLE IF EXISTS firefighter;
 DROP TABLE IF EXISTS apparatus;
 DROP TABLE IF EXISTS incident_unit;
 DROP TABLE IF EXISTS unit;
+DROP TABLE IF EXISTS area;
 DROP TABLE IF EXISTS response;
 DROP TABLE IF EXISTS incident;
 DROP TABLE IF EXISTS dispatch_code;
@@ -236,6 +237,11 @@ CREATE TABLE dispatch_code (
     is_active boolean
 );
 
+CREATE TABLE area (
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    area VARCHAR(255),
+    is_active boolean
+);
 
 # The top level is an incident. 0 - many responses can be added to an incident.
 CREATE TABLE incident (

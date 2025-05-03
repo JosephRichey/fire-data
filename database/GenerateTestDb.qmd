@@ -494,7 +494,7 @@ db_insert("dispatch_code", dispatch_code)
 
 ```
 
-## Populate `incident` and `response``
+## Populate `incident`, `response`, and `area`
 ```{r}
 
 incident <- data.frame(
@@ -541,8 +541,15 @@ response <- data.frame(
   ) |> 
   select(id, incident_id, response_start, response_end, notes, is_deleted)
 
+area <- data.frame(
+  id = 1:5,
+  area = c("Municipality", "Primary Area", "Mutual Aid", "Outside Aid", "County"),
+  is_active = c(1, 1, 1, 1, 0)
+)
+
 db_insert("incident", incident)
 db_insert("response", response)
+db_insert("area", area)
 ```
 
 ## Populate `incident_unit` and `unit`
