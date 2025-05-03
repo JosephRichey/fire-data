@@ -13,13 +13,18 @@ box::use(
 #' @export
 ui <- function(id) {
   ns <- NS(id)
+  
 
-  tagList(
-    uiOutput(ns('incident_cards'))
-  )
+  # tagList(
+  #   uiOutput(ns('incident_cards'))
+  # )
   page_fluid(
     title = Sys.getenv('FD'),
-    h1(Sys.getenv('FD')),
+    div(class = "app-header",
+        img(src = 'static/logo.png',
+            style = 'width: 40px; margin-right: 10px'),
+        span(Sys.getenv('FD'))),
+    br(),
     h3("Incident Response"),
     theme = bs_theme(version = 5,
                      primary = "#87292b",

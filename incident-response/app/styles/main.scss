@@ -25,3 +25,13 @@
   background-color: #565656 !important;
 }
 
+/* Style for logo */
+.app-header {
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  background-color: var(--bs-primary);
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+}
