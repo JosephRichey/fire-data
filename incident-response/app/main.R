@@ -5,7 +5,10 @@ box::use(
 
 box::use(
   view/incident_response,
+  view/card,
+  view/add_edit_incident,
   logic/app_data,
+  logic/global_functions,
 )
 
 
@@ -13,13 +16,7 @@ box::use(
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  
-
-  # tagList(
-  #   uiOutput(ns('incident_cards'))
-  # )
   page_fluid(
-    title = Sys.getenv('FD'),
     div(class = "app-header",
         img(src = 'static/logo.png',
             style = 'width: 40px; margin-right: 10px'),
@@ -45,7 +42,7 @@ ui <- function(id) {
       col_widths = c(12, 12)
     ),
     
-    incident_response$Output(ns('incident_response')),
+    card$Output(ns('incident_response')),
     
     br(),
     helpText("v1.0.0-dev © CC BY-NC-SA 2024 Joseph Richey")
@@ -55,17 +52,44 @@ ui <- function(id) {
 #' @export
 server <- function(id) {
   moduleServer(id, function(input, output, session) {
-    incident_response$ModalServer('incident_response')
-    # incident_response$DBWriteServer('incident_response')
-    incident_response$CardServer('incident_response')
-    incident_response$UpdateIdServer('incident_response')
+    
+    # Display page spinner while loading
+    shinycssloaders::showPageSpinner(
+      type = 6,
+      color = "#87292b"
+    )
+    
+    session$onFlushed(function() {
+      shinycssloaders::hidePageSpinner()
+    })
+    
+    ##### Global Stuff ####
+    ns <- session$ns
+    
+    ##### On app load, initialize all reactive values #####
+    rdfs <- reactiveValues(
+      firefighter_response = NULL,
+      apparatus_response = NULL,
+      firefighter_apparatus = NULL,
+      incident_unit = NULL,
+      response = NULL,
+      incident = NULL
+    )
+    
+    global_functions$UpdateReactives(rdfs)
+    
+    ##### Module Servers #####
+    card$Server('incident_response', rdfs)
+    add_edit_incident$Server('incident_response', rdfs)
+    # incident_response$ModalServer('incident_response')
     
     session$onSessionEnded(function() {
       DBI::dbDisconnect(app_data$CON)
       print('DB Disconnected')
     })
     
-    options(shiny.error = function() { cat(geterrmessage(), "\n") })
+    # Catch any unhandled errors
+    options(shiny.error = function() { logger::log_error(geterrmessage(), "\n") })
     
   })
 }

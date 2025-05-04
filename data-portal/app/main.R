@@ -274,6 +274,10 @@ server <- function(id) {
       color = "#87292b"
     )
 
+    session$onFlushed(function() {
+      shinycssloaders::hidePageSpinner()
+    })
+
     ##### Global Stuff #####
     ns <- session$ns
 
@@ -333,9 +337,9 @@ server <- function(id) {
       print('Disconnected from database.')
     })
 
-    session$onFlushed(function() {
-      shinycssloaders::hidePageSpinner()
-    })
+    # Catch any unhandled errors
+    options(shiny.error = function() { logger::log_error(geterrmessage(), "\n") })
+
 
   })
 }

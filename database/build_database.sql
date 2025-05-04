@@ -23,9 +23,9 @@ DROP TABLE IF EXISTS firefighter;
 DROP TABLE IF EXISTS apparatus;
 DROP TABLE IF EXISTS incident_unit;
 DROP TABLE IF EXISTS unit;
-DROP TABLE IF EXISTS area;
 DROP TABLE IF EXISTS response;
 DROP TABLE IF EXISTS incident;
+DROP TABLE IF EXISTS area;
 DROP TABLE IF EXISTS dispatch_code;
 DROP TABLE IF EXISTS company;
 
@@ -251,7 +251,7 @@ CREATE TABLE incident (
     incident_end datetime,
     address varchar(255),
     dispatch_id INT, 
-    area varchar(255),
+    area_id INT,
     canceled bool,
     dropped bool,
     is_reviewed bool,
@@ -259,7 +259,8 @@ CREATE TABLE incident (
     is_deleted datetime,
     deleted_by VARCHAR(255),
     # Retain for audit
-    foreign key (dispatch_id) references dispatch_code(id)
+    foreign key (dispatch_id) references dispatch_code(id),
+    foreign key (area_id) references area(id)
 );
 
 # Many responses can be tied to an incident.

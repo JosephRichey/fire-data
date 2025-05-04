@@ -7,7 +7,7 @@ id,domain,setting_group,setting_key,setting_value,value_type
 6,global,id,fire_department_name,Crabapple Cove Fire Department,string
 7,global,config,safe_delete,FALSE,boolean
 8,incident,incident_response,input_seconds,FALSE,boolean
-9,incident,incident_response,modify_time,TRUE,boolean
+9,incident,incident_response,	,TRUE,boolean
 10,incident,incident_response,canceled,TRUE,boolean
 11,incident,incident_response,dropped,TRUE,boolean
 12,incident,incident_response,address,FALSE,boolean
@@ -52,3 +52,4 @@ id,domain,setting_group,setting_key,setting_value,value_type
 51,report,equipment_tab,custom_reports,Report 1,string
 52,report,personnel_tab,custom_reports,Report 1,string
 53,report,ai_reports,verify_report,TRUE,boolean
+54,incident,incident_response,additional_inc_add_lag,4,numeric

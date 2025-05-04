@@ -1,8 +1,20 @@
-export function edit_incident(ns, id) {
+globalThis.edit_incident = function(ns, id) {
   console.log("working from edit_incident");
-  // Construct the full namespaced id, e.g. if ns is "app-" then "app-jsValue"   
   var fullInputId = ns + "edit_incident";   
   console.log("Setting input with id: " + fullInputId);   
   Shiny.setInputValue(fullInputId, id, {priority: "event"}); 
-}
+};
 
+globalThis.edit_response = function(ns, id) {
+  console.log("working from edit_response");
+  var fullInputId = ns + "edit_response";   
+  console.log("Setting input with id: " + fullInputId);   
+  Shiny.setInputValue(fullInputId, id, {priority: "event"}); 
+};
+
+globalThis.add_response = function(ns, id) {
+  console.log("working from add_response");
+  var fullInputId = ns + "add_response";   
+  console.log("Setting input with id: " + fullInputId);   
+  Shiny.setInputValue(fullInputId, id, {priority: "event"}); 
+};
