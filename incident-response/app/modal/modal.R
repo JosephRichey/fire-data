@@ -155,7 +155,7 @@ address_unit <- function(ns, incident_details, edit) {
       actionButton(ns("add_incident"), "Back", class = "btn btn-light"),
       actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
       if(edit) {
-        actionButton(ns('submit'), 'Submit Edits', class = "btn btn-primary")
+        actionButton(ns('submit'), 'Submit Edits', class = "btn btn-success")
       } else {
         actionButton(ns("to_apparatus_ff"), "Next", class = "btn btn-primary")
       }
@@ -165,7 +165,7 @@ address_unit <- function(ns, incident_details, edit) {
  
 
 select_ff_aparatus <- function(ns, response_details, additional) {
-  
+  # browser()
   modalDialog(
     selectInput(
       inputId = ns("apparatus"),
@@ -216,14 +216,14 @@ key_time_additional <- function(ns, response_details, rdfs) {
       inputId = ns("response_start_date"),
       label = "Start Date:",
       max = app_data$Current_Local_Date,
-      value = coalesce(response_details$dispatch_date, 
+      value = coalesce(response_details$response_start_date, 
                        response_start_date_with_rollback)
     ),
     timeInput(
       inputId = ns("response_start_time"),
       label = "Start Time:",
       value = coalesce(
-        response_details$dispatch_time,
+        response_details$response_start_time,
         Sys.time() |>
           with_tz(Sys.getenv("LOCAL_TZ")) |>
           floor_date("minute") - 3600
@@ -236,14 +236,14 @@ key_time_additional <- function(ns, response_details, rdfs) {
       inputId = ns("response_end_date"),
       label = "End Date:",
       max = app_data$Current_Local_Date,
-      value = coalesce(response_details$end_date, 
+      value = coalesce(response_details$response_end_date, 
                        app_data$Current_Local_Date)
     ),
     timeInput(
       inputId = ns("response_end_time"),
       label = "End Time:",
       value = coalesce(
-        response_details$end_time,
+        response_details$response_end_time,
         Sys.time() |>
           with_tz(Sys.getenv("LOCAL_TZ")) |>
           floor_date("minute")
@@ -264,23 +264,8 @@ key_time_additional <- function(ns, response_details, rdfs) {
 }
 
 
+note <- function(ns, response_details, length) {
 
-
-
-
-# assignment <- function(ns, response_details) {
-#   modalDialog(
-#     "Still building...",
-#     footer = tagList(
-#       actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-light"),
-#       actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
-#       actionButton(ns("to_note"), "Next", class = "btn btn-primary")
-#     )
-#   )
-# }
-
-
-note <- function(ns, response_details) {
   modalDialog(
     textAreaInput(
       inputId = ns("response_notes"),
@@ -288,7 +273,13 @@ note <- function(ns, response_details) {
       value = coalesce(response_details$response_notes, "")
     ),
     footer = tagList(
-      actionButton(ns("to_assignment"), "Back", class = "btn btn-light"),
+      if(length == 0 | GetSetting("incident",
+                   group = "incident_response",
+                   key = "firefighter_apparatus_assignment")) {
+        actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-light")
+      } else {
+        actionButton(ns("to_assignment"), "Back", class = "btn btn-light")
+      },
       actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
       actionButton(ns("submit"), "Submit", class = "btn btn-success")
     )

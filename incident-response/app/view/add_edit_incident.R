@@ -20,7 +20,9 @@ box::use(
   app/logic/local_functions,
   app/logic/global_functions[GetSetting,
                              BuildDateTime,
-                             CheckWriteResult],
+                             CheckWriteResult,
+                             StringToId,
+                             IdToString],
   app/logic/logging,
 )
 
@@ -35,6 +37,8 @@ Server <- function(id, rdfs) {
       edit <- reactiveVal(FALSE)
       
       additional <- reactiveVal(FALSE)
+      
+      current_modal <- reactiveVal(NULL)
       
       ##### Reactives to save until write or reset #####
       
@@ -54,6 +58,7 @@ Server <- function(id, rdfs) {
       
       response_details <- reactiveValues(
         incident_id = NULL,
+        response_id = NULL,
         response_start_date = NULL,
         response_start_time = NULL,
         response_end_date = NULL,
@@ -82,13 +87,23 @@ Server <- function(id, rdfs) {
       walk(incident_fields, ~ bindEvent(
         observe({
           incident_details[[.x]] <- input[[.x]]
+          log_info(
+            glue('Caching {paste(input[[.x]], collapse = ", ")} to {.x}'),
+            namespace = 'add_edit_incident'
+          )
         }),
         input[[.x]]
       ))
       
       walk(response_fields, ~ bindEvent(
         observe({
+          # This doesn't cache firefighter or apparatus when everyhting is deselected.
+          # I update those manually belo when checking if they're empty.
           response_details[[.x]] <- input[[.x]]
+          log_info(
+            glue('Caching {paste(input[[.x]], collapse = ", ")} to {.x}'),
+            namespace = 'add_edit_incident'
+          )
         }),
         input[[.x]]
       ))
@@ -97,10 +112,11 @@ Server <- function(id, rdfs) {
       # Show first modal
       observe({
         log_info(
-          glue('Showing key time modal in {if_else(edit(), "edit", "add")} mode.'),
+          glue('Showing incident key time modal in {if_else(edit(), "edit", "add")} mode.'),
           namespace = 'add_edit_incident'
           )
         showModal(modal$key_time(ns, incident_details, edit()))
+        current_modal('key_time')
       }) |>
         bindEvent(input$add_incident, ignoreNULL = TRUE, ignoreInit = TRUE)
       
@@ -109,6 +125,10 @@ Server <- function(id, rdfs) {
       observe({
         # Skip checking for duplicate cad ids if editing
         if(!edit()) {
+          log_info(
+            glue('Checking for duplicate cad id {input$cad_identifier}'),
+            namespace = 'add_edit_incident'
+          )
           # Does the CAD ID already exist?
           if(input$cad_identifier %in% rdfs$incident$cad_identifier) {
             shinyalert(
@@ -118,9 +138,26 @@ Server <- function(id, rdfs) {
             )
             return()
           }
-        } 
+        } else {
+          log_info(
+            glue('Editing incident {input$edit_incident}. No duplicate check'),
+            namespace = 'add_edit_incident'
+          )
+        }
         
         # Does the CAD ID match the regex?
+        log_info(
+          glue('Checking cad id {input$cad_identifier} against regex'),
+          namespace = 'add_edit_incident'
+        )
+        log_info(
+          glue('Regex: {GetSetting("incident", key = "incident_cad_regex")}'),
+          namespace = 'add_edit_incident'
+        )
+        log_info(
+          glue('Input: {input$cad_identifier}'),
+          namespace = 'add_edit_incident'
+        )
         if(!grepl(
           GetSetting('incident',
                      key = 'incident_cad_regex'), 
@@ -135,7 +172,10 @@ Server <- function(id, rdfs) {
           )
           return()
         }
-        
+        log_info(
+          glue('Checking if dispatch time {input$incident_start_time} is before end time {input$incident_end_time}'),
+          namespace = 'add_edit_incident'
+        )
         # Are times in order?
         start_time <- BuildDateTime(
           time = input$incident_start_time,
@@ -150,6 +190,14 @@ Server <- function(id, rdfs) {
           input = 'local',
           return_type = 'local'
         )
+        log_info(
+          glue('Start time: {start_time}'),
+          namespace = 'add_edit_incident'
+        )
+        log_info(
+          glue('End time: {end_time}'),
+          namespace = 'add_edit_incident'
+        )
         
         if(end_time <= start_time) {
           shinyalert(
@@ -162,7 +210,12 @@ Server <- function(id, rdfs) {
         
         # All validations passed. Show second modal.
         removeModal()
+        log_info(
+          glue('Showing address unit modal in {if_else(edit(), "edit", "add")} mode'),
+          namespace = 'add_edit_incident'
+        )
         showModal(modal$address_unit(ns, incident_details, edit()))
+        current_modal('address_unit')
         
       }) |>
         bindEvent(
@@ -173,6 +226,11 @@ Server <- function(id, rdfs) {
       
       # Show third modal
       observe({
+        # browser()
+        log_info(
+          glue('Showing firefighter apparatus modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
+          namespace = 'add_edit_incident'
+        )
         removeModal()
         showModal(
           modal$select_ff_aparatus(
@@ -180,6 +238,7 @@ Server <- function(id, rdfs) {
             response_details, 
             additional())
         )
+        current_modal('select_ff_apparatus')
       }) |>
         bindEvent(
           input$to_apparatus_ff, 
@@ -193,41 +252,82 @@ Server <- function(id, rdfs) {
       ##### Apparatus and Firefighter Assignment #####
       generate_firefighter_apparatus <- reactive({
         req(input$apparatus, input$firefighter)
-        # browser()
-        do.call(
-          bucket_list,
-          c(
-            list(
-              header = NULL,
-              group_name = ns("ff_app_lists"),
-              orientation = "horizontal",
-              add_rank_list(
-                text = "Standby",
-                labels = input$firefighter,
-                input_id = ns("standby_list"),
-                options = sortable_options(
-                  group = "bucket_list",
-                  class = "sortable-item"
-                )
+        browser()
+        # Is this a new response or are we updating an existing response?
+        # Are there cachced values already?
+        # If there aren't cached values already, does the updating response have values?
+
+        log_info("Generating firefighter apparatus list", namespace = "add_edit_incident")
+        
+        # Determine current assignments
+        list_data <- if (!is.null(isolate(input$ff_app_lists))) {
+          log_info("Using cached bucket list input", namespace = "add_edit_incident")
+          response_details$ff_app_lists
+        } else if (!is.null(response_details$response_id)) {
+          log_info("Using existing response DB data", namespace = "add_edit_incident")
+          
+          rdfs$firefighter_apparatus |>
+            filter(response_id == response_details$response_id) |>
+            left_join(app_data$Firefighter |> select(id, full_name), 
+                      by = c("firefighter_id" = "id")) |>
+            left_join(app_data$Apparatus |> select(id, apparatus_name), 
+                      by = c("apparatus_id" = "id")) |>
+            filter(full_name %in% input$firefighter) |>
+            group_by(apparatus_name) |>
+            summarise(assigned = list(full_name), .groups = "drop") |>
+            tibble::deframe()
+        } else {
+          list()  # no assignment yet
+        }
+        
+        # Track current firefighter IDs in use
+        assigned_ffs <- unlist(list_data, use.names = FALSE)
+        standby_ffs <- setdiff(input$firefighter, assigned_ffs)
+      
+        
+        # UI construction
+        do.call(bucket_list, c(
+          list(
+            header = NULL,
+            group_name = ns("ff_app_lists"),
+            orientation = "horizontal",
+            add_rank_list(
+              text = "Standby",
+              labels = standby_ffs,
+              input_id = ns("standby_list"),
+              options = sortable_options(
+                group = "bucket_list",
+                class = "sortable-item"
               )
-            ),
-            lapply(input$apparatus, function(apparatus_name) {
-              add_rank_list(
-                text = apparatus_name,
-                labels = NULL,
-                input_id = paste0("apparatus_list_", apparatus_name |>
-                                    stringr::str_to_lower() |>
-                                    stringr::str_replace_all(" ", "_")),
-                options = sortable_options(
-                  group = "bucket_list",
-                  class = "sortable-item"
-                )
+            )
+          ),
+          lapply(input$apparatus, function(apparatus_name) {
+            app_ffs <- list_data[[apparatus_name]] %||% character(0)
+            
+            add_rank_list(
+              text = apparatus_name,
+              labels = app_ffs,
+              input_id = paste0("apparatus_list_", 
+                                stringr::str_to_lower(apparatus_name) |>
+                                  stringr::str_replace_all(" ", "_")),
+              options = sortable_options(
+                group = "bucket_list",
+                class = "sortable-item"
               )
-            })
-          )
-        )
+            )
+          })
+        ))
       })
       
+      observeEvent(input$ff_app_lists, {
+        browser()
+        # Update cached source of truth
+        response_details$ff_app_lists <- input$ff_app_lists
+        log_info(
+          glue('Cached ff_app_lists: {paste(response_details$ff_app_lists, collapse = ", ")}'),
+          namespace = 'add_edit_incident'
+        )
+      }, ignoreNULL = TRUE, ignoreInit = TRUE)
       
       # TODO Have this built on a cached value.
       # Render dynamic bucket list inside modal
@@ -236,7 +336,34 @@ Server <- function(id, rdfs) {
       })
       
       observe({
+        # browser()
+        if(length(input$apparatus) == 0 & 
+           length(input$firefighter) == 0) {
+          response_details$apparatus <- NULL
+          response_details$firefighter <- NULL
+          log_info(
+            glue('Skipping to notes modal.'),
+            namespace = 'add_edit_incident'
+          )
+          showModal(modal$note(ns, response_details, length = length(input$firefighter) + 
+                                 length(input$apparatus)))
+          return()
+        }
+
+        if(!GetSetting(domain = 'incident',
+                      key = 'firefighter_apparatus_assignment')) {
+          # Can toggle if they track this.
+          showModal(modal$note(ns, response_details, length = length(input$firefighter) + 
+                                 length(input$apparatus)))
+          return()
+        }
+        
         removeModal()
+        log_info(
+          glue('Showing Assign Firefighters to Apparatus modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
+          namespace = 'add_edit_incident'
+        )
+        generate_firefighter_apparatus()
         showModal(modalDialog(
           title = "Assign Firefighters to Apparatus",
           uiOutput(ns("firefighter_apparatus_list")),
@@ -247,6 +374,7 @@ Server <- function(id, rdfs) {
             actionButton(ns("to_note"), "Next", class = "btn btn-primary")
           ), size = 'l'
         ))
+        current_modal('assign_ff_apparatus')
       }) |>
         bindEvent(input$to_assignment, ignoreNULL = TRUE, ignoreInit = TRUE)
       
@@ -256,7 +384,13 @@ Server <- function(id, rdfs) {
       # Show fifth modal
       observe({
         # browser()
-        showModal(modal$note(ns, response_details))
+        log_info(
+          glue('Showing note modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
+          namespace = 'add_edit_incident'
+        )
+        showModal(modal$note(ns, response_details, length = length(input$firefighter) + 
+                              length(input$apparatus)))
+        current_modal('note')
       }) |>
         bindEvent(input$to_note, ignoreNULL = TRUE, ignoreInit = TRUE)
       
@@ -271,8 +405,13 @@ Server <- function(id, rdfs) {
           type = "warning"
         )
         
+        log_info(
+          glue('Resetting values'),
+          namespace = 'add_edit_incident'
+        )
         local_functions$resetCachedValues(incident_details, response_details,
                                           edit, additional)
+        current_modal(NULL)
         
       })
       
@@ -283,8 +422,8 @@ Server <- function(id, rdfs) {
       ### Everything that happens on sbumit
       
       observe({
-        browser()
-        
+        # browser()
+        current_modal(NULL)
         ## Print values to log
         vals <- reactiveValuesToList(incident_details)
         # browser()
@@ -427,13 +566,13 @@ Server <- function(id, rdfs) {
         # 
         # cat('finished', file = stderr())
         # 
-        # removeModal()
+        removeModal()
         # 
-        # shinyalert(
-        #   title = "Success",
-        #   text = "Incident saved",
-        #   type = "success"
-        # )
+        shinyalert(
+          title = "Success",
+          text = "Incident saved",
+          type = "success"
+        )
         
         
         ###### Incident Statement Prepration
@@ -619,10 +758,14 @@ Server <- function(id, rdfs) {
       observe({
         # browser()
         additional(TRUE)
+        # Load respons_details vector
+        
         response_details$incident_id <- input$add_response
+        
         log_info(glue('Adding additional response to incident {input$add_response}'), 
                  namespace = 'add_edit_incident')
         showModal(modal$key_time_additional(ns, response_details, rdfs))
+        current_modal('key_time_additional')
         
       }) |> 
         bindEvent(input$add_response,
@@ -631,7 +774,8 @@ Server <- function(id, rdfs) {
       
       # Edit response
       observe({
-        browser()
+        # browser()
+        req(input$edit_response)
         edit(TRUE)
         
         response <- rdfs$response |>
@@ -645,17 +789,37 @@ Server <- function(id, rdfs) {
                       select(-id), 
                     by = c("id" = "response_id",
                            "firefighter_id")) |>
-          select(firefighter_id, 
+          left_join(app_data$Firefighter |>
+                      select(id, full_name), 
+                    by = c("firefighter_id" = "id")) |>
+          left_join(app_data$Apparatus |>
+                      select(id, apparatus_name),
+                    by = c("apparatus_id" = "id")) |>
+          select(full_name, 
                  time_adjustment,
-                 apparatus_id)
+                 apparatus_name)
         
-        response_details$apparatus <- firefighter_apparatus$apparatus_id |> 
+        response_details$response_id <- response$id
+        response_details$apparatus <- firefighter_apparatus$apparatus_name |> 
           unique() |> 
+          as.character()
+        response_details$firefighter <- firefighter_apparatus$full_name |>
+          as.character()
+        
+        response_details$incident_id <- input$edit_response
+        
+        response_details$response_start_date <- response$response_start |> 
+          as.Date(tz = GetSetting('global', key = 'ltz'))
+        response_details$response_start_time <- response$response_start
+        response_details$response_end_date <- response$response_end |> 
+          as.Date(tz = GetSetting('global', key = 'ltz'))
+        response_details$response_end_time <- response$response_end
+        
+        response_details$response_notes <- response$notes |> 
           as.character()
         
         
         
-        response_details$incident_id <- input$edit_response
         
         
         
@@ -664,7 +828,9 @@ Server <- function(id, rdfs) {
         
         showModal(modal$key_time_additional(ns, response_details, rdfs))
       }) |> 
-        bindEvent(input$edit_response)
+        bindEvent(input$edit_response, input$add_additional_response,
+                  ignoreNULL = TRUE, 
+                  ignoreInit = TRUE)
       
 
     }

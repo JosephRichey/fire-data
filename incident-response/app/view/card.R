@@ -83,7 +83,7 @@ Server <- function(id, rdfs) {
               card(
                 class = 'response-card',
                 card_header(
-                  div(class = "incident-header",  # or "response-header"
+                  div(class = "incident-header",
                       div(
                         span(class = "incident-meta",
                              paste(format(response$response_start, "%H:%M:%S"),

@@ -16,7 +16,7 @@ TZ <- Sys.getenv("LOCAL_TZ")
 CON <- dbConnect(RMySQL::MySQL(),
                  dbname = "crabapple",
                  host = Sys.getenv("DB_HOST"),
-                 port = 3306,
+                 port = 3304,
                  user = "admin",
                  password = Sys.getenv("DB_PASSWORD"))
 

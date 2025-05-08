@@ -240,8 +240,8 @@ db_insert("setting", setting)
 ## Populate `apparatus`
 ```{r}
 apparatus <- data.frame(
-  id = 1:6,
-  apparatus_name = c("Engine 1", "Ladder 2", "Rescue 3", "Ambulance 1", "Battalion 1", "POV"),
+  id = 0:6,
+  apparatus_name = c("Standby","Engine 1", "Ladder 2", "Rescue 3", "Ambulance 1", "Battalion 1", "POV"),
   is_active = c(1, 1, 1, 1, 0, 1)
 )
 db_insert("apparatus", apparatus)
