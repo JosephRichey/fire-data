@@ -22,7 +22,8 @@ box::use(
                              BuildDateTime,
                              CheckWriteResult,
                              StringToId,
-                             IdToString],
+                             IdToString,
+                             HippaLog],
   app/logic/logging,
 )
 
@@ -38,10 +39,9 @@ Server <- function(id, rdfs) {
       
       additional <- reactiveVal(FALSE)
       
-      current_modal <- reactiveVal(NULL)
-      
-      ##### Reactives to save until write or reset #####
-      
+      ##########################################################################
+      #             Reactives to save until write or reset
+      ##########################################################################
       incident_details <- reactiveValues(
         cad_identifier = NULL,
         incident_start_date = NULL,
@@ -68,8 +68,9 @@ Server <- function(id, rdfs) {
         firefighter = NULL,
         ff_app_assignemnt = NULL
       )
-      
-      ###### Save Date Automatically When Modified #####
+      ##########################################################################
+      #              Cache Data Automatically When Modified
+      ##########################################################################
       # List of variables to bind
       incident_fields <- c(
         "cad_identifier", "incident_start_date", "incident_start_time", 
@@ -89,7 +90,7 @@ Server <- function(id, rdfs) {
           incident_details[[.x]] <- input[[.x]]
           log_info(
             glue('Caching {paste(input[[.x]], collapse = ", ")} to {.x}'),
-            namespace = 'add_edit_incident'
+            namespace = 'cache incident details'
           )
         }),
         input[[.x]]
@@ -97,37 +98,72 @@ Server <- function(id, rdfs) {
       
       walk(response_fields, ~ bindEvent(
         observe({
-          # This doesn't cache firefighter or apparatus when everyhting is deselected.
-          # I update those manually belo when checking if they're empty.
           response_details[[.x]] <- input[[.x]]
           log_info(
             glue('Caching {paste(input[[.x]], collapse = ", ")} to {.x}'),
-            namespace = 'add_edit_incident'
+            namespace = 'cache response details'
           )
         }),
         input[[.x]]
       ))
       
-      ##### Modal Navigation #####
-      # Show first modal
+      # Shiny doesn't recognize setting select inputs null as a change.
+      # Build custom observers.
+      observe({
+        val <- input$firefighter
+        # if it’s NULL or length-zero, clear the cache
+        response_details$firefighter <-
+          if (is.null(val) || length(val) == 0L) character(0) else val
+      }) |> bindEvent(input$firefighter)
+      
+      observe({
+        val <- input$apparatus
+        # if it’s NULL or length-zero, clear the cache
+        response_details$apparatus <-
+          if (is.null(val) || length(val) == 0L) character(0) else val
+      }) |> 
+        bindEvent(input$apparatus)
+      
+      observeEvent(input$ff_app_lists, {
+        # Update cached source of truth
+        # Reverse transform names from shiny friendly to user friendly
+        clean_names <- names(input$ff_app_lists) |>
+          stringr::str_remove("app-incident_response-") |>
+          stringr::str_remove("apparatus_list_") |>
+          stringr::str_remove("_list") |>
+          stringr::str_replace_all("_", " ") |>
+          stringr::str_to_title()
+        
+        response_details$ff_app_lists <- purrr::set_names(input$ff_app_lists, clean_names)
+        
+        log_info(
+          glue('Cached ff_app_lists: {paste(response_details$ff_app_lists, collapse = ", ")}'),
+          namespace = 'observe input$ff_app_lists'
+        )
+      }, ignoreNULL = TRUE, ignoreInit = TRUE)
+      
+      ##########################################################################
+      #                    Modal Navigation  
+      ##########################################################################
+      
+      ###### Key Time Modal
       observe({
         log_info(
           glue('Showing incident key time modal in {if_else(edit(), "edit", "add")} mode.'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$add_incident'
           )
         showModal(modal$key_time(ns, incident_details, edit()))
-        current_modal('key_time')
       }) |>
         bindEvent(input$add_incident, ignoreNULL = TRUE, ignoreInit = TRUE)
       
-      
+      ##### Address unit modal
       # Validate first modal and show second modal
       observe({
         # Skip checking for duplicate cad ids if editing
         if(!edit()) {
           log_info(
             glue('Checking for duplicate cad id {input$cad_identifier}'),
-            namespace = 'add_edit_incident'
+            namespace = 'observe input$to_address_unit'
           )
           # Does the CAD ID already exist?
           if(input$cad_identifier %in% rdfs$incident$cad_identifier) {
@@ -141,22 +177,22 @@ Server <- function(id, rdfs) {
         } else {
           log_info(
             glue('Editing incident {input$edit_incident}. No duplicate check'),
-            namespace = 'add_edit_incident'
+            namespace = 'observe input$to_address_unit'
           )
         }
         
         # Does the CAD ID match the regex?
         log_info(
           glue('Checking cad id {input$cad_identifier} against regex'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$to_address_unit'
         )
         log_info(
           glue('Regex: {GetSetting("incident", key = "incident_cad_regex")}'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$to_address_unit'
         )
         log_info(
           glue('Input: {input$cad_identifier}'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$to_address_unit'
         )
         if(!grepl(
           GetSetting('incident',
@@ -174,7 +210,7 @@ Server <- function(id, rdfs) {
         }
         log_info(
           glue('Checking if dispatch time {input$incident_start_time} is before end time {input$incident_end_time}'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$to_address_unit'
         )
         # Are times in order?
         start_time <- BuildDateTime(
@@ -192,11 +228,11 @@ Server <- function(id, rdfs) {
         )
         log_info(
           glue('Start time: {start_time}'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$to_address_unit'
         )
         log_info(
           glue('End time: {end_time}'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$to_address_unit'
         )
         
         if(end_time <= start_time) {
@@ -212,10 +248,9 @@ Server <- function(id, rdfs) {
         removeModal()
         log_info(
           glue('Showing address unit modal in {if_else(edit(), "edit", "add")} mode'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$to_address_unit'
         )
         showModal(modal$address_unit(ns, incident_details, edit()))
-        current_modal('address_unit')
         
       }) |>
         bindEvent(
@@ -224,12 +259,12 @@ Server <- function(id, rdfs) {
           ignoreInit = TRUE
         )
       
-      # Show third modal
+      ###### Firefighter Apparatus Modal
       observe({
         # browser()
         log_info(
           glue('Showing firefighter apparatus modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$to_apparatus_ff'
         )
         removeModal()
         showModal(
@@ -238,7 +273,7 @@ Server <- function(id, rdfs) {
             response_details, 
             additional())
         )
-        current_modal('select_ff_apparatus')
+
       }) |>
         bindEvent(
           input$to_apparatus_ff, 
@@ -246,44 +281,64 @@ Server <- function(id, rdfs) {
           ignoreInit = TRUE
         )
       
-      # Show fourth modal
       
-      ##### Assignment Widget #####
-      ##### Apparatus and Firefighter Assignment #####
-      generate_firefighter_apparatus <- reactive({
-        req(input$apparatus, input$firefighter)
-        browser()
-        # Is this a new response or are we updating an existing response?
-        # Are there cachced values already?
-        # If there aren't cached values already, does the updating response have values?
+      ##########################################################################
+      #                     Assignment Widget
+      ##########################################################################
+      generate_firefighter_apparatus <- function() {
+        req(input$firefighter)
+        log_info("Begin generating firefighter apparatus list widget", 
+                 namespace = "generate_firefighter_apparatus")
 
-        log_info("Generating firefighter apparatus list", namespace = "add_edit_incident")
-        
         # Determine current assignments
-        list_data <- if (!is.null(isolate(input$ff_app_lists))) {
-          log_info("Using cached bucket list input", namespace = "add_edit_incident")
-          response_details$ff_app_lists
-        } else if (!is.null(response_details$response_id)) {
-          log_info("Using existing response DB data", namespace = "add_edit_incident")
+        assignments <- if (!is.null(isolate(response_details$ff_app_lists))) {
+          # If a cached list exists, use it
+          log_info("Using cached bucket list input", 
+                   namespace = "generate_firefighter_apparatus")
+          isolate(response_details$ff_app_lists)
+        } else if (!is.null(isolate(response_details$response_id))) {
+          # If a response ID exists, use it to get the current assignments
+          log_info("Using existing response DB data", 
+                   namespace = "generate_firefighter_apparatus")
           
           rdfs$firefighter_apparatus |>
-            filter(response_id == response_details$response_id) |>
+            filter(response_id == isolate(response_details$response_id)) |>
             left_join(app_data$Firefighter |> select(id, full_name), 
                       by = c("firefighter_id" = "id")) |>
             left_join(app_data$Apparatus |> select(id, apparatus_name), 
                       by = c("apparatus_id" = "id")) |>
+            # Only use firefighters that are in the input list
             filter(full_name %in% input$firefighter) |>
             group_by(apparatus_name) |>
             summarise(assigned = list(full_name), .groups = "drop") |>
             tibble::deframe()
         } else {
+          log_info("No cached list or response ID found", 
+                   namespace = "generate_firefighter_apparatus")
           list()  # no assignment yet
         }
-        
+
         # Track current firefighter IDs in use
-        assigned_ffs <- unlist(list_data, use.names = FALSE)
+        assigned_ffs <- unlist(assignments, use.names = FALSE) |> 
+          # Only use firefighters that are in the input list
+          intersect(input$firefighter)
+        
         standby_ffs <- setdiff(input$firefighter, assigned_ffs)
-      
+        # re-add any previously-cached standby
+        if ("Standby" %in% names(assignments)) {
+          standby_ffs <- union(standby_ffs, assignments[["Standby"]])
+        }
+        # bring back any FFs whose apparatus was removed,
+        # but don’t treat “Standby” as an apparatus
+        removed <- setdiff(names(assignments), c(input$apparatus, "Standby"))
+        if (length(removed)) {
+          standby_ffs <- union(standby_ffs,
+                               unlist(assignments[removed], use.names = FALSE))
+        }
+        
+        # One last check to make sure we don't have any duplicates and don't have any ffs not in input
+        standby_ffs <- unique(standby_ffs)
+        standby_ffs <- intersect(standby_ffs, input$firefighter)
         
         # UI construction
         do.call(bucket_list, c(
@@ -302,7 +357,8 @@ Server <- function(id, rdfs) {
             )
           ),
           lapply(input$apparatus, function(apparatus_name) {
-            app_ffs <- list_data[[apparatus_name]] %||% character(0)
+            app_ffs <- assignments[[apparatus_name]] %||% character(0) |> 
+              intersect(input$firefighter)
             
             add_rank_list(
               text = apparatus_name,
@@ -317,39 +373,31 @@ Server <- function(id, rdfs) {
             )
           })
         ))
-      })
+      }
       
-      observeEvent(input$ff_app_lists, {
-        browser()
-        # Update cached source of truth
-        response_details$ff_app_lists <- input$ff_app_lists
-        log_info(
-          glue('Cached ff_app_lists: {paste(response_details$ff_app_lists, collapse = ", ")}'),
-          namespace = 'add_edit_incident'
-        )
-      }, ignoreNULL = TRUE, ignoreInit = TRUE)
       
-      # TODO Have this built on a cached value.
       # Render dynamic bucket list inside modal
       output$firefighter_apparatus_list <- renderUI({
         generate_firefighter_apparatus()
-      })
+      }) |> 
+        bindEvent(input$to_assignment)
       
       observe({
-        # browser()
+        # If the user has not selected any firefighters or apparatus, skip to notes modal
         if(length(input$apparatus) == 0 & 
            length(input$firefighter) == 0) {
           response_details$apparatus <- NULL
           response_details$firefighter <- NULL
           log_info(
             glue('Skipping to notes modal.'),
-            namespace = 'add_edit_incident'
+            namespace = 'observe input$to_assignment'
           )
           showModal(modal$note(ns, response_details, length = length(input$firefighter) + 
                                  length(input$apparatus)))
           return()
         }
 
+        # If the appaaratus assignemnt model is toggled off, skip to notes modal
         if(!GetSetting(domain = 'incident',
                       key = 'firefighter_apparatus_assignment')) {
           # Can toggle if they track this.
@@ -361,9 +409,9 @@ Server <- function(id, rdfs) {
         removeModal()
         log_info(
           glue('Showing Assign Firefighters to Apparatus modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$to_assignment'
         )
-        generate_firefighter_apparatus()
+        # browser()
         showModal(modalDialog(
           title = "Assign Firefighters to Apparatus",
           uiOutput(ns("firefighter_apparatus_list")),
@@ -374,198 +422,407 @@ Server <- function(id, rdfs) {
             actionButton(ns("to_note"), "Next", class = "btn btn-primary")
           ), size = 'l'
         ))
-        current_modal('assign_ff_apparatus')
+
       }) |>
         bindEvent(input$to_assignment, ignoreNULL = TRUE, ignoreInit = TRUE)
       
+      ##########################################################################
+      #              End Assignment Widget 
+      #             Back to modals
+      ##########################################################################
       
-      ##### End Assignment Widget #####
-      
-      # Show fifth modal
+      ##### Notes and time mod modal
       observe({
-        # browser()
+        # Check if stanby is allowed and conditions met
+        if(!GetSetting(domain = 'incident', 
+           key = 'standby_allowed')) {
+          log_info(
+            "standby is not an allowed status. Checking if there are any firefighters in standby.",
+            namespace = 'observe input$to_note'
+          )
+          
+          if(length(response_details$ff_app_lists$Standby) > 0) {
+            shinyalert(
+              title = "Error",
+              text = "Standby is not an allowed status. Please assign all firefighters to an apparatus.",
+              type = "error"
+            )
+            return()
+          }
+        }
+        
         log_info(
           glue('Showing note modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$to_note'
         )
         showModal(modal$note(ns, response_details, length = length(input$firefighter) + 
                               length(input$apparatus)))
-        current_modal('note')
+
       }) |>
         bindEvent(input$to_note, ignoreNULL = TRUE, ignoreInit = TRUE)
       
-      
-      ##### Cancel and reset values #####
-      observeEvent(input$cancel_modal, {
+      ##########################################################################
+      #                 Launch Edit Incident
+      ##########################################################################
+      observe({
+        edit(TRUE)
         
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
+        Incident_Edit <- rdfs$incident |>
+          filter(id == input$edit_incident)
+        
+        incident_units <- rdfs$incident_unit |>
+          filter(incident_id == Incident_Edit$id) |> 
+          left_join(app_data$Unit, 
+                    by = c("unit_type_id" = "id")) |> 
+          pull(unit_type_id)
+        
+        
+        incident_details$cad_identifier <- Incident_Edit$cad_identifier
+        incident_details$incident_start_date <- Incident_Edit$incident_start |> 
+          as.Date(tz = GetSetting('global', key = 'ltz'))
+        incident_details$incident_start_time <- Incident_Edit$incident_start
+        incident_details$incident_end_date <- Incident_Edit$incident_end  |> 
+          as.Date(tz = GetSetting('global', key = 'ltz'))
+        incident_details$incident_end_time <- Incident_Edit$incident_end
+        incident_details$address <- Incident_Edit$address
+        incident_details$area <- Incident_Edit$area |> as.character()
+        incident_details$dispatch_reason <- Incident_Edit$dispatch_id |> as.character()
+        incident_details$units <- incident_units |> as.character()
+        incident_details$canceled <- Incident_Edit$canceled == 1
+        incident_details$dropped <- Incident_Edit$dropped == 1
+        
+        log_info(
+          glue('Editing incident {input$edit_incident}'),
+          namespace = 'observe input$edit_incident'
         )
+        log_info(
+          glue('incident_details: {paste(incident_details, collapse = ", ")}'),
+          namespace = 'observe input$edit_incident'
+        )
+        
+        
+        showModal(modal$key_time(ns, incident_details, edit()))
+      }) |>
+        bindEvent(
+          input$edit_incident, 
+          ignoreNULL = TRUE, 
+          ignoreInit = TRUE
+        )
+      
+      ##########################################################################
+      #                            Add additional response
+      ##########################################################################
+      observe({
+        additional(TRUE)
+        # Load respons_details vector
+        
+        response_details$incident_id <- input$add_response
+        
+        log_info(glue('Adding additional response to incident {input$add_response}'), 
+                 namespace = 'observe input$add_response')
+        showModal(modal$key_time_additional(ns, response_details, rdfs))
+        
+        
+      }) |> 
+        bindEvent(input$add_response,
+                  ignoreNULL = TRUE, 
+                  ignoreInit = TRUE)
+      
+      ##########################################################################
+      #                          Edit response
+      ##########################################################################
+      observe({
+        # browser()
+        req(input$edit_response)
+        edit(TRUE)
+        
+        response <- rdfs$response |>
+          filter(id == input$edit_response) 
+        
+        firefighter_apparatus <- response |> 
+          left_join(rdfs$firefighter_response |> 
+                      select(-id), 
+                    by = c("id" = "response_id")) |>
+          left_join(rdfs$firefighter_apparatus |> 
+                      select(-id), 
+                    by = c("id" = "response_id",
+                           "firefighter_id")) |>
+          left_join(app_data$Firefighter |>
+                      select(id, full_name), 
+                    by = c("firefighter_id" = "id")) |>
+          left_join(app_data$Apparatus |>
+                      select(id, apparatus_name),
+                    by = c("apparatus_id" = "id")) |>
+          select(full_name, 
+                 time_adjustment,
+                 apparatus_name)
+        
+        response_details$response_id <- response$id
+        response_details$apparatus <- firefighter_apparatus$apparatus_name |> 
+          unique() |> 
+          as.character()
+        response_details$firefighter <- firefighter_apparatus$full_name |>
+          as.character()
+        
+        response_details$incident_id <- input$edit_response
+        
+        response_details$response_start_date <- response$response_start |> 
+          as.Date(tz = GetSetting('global', key = 'ltz'))
+        response_details$response_start_time <- response$response_start
+        response_details$response_end_date <- response$response_end |> 
+          as.Date(tz = GetSetting('global', key = 'ltz'))
+        response_details$response_end_time <- response$response_end
+        
+        response_details$response_notes <- response$notes |> 
+          as.character()
+        
+        log_info(glue('Editing response id {input$edit_response}'), 
+                 namespace = 'observe input$edit_response')
+        
+        log_info(
+          glue('response_details: {paste(response_details, collapse = ", ")}'),
+          namespace = 'observe input$edit_response'
+        )
+        # browser()
+        showModal(modal$key_time_additional(ns, response_details, rdfs))
+      }) |> 
+        bindEvent(input$edit_response, input$add_additional_response,
+                  ignoreNULL = TRUE, 
+                  ignoreInit = TRUE)
+      
+      ##########################################################################
+      #                  Cancel and reset values
+      ##########################################################################
+      observeEvent(input$cancel_modal, {
+        removeModal()
+        # shinyalert(
+        #   title = "Warning",
+        #   text = "Incident not saved",
+        #   type = "warning"
+        # )
         
         log_info(
           glue('Resetting values'),
-          namespace = 'add_edit_incident'
+          namespace = 'observe input$cancel_modal'
         )
         local_functions$resetCachedValues(incident_details, response_details,
                                           edit, additional)
-        current_modal(NULL)
         
       })
       
       
       
       
-      
-      ### Everything that happens on sbumit
-      
+      ##########################################################################
+      #             Everything that happens on submit
+      ##########################################################################
       observe({
         # browser()
-        current_modal(NULL)
-        ## Print values to log
-        vals <- reactiveValuesToList(incident_details)
-        # browser()
-        print(vals)
+
+        ## Pull Values into local variables
+        inc_vals <- reactiveValuesToList(incident_details)
+        resp_vals <- reactiveValuesToList(response_details)
         
-        list <- input$ff_app_lists
+        assignments <- response_details$ff_app_lists
         
-        if(length(list) != 0) {
-          for (i in 1:length(list)) {
-            
-            cat(
-              paste0(
-                names(list)[[i]] |> 
-                  stringr::str_replace("apparatus_list_", "") |> 
-                  stringr::str_replace("app-incident_response-", ""), 
-                ": ", 
-                paste(list[[i]], collapse = "\n"),
-                "\n"
-              ),
-              file = stderr()
-            )
-          }
-          
-        }
-        
-        start_time <- BuildDateTime(
-          time = vals$incident_start_time,
-          date = vals$incident_start_date,
+        inc_start_time <- BuildDateTime(
+          time = inc_vals$incident_start_time,
+          date = inc_vals$incident_start_date,
           input = 'local',
           return_type = 'UTC'
         ) |> 
           format("%Y-%m-%d %H:%M:%S")
         
-        end_time <- BuildDateTime(
-          time = vals$incident_end_time,
-          date = vals$incident_end_date,
+        inc_end_time <- BuildDateTime(
+          time = inc_vals$incident_end_time,
+          date = inc_vals$incident_end_date,
+          input = 'local',
+          return_type = 'UTC'
+        ) |> 
+          format("%Y-%m-%d %H:%M:%S")
+        
+        resp_start_time <- BuildDateTime(
+          time = resp_vals$response_start_time,
+          date = resp_vals$response_start_date,
+          input = 'local',
+          return_type = 'UTC'
+        ) |> 
+          format("%Y-%m-%d %H:%M:%S")
+        
+        resp_end_time <- BuildDateTime(
+          time = resp_vals$response_end_time,
+          date = resp_vals$response_end_date,
           input = 'local',
           return_type = 'UTC'
         ) |> 
           format("%Y-%m-%d %H:%M:%S")
         
         ##### Write to Incident Table ####
-        # if(!edit()) {
-        #   
-        #   sql_statement <- "INSERT INTO ?incident_table
-        #   (cad_identifier, incident_start, incident_end, 
-        #   address, dispatch_id, area_id,
-        #   canceled, dropped, is_reviewed, 
-        #   is_locked, is_deleted, deleted_by) VALUES 
-        #   (?cad_identifier, ?incident_start, ?incident_end,
-        #   ?address, ?dispatch_id, ?area_id,
-        #   ?canceled, ?dropped, 0, 0, NULL, NULL)"
-        #   
-        #   safe_sql <- sqlInterpolate(
-        #     app_data$CON,
-        #     sql_statement,
-        #     incident_table = SQL('incident'),
-        #     cad_identifier = vals$cad_identifier,
-        #     incident_start = start_time,
-        #     incident_end = end_time,
-        #     address = if (is.null(vals$address)) NA else vals$address,
-        #     dispatch_id = if (is.null(vals$dispatch_reason)) NA else vals$dispatch_reason,
-        #     area_id = if (is.null(vals$area)) NA else vals$area,
-        #     canceled = if (is.null(vals$canceled)) NA else if
-        #     (is.numeric(vals$canceled)) vals$canceled else
-        #       if_else(vals$canceled, 1, 0),
-        #     dropped = if (is.null(vals$dropped)) NA else if
-        #     (is.numeric(vals$dropped)) vals$dropped else
-        #       if_else(vals$dropped, 1, 0)
-        #   )
-        #   
-        # } else {
-        # # If editing, replace record. If not, add new record
-        #   sql_statement <- "UPDATE ?incident_table
-        #   SET cad_identifier = ?cad_identifier,
-        #   incident_start = ?incident_start,
-        #   incident_end = ?incident_end,
-        #   address = ?address,
-        #   dispatch_id = ?dispatch_id,
-        #   area_id = ?area_id,
-        #   canceled = ?canceled,
-        #   dropped = ?dropped,
-        #   is_reviewed = 0,
-        #   is_locked = 0,
-        #   is_deleted = NULL,
-        #   deleted_by = NULL
-        #   WHERE id = ?id"
-        #   
-        #   safe_sql <- sqlInterpolate(
-        #     app_data$CON,
-        #     sql_statement,
-        #     incident_table = SQL('incident'),
-        #     cad_identifier = vals$cad_identifier,
-        #     incident_start = start_time,
-        #     incident_end = end_time,
-        #     address = if (is.null(vals$address)) NA else vals$address,
-        #     dispatch_id = if (is.null(vals$dispatch_reason)) NA else vals$dispatch_reason,
-        #     area_id = if (is.null(vals$area)) NA else vals$area,
-        #     canceled = if (is.null(vals$canceled)) NA else if
-        #     (is.numeric(vals$canceled)) vals$canceled else
-        #       if_else(vals$canceled, 1, 0),
-        #     dropped = if (is.null(vals$dropped)) NA else if
-        #     (is.numeric(vals$dropped)) vals$dropped else
-        #       if_else(vals$dropped, 1, 0),
-        #     id = rdfs$incident |> 
-        #       filter(cad_identifier == input$edit_incident) |> 
-        #       pull(id)
-        #   )
-        # }
-        # 
-        # log_info(glue::glue("Executing SQL command: {safe_sql}"), namespace = "Add Training")
-        # 
-        # # Execute the safely interpolated SQL command
-        # result <- tryCatch(
-        #   {
-        #     dbExecute(app_data$CON, safe_sql)
-        #   },
-        #   error = function(e) {
-        #     log_error(glue::glue("Database write failed: {e$message}"), namespace = "Add Training")
-        #     NA
-        #   }
-        # )
-        # 
-        # functions$CheckWriteResult(result,
-        #                            successMessage = "Your training has been successfully added. You may now close this window.",
-        #                            context = "adding a training",
-        #                            expectedMin = 1,
-        #                            expectedMax = 1
-        # )
-        # 
-        # ##### Write to Response Table #####
-        # sql_statement <- "INSERT INTO ?response_table
-        # (incident_id, response_start, response_end,
-        # notes, is_deleted, deleted_by) VALUES
-        # (?incident_id, ?response_start, ?response_end,
-        # ?notes, NULL, NULL)"
-        # 
-        # 
-        # local_functions$resetCachedValues(incident_details, edit, additional)
-        # 
-        # cat('finished', file = stderr())
-        # 
+        # There are four possible scenarios for writing to the database
+        #1 - Adding a new incident (which also adds a response)
+        #2 - Editing an existing incident
+        #3 - Adding a new response to an existing incident
+        #4 - Editing an existing response
+        
+        #FIXME
+        local_functions$resetCachedValues(incident_details, response_details,
+                                          edit, additional)
+        removeModal()
+        return()
+        
+        
+        
+        #1 - Adding a new incident (which also adds a response)
+        if(!edit() & !additional()) {
+
+          incident_sql_statement <- "INSERT INTO ?incident_table
+          (cad_identifier, incident_start, incident_end,
+          address, dispatch_id, area_id,
+          canceled, dropped, is_reviewed,
+          is_locked, is_deleted, deleted_by) VALUES
+          (?cad_identifier, ?incident_start, ?incident_end,
+          ?address, ?dispatch_id, ?area_id,
+          ?canceled, ?dropped, 0, 0, NULL, NULL)"
+
+          incident_safe_sql <- sqlInterpolate(
+            app_data$CON,
+            sql_statement,
+            incident_table = SQL('incident'),
+            cad_identifier = inc_vals$cad_identifier,
+            incident_start = start_time,
+            incident_end = end_time,
+            address = if (is.null(inc_vals$address)) NA else inc_vals$address,
+            dispatch_id = if (is.null(inc_vals$dispatch_reason)) NA else inc_vals$dispatch_reason,
+            area_id = if (is.null(inc_vals$area)) NA else inc_vals$area,
+            canceled = if (is.null(inc_vals$canceled)) NA else if
+            (is.numeric(inc_vals$canceled)) inc_vals$canceled else
+              if_else(inc_vals$canceled, 1, 0),
+            dropped = if (is.null(inc_vals$dropped)) NA else if
+            (is.numeric(inc_vals$dropped)) inc_vals$dropped else
+              if_else(inc_vals$dropped, 1, 0)
+          )
+          
+          ##### Write to Response Table #####
+          response_sql_statement <- "INSERT INTO ?response_table
+          (incident_id, response_start, response_end,
+          notes, is_deleted, deleted_by) VALUES
+          (?incident_id, ?response_start, ?response_end,
+          ?notes, NULL, NULL)"
+          
+          response_safe_sql <- sqlInterpolate(
+            app_data$CON,
+            sql_statement_response,
+            response_table = SQL('response'),
+            incident_id = NULL,
+            response_start = start_time,
+            response_end = end_time,
+            notes = if (is.null(vals$notes)) NA else vals$notes
+          )
+          
+          # Execute the safely interpolated SQL command
+          result_inc <- tryCatch(
+            {
+              dbExecute(app_data$CON, incident_safe_sql)
+              HippaLog(
+                incident_safe_sql,
+                session
+              )
+            },
+            error = function(e) {
+              log_error(glue::glue("Database write failed: {e$message}"), namespace = "Add Incident")
+              NA
+            }
+          )
+          
+          result_resp <- tryCatch(
+            {
+              dbExecute(app_data$CON, response_safe_sql)
+              HippaLog(
+                response_safe_sql,
+                session
+              )
+            },
+            error = function(e) {
+              log_error(glue::glue("Database write failed: {e$message}"), namespace = "Add Incident")
+              NA
+            }
+          )
+          
+          
+          
+
+        } else {
+        # If editing, replace record. If not, add new record
+          sql_statement <- "UPDATE ?incident_table
+          SET cad_identifier = ?cad_identifier,
+          incident_start = ?incident_start,
+          incident_end = ?incident_end,
+          address = ?address,
+          dispatch_id = ?dispatch_id,
+          area_id = ?area_id,
+          canceled = ?canceled,
+          dropped = ?dropped,
+          is_reviewed = 0,
+          is_locked = 0,
+          is_deleted = NULL,
+          deleted_by = NULL
+          WHERE id = ?id"
+
+          safe_sql <- sqlInterpolate(
+            app_data$CON,
+            sql_statement,
+            incident_table = SQL('incident'),
+            cad_identifier = vals$cad_identifier,
+            incident_start = start_time,
+            incident_end = end_time,
+            address = if (is.null(vals$address)) NA else vals$address,
+            dispatch_id = if (is.null(vals$dispatch_reason)) NA else vals$dispatch_reason,
+            area_id = if (is.null(vals$area)) NA else vals$area,
+            canceled = if (is.null(vals$canceled)) NA else if
+            (is.numeric(vals$canceled)) vals$canceled else
+              if_else(vals$canceled, 1, 0),
+            dropped = if (is.null(vals$dropped)) NA else if
+            (is.numeric(vals$dropped)) vals$dropped else
+              if_else(vals$dropped, 1, 0),
+            id = rdfs$incident |>
+              filter(cad_identifier == input$edit_incident) |>
+              pull(id)
+          )
+        }
+
+        log_info(glue::glue("Executing SQL command: {safe_sql}"), namespace = "Submit")
+        
+        
+
+        # Execute the safely interpolated SQL command
+        result <- tryCatch(
+          {
+            dbExecute(app_data$CON, safe_sql)
+            HippaLog(
+              safe_sql,
+              session
+            )
+          },
+          error = function(e) {
+            log_error(glue::glue("Database write failed: {e$message}"), namespace = "Add Training")
+            NA
+          }
+        )
+
+        functions$CheckWriteResult(result,
+                                   successMessage = "Your training has been successfully added. You may now close this window.",
+                                   context = "adding a training",
+                                   expectedMin = 1,
+                                   expectedMax = 1
+        )
+
+        
+
+
+        local_functions$resetCachedValues(incident_details, edit, additional)
+
+        cat('finished', file = stderr())
+
         removeModal()
         # 
         shinyalert(
@@ -715,122 +972,7 @@ Server <- function(id, rdfs) {
         bindEvent(input$submit, ignoreNULL = T)
       
       
-      # Edit Modal
-      observe({
-        # browser()
-
-        edit(TRUE)
-
-        Incident_Edit <- rdfs$incident |>
-          filter(id == input$edit_incident)
-        
-        incident_units <- rdfs$incident_unit |>
-          filter(incident_id == Incident_Edit$id) |> 
-          left_join(app_data$Unit, 
-                    by = c("unit_type_id" = "id")) |> 
-          pull(unit_type_id)
-
-
-        incident_details$cad_identifier <- Incident_Edit$cad_identifier
-        incident_details$incident_start_date <- Incident_Edit$incident_start |> 
-          as.Date(tz = GetSetting('global', key = 'ltz'))
-        incident_details$incident_start_time <- Incident_Edit$incident_start
-        incident_details$incident_end_date <- Incident_Edit$incident_end  |> 
-          as.Date(tz = GetSetting('global', key = 'ltz'))
-        incident_details$incident_end_time <- Incident_Edit$incident_end
-        incident_details$address <- Incident_Edit$address
-        incident_details$area <- Incident_Edit$area |> as.character()
-        incident_details$dispatch_reason <- Incident_Edit$dispatch_id |> as.character()
-        incident_details$units <- incident_units |> as.character()
-        incident_details$canceled <- Incident_Edit$canceled == 1
-        incident_details$dropped <- Incident_Edit$dropped == 1
-        
-
-        showModal(modal$key_time(ns, incident_details, edit()))
-      }) |>
-        bindEvent(
-          input$edit_incident, 
-          ignoreNULL = TRUE, 
-          ignoreInit = TRUE
-        )
       
-      # Add additional response
-      observe({
-        # browser()
-        additional(TRUE)
-        # Load respons_details vector
-        
-        response_details$incident_id <- input$add_response
-        
-        log_info(glue('Adding additional response to incident {input$add_response}'), 
-                 namespace = 'add_edit_incident')
-        showModal(modal$key_time_additional(ns, response_details, rdfs))
-        current_modal('key_time_additional')
-        
-      }) |> 
-        bindEvent(input$add_response,
-                  ignoreNULL = TRUE, 
-                  ignoreInit = TRUE)
-      
-      # Edit response
-      observe({
-        # browser()
-        req(input$edit_response)
-        edit(TRUE)
-        
-        response <- rdfs$response |>
-          filter(id == input$edit_response) 
-        
-        firefighter_apparatus <- response |> 
-          left_join(rdfs$firefighter_response |> 
-                      select(-id), 
-                    by = c("id" = "response_id")) |>
-          left_join(rdfs$firefighter_apparatus |> 
-                      select(-id), 
-                    by = c("id" = "response_id",
-                           "firefighter_id")) |>
-          left_join(app_data$Firefighter |>
-                      select(id, full_name), 
-                    by = c("firefighter_id" = "id")) |>
-          left_join(app_data$Apparatus |>
-                      select(id, apparatus_name),
-                    by = c("apparatus_id" = "id")) |>
-          select(full_name, 
-                 time_adjustment,
-                 apparatus_name)
-        
-        response_details$response_id <- response$id
-        response_details$apparatus <- firefighter_apparatus$apparatus_name |> 
-          unique() |> 
-          as.character()
-        response_details$firefighter <- firefighter_apparatus$full_name |>
-          as.character()
-        
-        response_details$incident_id <- input$edit_response
-        
-        response_details$response_start_date <- response$response_start |> 
-          as.Date(tz = GetSetting('global', key = 'ltz'))
-        response_details$response_start_time <- response$response_start
-        response_details$response_end_date <- response$response_end |> 
-          as.Date(tz = GetSetting('global', key = 'ltz'))
-        response_details$response_end_time <- response$response_end
-        
-        response_details$response_notes <- response$notes |> 
-          as.character()
-        
-        
-        
-        
-        
-        
-        log_info(glue('Editing response id {input$edit_response}'), 
-                 namespace = 'add_edit_incident')
-        
-        showModal(modal$key_time_additional(ns, response_details, rdfs))
-      }) |> 
-        bindEvent(input$edit_response, input$add_additional_response,
-                  ignoreNULL = TRUE, 
-                  ignoreInit = TRUE)
       
 
     }

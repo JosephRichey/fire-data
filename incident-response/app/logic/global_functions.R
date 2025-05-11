@@ -530,4 +530,22 @@ CheckWriteResult <- function(result,
   }
 }
 
+#' @export
+HippaLog <- function(user_action, session) {
+  # browser()
+  sql <- "Insert into hippa_log (username, date_time, user_action) values (?, ?, ?)"
+  # Safely interpolate values
+  safe_sql <- sqlInterpolate(
+    app_data$CON,
+    sql,
+    if(is.null(session$user)) "Unknown" else session$user,
+    Sys.time() |> format("%Y-%m-%d %H:%M:%S"),
+    user_action
+  )
+  
+  # Execute the command
+  dbExecute(app_data$CON, safe_sql)
+  
+}
+
 

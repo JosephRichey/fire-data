@@ -6,7 +6,8 @@ box::use(
 
 box::use(
   ../logic/global_functions[GetSetting,
-                            IdToString],
+                            IdToString,
+                            HippaLog],
   ../logic/app_data,
 )
 
@@ -30,6 +31,15 @@ Server <- function(id, rdfs) {
         Incidents <- rdfs$incident |> 
           filter(is_locked == 0) |> 
           arrange(desc(incident_start))
+        
+        HippaLog(
+          glue::glue(
+            "Incidents viewed: {paste(
+              Incidents$id,
+              collapse = ', '
+            )}"
+          ), session
+        )
         
         Firefighter_Response <- rdfs$firefighter_response
         
@@ -92,7 +102,7 @@ Server <- function(id, rdfs) {
                       ),
                       tags$button(
                         HTML('Edit'),
-                        onclick = sprintf("edit_response('%s', '%s')", ns(""), response$incident_id),
+                        onclick = sprintf("edit_response('%s', '%s')", ns(""), response$id),
                         class = "edit-btn"
                       )
                   )

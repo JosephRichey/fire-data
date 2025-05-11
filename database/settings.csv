@@ -54,3 +54,5 @@ id,domain,setting_group,setting_key,setting_value,value_type
 53,report,ai_reports,verify_report,TRUE,boolean
 54,incident,incident_response,standby_allowed,TRUE,boolean
 55,incident,incident_response,track_apparatus_assignments,TRUE,boolean
+56,incident,incident_response,time_adjust_max,120,numeric
+57,incident,incident_response,time_adjust_min,-120,numeric

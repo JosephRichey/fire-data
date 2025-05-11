@@ -102,17 +102,24 @@
       ],
       "Hash": "470851b6d5d0ac559e9d01bb352b4021"
     },
-    "RMySQL": {
-      "Package": "RMySQL",
-      "Version": "0.10.27",
+    "RMariaDB": {
+      "Package": "RMariaDB",
+      "Version": "1.3.4",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
         "DBI",
         "R",
-        "methods"
+        "bit64",
+        "blob",
+        "cpp11",
+        "hms",
+        "lubridate",
+        "methods",
+        "plogr",
+        "rlang"
       ],
-      "Hash": "23f94b9f026a5baa667046bfbd17bc6e"
+      "Hash": "ecb8d0b527aed0d8535bc9f432fc4241"
     },
     "Rcpp": {
       "Package": "Rcpp",
@@ -1115,6 +1122,13 @@
         "withr"
       ],
       "Hash": "2ec30ffbeec83da57655b850cf2d3e0e"
+    },
+    "plogr": {
+      "Package": "plogr",
+      "Version": "0.2.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "09eb987710984fc2905c7129c7d85e65"
     },
     "praise": {
       "Package": "praise",

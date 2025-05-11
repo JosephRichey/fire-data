@@ -1,6 +1,8 @@
 box::use(
   shiny[...],
   bslib[...],
+  logger[...],
+  dplyr[...],
 )
 
 box::use(
@@ -9,6 +11,7 @@ box::use(
   view/add_edit_incident,
   logic/app_data,
   logic/global_functions,
+  logic/logging,
 )
 
 
@@ -90,6 +93,7 @@ server <- function(id) {
     
     # Catch any unhandled errors
     options(shiny.error = function() { logger::log_error(geterrmessage(), "\n") })
+    
     
   })
 }

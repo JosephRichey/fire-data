@@ -12,11 +12,18 @@ box::use(
 #' @export
 TZ <- Sys.getenv("LOCAL_TZ")
 
+
+cat("Loading app_data.R\n", file = stderr())
+cat("Attempting conncet to database\n", file = stderr())
+cat("DB_HOST: ", Sys.getenv("DB_HOST"), "\n", file = stderr())
+
+
+
 #' @export
-CON <- dbConnect(RMySQL::MySQL(),
+CON <- dbConnect(RMariaDB::MariaDB(),
                  dbname = "crabapple",
                  host = Sys.getenv("DB_HOST"),
-                 port = 3304,
+                 port = 3306,
                  user = "admin",
                  password = Sys.getenv("DB_PASSWORD"))
 
@@ -40,7 +47,6 @@ Dispatch_Code <- dbGetQuery(CON, "SELECT * FROM dispatch_code")
 
 
 #' @export
-# FIXME This won't work if a call is recorded at 00:30.
 Current_Local_Date <- Sys.time() |> 
   with_tz(Sys.getenv('LOCAL_TZ')) |> 
   as.Date(tz = Sys.getenv('LOCAL_TZ'))

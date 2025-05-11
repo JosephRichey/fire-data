@@ -3,6 +3,7 @@ box::use(
   lubridate[...],
   dplyr[...],
   shinyTime[timeInput],
+  bslib[...],
 )
 
 box::use(
@@ -272,13 +273,56 @@ note <- function(ns, response_details, length) {
       label = "Notes:",
       value = coalesce(response_details$response_notes, "")
     ),
+    # Checkbox to trigger time adjustments
+    checkboxInput(
+      inputId = ns("time_adjust_needed"),
+      label = "Do time adjustments need to be made?",
+      value = FALSE
+    ),
+    # Conditional numeric inputs for each firefighter
+    conditionalPanel(
+      condition = sprintf("input['%s'] == true", ns("time_adjust_needed")),
+      # Use do.call to properly pass each column to fluidRow
+      do.call(
+        fluidRow,
+        lapply(response_details$firefighter, function(ff) {
+          # sanitize ID: lowercase, replace spaces with underscores
+          id <- paste0(
+            "time_adj_",
+            ff |> tolower() |> stringr::str_replace_all(" ", "_")
+          )
+          column(
+            width = 6,
+            numericInput(
+              inputId = ns(id),
+              label = ff,
+              value = 0,
+              max = GetSetting(
+                "incident",
+                group = "incident_response",
+                key = "time_adjust_max"
+              ),
+              min = GetSetting(
+                "incident",
+                group = "incident_response",
+                key = "time_adjust_min"
+              )
+            )
+          )
+        })
+      )
+    ),
+    
     footer = tagList(
-      if(length == 0 | GetSetting("incident",
-                   group = "incident_response",
-                   key = "firefighter_apparatus_assignment")) {
-        actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-light")
-      } else {
+      # Back button logic
+      if (length != 0 && GetSetting(
+        "incident",
+        group = "incident_response",
+        key = "firefighter_apparatus_assignment"
+      )) {
         actionButton(ns("to_assignment"), "Back", class = "btn btn-light")
+      } else {
+        actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-light")
       },
       actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
       actionButton(ns("submit"), "Submit", class = "btn btn-success")
