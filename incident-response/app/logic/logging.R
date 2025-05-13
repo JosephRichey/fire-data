@@ -70,14 +70,14 @@ log_layout(
 if (interactive()) {
   log_appender(appender_stdout)
 } else {
-  log_appender(appender_tee(
-    appender_console,
-    appender_cloudwatch(log_group, log_stream)
-  ))
+log_appender(
+  appender_cloudwatch(log_group, log_stream)
+)
 }
 
+  
 # 2. (Optional) set the logging threshold (DEBUG, INFO, WARN, ERROR, FATAL)
 log_threshold(INFO)
 
 # 3. Generate some log messages
-log_info("Connection to AWS from {log_group} {log_stream}", namepsace = 'logging')
+log_info("Connection to AWS from {log_group} {log_stream}", namespace = 'logging')

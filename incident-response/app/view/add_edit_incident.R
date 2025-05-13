@@ -23,7 +23,8 @@ box::use(
                              CheckWriteResult,
                              StringToId,
                              IdToString,
-                             HippaLog],
+                             HippaLog,
+                             UpdateReactives],
   app/logic/logging,
 )
 
@@ -44,6 +45,10 @@ Server <- function(id, rdfs) {
       ##########################################################################
       incident_details <- reactiveValues(
         cad_identifier = NULL,
+        # This field is used to cache what the cad id
+        # is before the user edits it.
+        # This allows us to still prevent duplicates.
+        edit_cad_identifier = NULL,
         incident_start_date = NULL,
         incident_start_time = NULL,
         incident_end_date = NULL,
@@ -80,7 +85,7 @@ Server <- function(id, rdfs) {
       
       response_fields <- c(
         "incident_id", "response_start_date", "response_start_time" ,
-        "response_end_date", "response_end_time", "notes", 
+        "response_end_date", "response_end_time", "response_notes", 
         "apparatus", "firefighter", "ff_app_assignment"
       )
       
@@ -175,11 +180,25 @@ Server <- function(id, rdfs) {
             return()
           }
         } else {
-          log_info(
-            glue('Editing incident {input$edit_incident}. No duplicate check'),
-            namespace = 'observe input$to_address_unit'
-          )
+          # Special check when editing an incident
+          already_used_cad_ids <- rdfs$incident |>
+            filter(cad_identifier != incident_details$edit_cad_identifier) |> 
+            pull(cad_identifier)
+          
+          if(input$cad_identifier %in% already_used_cad_ids) {
+            shinyalert(
+              title = "Error",
+              text = "Incident ID already exists",
+              type = "error"
+            )
+            return()
+          }
         }
+        
+        log_info(
+          glue("Editing incident {input$edit_incident}", 
+               namespace = 'observe input$to_address_unit')
+        )
         
         # Does the CAD ID match the regex?
         log_info(
@@ -261,7 +280,7 @@ Server <- function(id, rdfs) {
       
       ###### Firefighter Apparatus Modal
       observe({
-        # browser()
+
         log_info(
           glue('Showing firefighter apparatus modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
           namespace = 'observe input$to_apparatus_ff'
@@ -411,11 +430,10 @@ Server <- function(id, rdfs) {
           glue('Showing Assign Firefighters to Apparatus modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
           namespace = 'observe input$to_assignment'
         )
-        # browser()
+
         showModal(modalDialog(
           title = "Assign Firefighters to Apparatus",
           uiOutput(ns("firefighter_apparatus_list")),
-          easyClose = TRUE,
           footer = tagList(
             actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-light"),
             actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
@@ -478,6 +496,7 @@ Server <- function(id, rdfs) {
         
         
         incident_details$cad_identifier <- Incident_Edit$cad_identifier
+        incident_details$edit_cad_identifier <- Incident_Edit$cad_identifier
         incident_details$incident_start_date <- Incident_Edit$incident_start |> 
           as.Date(tz = GetSetting('global', key = 'ltz'))
         incident_details$incident_start_time <- Incident_Edit$incident_start
@@ -515,8 +534,21 @@ Server <- function(id, rdfs) {
       observe({
         additional(TRUE)
         # Load respons_details vector
+        browser()
         
         response_details$incident_id <- input$add_response
+        
+        incident <- rdfs$incident |>
+          filter(id == input$add_response) 
+        
+        response_details$response_start_date <- incident$incident_start |> 
+          as.Date(tz = GetSetting('global', key = 'ltz'))
+        response_details$response_start_time <- incident$incident_start
+        response_details$response_end_date <- incident$incident_end |> 
+          as.Date(tz = GetSetting('global', key = 'ltz'))
+        response_details$response_end_time <- incident$incident_end
+        
+        
         
         log_info(glue('Adding additional response to incident {input$add_response}'), 
                  namespace = 'observe input$add_response')
@@ -532,7 +564,7 @@ Server <- function(id, rdfs) {
       #                          Edit response
       ##########################################################################
       observe({
-        # browser()
+
         req(input$edit_response)
         edit(TRUE)
         
@@ -572,7 +604,7 @@ Server <- function(id, rdfs) {
         response_details$response_end_date <- response$response_end |> 
           as.Date(tz = GetSetting('global', key = 'ltz'))
         response_details$response_end_time <- response$response_end
-        
+
         response_details$response_notes <- response$notes |> 
           as.character()
         
@@ -583,7 +615,7 @@ Server <- function(id, rdfs) {
           glue('response_details: {paste(response_details, collapse = ", ")}'),
           namespace = 'observe input$edit_response'
         )
-        # browser()
+
         showModal(modal$key_time_additional(ns, response_details, rdfs))
       }) |> 
         bindEvent(input$edit_response, input$add_additional_response,
@@ -595,11 +627,6 @@ Server <- function(id, rdfs) {
       ##########################################################################
       observeEvent(input$cancel_modal, {
         removeModal()
-        # shinyalert(
-        #   title = "Warning",
-        #   text = "Incident not saved",
-        #   type = "warning"
-        # )
         
         log_info(
           glue('Resetting values'),
@@ -617,12 +644,15 @@ Server <- function(id, rdfs) {
       #             Everything that happens on submit
       ##########################################################################
       observe({
-        # browser()
+        
+        shinycssloaders::showPageSpinner(
+          type = 6,
+          color = "#87292b"
+        )
 
         ## Pull Values into local variables
         inc_vals <- reactiveValuesToList(incident_details)
         resp_vals <- reactiveValuesToList(response_details)
-        
         assignments <- response_details$ff_app_lists
         
         inc_start_time <- BuildDateTime(
@@ -657,6 +687,8 @@ Server <- function(id, rdfs) {
         ) |> 
           format("%Y-%m-%d %H:%M:%S")
         
+        write_results <- c()
+        
         ##### Write to Incident Table ####
         # There are four possible scenarios for writing to the database
         #1 - Adding a new incident (which also adds a response)
@@ -664,16 +696,25 @@ Server <- function(id, rdfs) {
         #3 - Adding a new response to an existing incident
         #4 - Editing an existing response
         
-        #FIXME
-        local_functions$resetCachedValues(incident_details, response_details,
-                                          edit, additional)
-        removeModal()
-        return()
+        ### Tables that need to be modified
+        # incidient (inc)
+        # response (resp)
+        # incident_unit (inc)
+        # firefighter_response (resp)
+        # apparatus_response (resp)
+        # firefighter_apparatus (resp)
         
         
         
-        #1 - Adding a new incident (which also adds a response)
+        
+        
+        #1 - Adding a new incident
         if(!edit() & !additional()) {
+
+          log_info(
+            glue('Preparing statement for adding new incident'),
+            namespace = 'observe input$submit'
+          )
 
           incident_sql_statement <- "INSERT INTO ?incident_table
           (cad_identifier, incident_start, incident_end,
@@ -686,74 +727,78 @@ Server <- function(id, rdfs) {
 
           incident_safe_sql <- sqlInterpolate(
             app_data$CON,
-            sql_statement,
+            incident_sql_statement,
             incident_table = SQL('incident'),
             cad_identifier = inc_vals$cad_identifier,
-            incident_start = start_time,
-            incident_end = end_time,
+            incident_start = inc_start_time,
+            incident_end = inc_end_time,
             address = if (is.null(inc_vals$address)) NA else inc_vals$address,
-            dispatch_id = if (is.null(inc_vals$dispatch_reason)) NA else inc_vals$dispatch_reason,
-            area_id = if (is.null(inc_vals$area)) NA else inc_vals$area,
-            canceled = if (is.null(inc_vals$canceled)) NA else if
-            (is.numeric(inc_vals$canceled)) inc_vals$canceled else
-              if_else(inc_vals$canceled, 1, 0),
-            dropped = if (is.null(inc_vals$dropped)) NA else if
-            (is.numeric(inc_vals$dropped)) inc_vals$dropped else
-              if_else(inc_vals$dropped, 1, 0)
+            dispatch_id = inc_vals$dispatch_reason,
+            area_id = inc_vals$area,
+            canceled = if (inc_vals$canceled) 1 else 0,
+            dropped = if (inc_vals$dropped) 1 else 0
           )
           
-          ##### Write to Response Table #####
-          response_sql_statement <- "INSERT INTO ?response_table
-          (incident_id, response_start, response_end,
-          notes, is_deleted, deleted_by) VALUES
-          (?incident_id, ?response_start, ?response_end,
-          ?notes, NULL, NULL)"
+          # Execute and write to HIPPA log
+          result <- dbExecute(app_data$CON, incident_safe_sql)
           
-          response_safe_sql <- sqlInterpolate(
-            app_data$CON,
-            sql_statement_response,
-            response_table = SQL('response'),
-            incident_id = NULL,
-            response_start = start_time,
-            response_end = end_time,
-            notes = if (is.null(vals$notes)) NA else vals$notes
+          log_info("Identifying id for incident we just added")
+          inc_vals$incident_id <- dbGetQuery(app_data$CON, "SELECT LAST_INSERT_ID()") |>
+            pull(`LAST_INSERT_ID()`) |> as.numeric()
+          
+          HippaLog(
+            incident_safe_sql |> as.character(),
+            session
           )
           
-          # Execute the safely interpolated SQL command
-          result_inc <- tryCatch(
-            {
-              dbExecute(app_data$CON, incident_safe_sql)
-              HippaLog(
-                incident_safe_sql,
-                session
+          # Append result to write_resuls
+          write_results <- c(write_results,
+                             CheckWriteResult(
+                              result,
+                              context = 'adding an incident',
+                              showMessage = FALSE
+                            )
+          )
+          
+          
+          
+          log_info(
+            glue::glue("Preparing statement for incident_unit"),
+            namespace = "Submit"
+          )
+          
+          
+          #### Write to incident_unit ####
+          for(i in inc_vals$units) {
+            result <- dbExecute(
+              app_data$CON,
+              glue("INSERT INTO incident_unit
+                    (incident_id, unit_type_id) VALUES
+                    ({inc_vals$incident_id}, {i})")
+            )
+            
+            write_results <- c(
+              write_results,
+              CheckWriteResult(
+                result,
+                context = 'adding an incident unit',
+                showMessage = FALSE
               )
-            },
-            error = function(e) {
-              log_error(glue::glue("Database write failed: {e$message}"), namespace = "Add Incident")
-              NA
-            }
-          )
+            )
+          }
           
-          result_resp <- tryCatch(
-            {
-              dbExecute(app_data$CON, response_safe_sql)
-              HippaLog(
-                response_safe_sql,
-                session
-              )
-            },
-            error = function(e) {
-              log_error(glue::glue("Database write failed: {e$message}"), namespace = "Add Incident")
-              NA
-            }
-          )
-          
-          
-          
+        }
+        
+        # 2 - Editing an existing incident
+        if(edit() & is.null(resp_vals$incident_id)) {
 
-        } else {
-        # If editing, replace record. If not, add new record
-          sql_statement <- "UPDATE ?incident_table
+          log_info(
+            glue('Preparing statement for editing incident'),
+            namespace = 'observe input$submit'
+          )
+          
+          # If editing an incident, update the incident table
+          incident_sql_statement <- "UPDATE ?incident_table
           SET cad_identifier = ?cad_identifier,
           incident_start = ?incident_start,
           incident_end = ?incident_end,
@@ -767,212 +812,470 @@ Server <- function(id, rdfs) {
           is_deleted = NULL,
           deleted_by = NULL
           WHERE id = ?id"
-
-          safe_sql <- sqlInterpolate(
+          
+          incident_safe_sql <- sqlInterpolate(
             app_data$CON,
-            sql_statement,
+            incident_sql_statement,
             incident_table = SQL('incident'),
-            cad_identifier = vals$cad_identifier,
-            incident_start = start_time,
-            incident_end = end_time,
-            address = if (is.null(vals$address)) NA else vals$address,
-            dispatch_id = if (is.null(vals$dispatch_reason)) NA else vals$dispatch_reason,
-            area_id = if (is.null(vals$area)) NA else vals$area,
-            canceled = if (is.null(vals$canceled)) NA else if
-            (is.numeric(vals$canceled)) vals$canceled else
-              if_else(vals$canceled, 1, 0),
-            dropped = if (is.null(vals$dropped)) NA else if
-            (is.numeric(vals$dropped)) vals$dropped else
-              if_else(vals$dropped, 1, 0),
-            id = rdfs$incident |>
-              filter(cad_identifier == input$edit_incident) |>
-              pull(id)
+            cad_identifier = inc_vals$cad_identifier,
+            incident_start = inc_start_time,
+            incident_end = inc_end_time,
+            address = if (is.null(inc_vals$address)) NA else inc_vals$address,
+            dispatch_id = inc_vals$dispatch_reason,
+            area_id = inc_vals$area,
+            canceled = if (inc_vals$canceled) 1 else 0,
+            dropped = if (inc_vals$dropped) 1 else 0,
+            id = input$edit_incident
           )
+          
+          # Execute and write to HIPPA log
+          result <- dbExecute(app_data$CON, incident_safe_sql)
+          HippaLog(
+            incident_safe_sql |> as.character(),
+            session
+          )
+          
+          # Append result to write_resuls
+          write_results <- c(write_results,
+                             CheckWriteResult(
+                               result,
+                               context = 'editing an incident',
+                               showMessage = FALSE
+                             )
+          )
+          
+          
+          log_info(
+            glue::glue("Preparing statement for incident_unit"),
+            namespace = "Submit"
+          )
+          
+          # Write to incident_unit
+          # Delete all incident units for this incident
+          dbExecute(
+            app_data$CON,
+            glue("DELETE FROM incident_unit WHERE incident_id = {input$edit_incident}")
+          )
+          
+          # Add new incident units
+          for(i in inc_vals$units) {
+            result <- dbExecute(
+              app_data$CON,
+              glue("INSERT INTO incident_unit
+                    (incident_id, unit_type_id) VALUES
+                    ({input$edit_incident}, {i})")
+            )
+            
+            write_results <- c(
+              write_results,
+              CheckWriteResult(
+                result,
+                context = 'editing an incident unit',
+                showMessage = FALSE
+              )
+            )
+          }
+          
+          
         }
-
-        log_info(glue::glue("Executing SQL command: {safe_sql}"), namespace = "Submit")
         
-        
+        # 3 - Adding a new response (to an existing incident or a new incident)
+        if(
+          (!edit() & !additional() & length(resp_vals$firefighter) > 0) | # For new incidents, where there is a response (there are firefighters assigned)
+          (!edit() & additional()) # For adding additional incidents
+        ) {
+          
 
-        # Execute the safely interpolated SQL command
-        result <- tryCatch(
-          {
-            dbExecute(app_data$CON, safe_sql)
+          ##### Write to Response Table #####
+          response_sql_statement <- "INSERT INTO ?response_table
+          (incident_id, response_start, response_end,
+          notes, is_deleted, deleted_by) VALUES
+          (?incident_id, ?response_start, ?response_end,
+          ?notes, NULL, NULL)"
+          browser()
+          response_safe_sql <- sqlInterpolate(
+            app_data$CON,
+            response_sql_statement,
+            response_table = SQL('response'),
+            
+            incident_id = coalesce(inc_vals$incident_id, input$add_response),
+            # Since this handles new incidents and 
+            # additional responses, coalesce the two times
+            response_start = if(is_empty(resp_start_time)) inc_start_time else resp_start_time,
+            response_end = if(is_empty(resp_end_time)) inc_end_time else resp_end_time,
+            notes = if (is.null(resp_vals$response_notes)) NA else resp_vals$response_notes
+          )
+          
+          
+          # Execute the safely interpolated SQL command
+          result <- tryCatch(
+            {
+              dbExecute(app_data$CON, response_safe_sql)
+            },
+            error = function(e) {
+              log_error(glue::glue("Database write failed: {e$message}"), namespace = "Add Response")
+              NA
+            }
+          )
+          
+          # Grab the response id
+          resp_vals$response_id <- dbGetQuery(app_data$CON, "SELECT LAST_INSERT_ID()") |>
+            pull(`LAST_INSERT_ID()`) |> as.numeric()
+          
+          HippaLog(
+            response_safe_sql |> as.character(),
+            session
+          )
+          
+          # Append result to write_resuls
+          write_results <- c(write_results,
+                             CheckWriteResult(
+                               result,
+                               context = 'adding a response',
+                               showMessage = FALSE
+                             )
+          )
+          
+          ###### Firefighter incident statement preparation ######
+          # No interpolation needed here, just a loop to build the statement
+          firefighter_response_statement <- paste0("INSERT INTO firefighter_response
+                                                   (response_id, firefighter_id, time_adjustment) VALUES "
+              )
+          
+          if(!is.null(resp_vals$firefighter)) {
+            time_adjustments <- stats::setNames(
+              lapply(resp_vals$firefighter, function(ff) {
+                # sanitize exactly the same way as before
+                sanitized <- ff  |> 
+                  tolower() |> 
+                  stringr::str_replace_all(" ", "_")
+                
+                # grab the numeric input value
+                input[[ paste0("time_adj_", sanitized) ]]
+              }),
+              resp_vals$firefighter
+            )
+            
+            # loop and append each tuple
+            for (ff in names(time_adjustments)) {
+              ff_id   <- StringToId(app_data$Firefighter, full_name, ff)
+              adj_val <- time_adjustments[[ff]]
+              
+              firefighter_response_statement <- paste0(
+                firefighter_response_statement,
+                "('", resp_vals$response_id, "',",
+                ff_id, ",",
+                adj_val, "),"
+              )
+            }
+            
+            
+            # Replace the last comma with a semi-colon
+            firefighter_response_statement <- sub(",([^,]*)$", ";\\1", firefighter_response_statement)
+            
+            
+            
+          }
+          
+          if(!is.null(resp_vals$apparatus)) {
+
+            ###### Apparatus incident statement preparation ######
+            # No interpolation needed here, just a loop to build the statement
+            apparatus_response_statement <- "INSERT INTO apparatus_response (response_id, apparatus_id) VALUES "
+  
+            for(app in resp_vals$apparatus) {
+              apparatus_response_statement <- paste0(
+                apparatus_response_statement, "('",
+                resp_vals$incident_id, "',",
+                StringToId(
+                  app_data$Apparatus,
+                  apparatus_name,
+                  app
+                  )
+                , "),"
+              )
+            }
+  
+            # Replace the last comma with a semi-colon
+            apparatus_response_statement <- sub(",([^,]*)$", ";\\1", apparatus_response_statement)
+  
+            ###### Firefighter Apparatus statement preparation ######
+            # No interpolation needed here, just a loop to build the statement
+            firefighter_apparatus_statement <- "INSERT INTO firefighter_apparatus (response_id, firefighter_id, apparatus_id) VALUES "
+  
+            for(app in resp_vals$apparatus) {
+              ffs <- assignments[[app]]
+              app_id <- StringToId(app_data$Apparatus, apparatus_name, app)
+  
+              # Loop through each firefighter in the apparatus
+              for(ff in ffs) {
+                # Get the firefighter id
+                ff_id <- StringToId(app_data$Firefighter, full_name, ff)
+                
+                # Append the statement
+                firefighter_apparatus_statement <- paste0(firefighter_apparatus_statement, "('",
+                                                                   resp_vals$response_id, "',",
+                                                                   ff_id, ",",
+                                                                   app_id, "),"
+                )
+              }
+  
+            }
+  
+            # Replace the last comma with a semi-colon
+            firefighter_apparatus_statement <- sub(",([^,]*)$", ";\\1", firefighter_apparatus_statement)
+            
+            # Execute the statements
+            result <- dbExecute(app_data$CON, firefighter_response_statement)
             HippaLog(
-              safe_sql,
+              firefighter_response_statement |> as.character(),
               session
             )
-          },
-          error = function(e) {
-            log_error(glue::glue("Database write failed: {e$message}"), namespace = "Add Training")
-            NA
+            write_results <- c(write_results,
+                               CheckWriteResult(
+                                 result,
+                                 context = 'adding a firefighter response',
+                                 showMessage = FALSE
+                               )
+            )
           }
-        )
+          
+          #####
+          
+          
+          
 
-        functions$CheckWriteResult(result,
-                                   successMessage = "Your training has been successfully added. You may now close this window.",
-                                   context = "adding a training",
-                                   expectedMin = 1,
-                                   expectedMax = 1
-        )
-
+        } 
         
+        # 4 - Editing an existing response
+        if (edit() & !is.null(resp_vals$incident_id)) {
 
+          log_info(
+            glue('Preparing statement for editing response'),
+            namespace = 'observe input$submit'
+          )
+          
+          # If editing a response, update the response table
+          response_sql_statement <- "UPDATE ?response_table
+          SET response_start = ?response_start,
+          response_end = ?response_end,
+          notes = ?notes,
+          is_deleted = NULL,
+          deleted_by = NULL
+          WHERE id = ?id"
 
-        local_functions$resetCachedValues(incident_details, edit, additional)
-
-        cat('finished', file = stderr())
+          response_safe_sql <- sqlInterpolate(
+            app_data$CON,
+            response_sql_statement,
+            response_table = SQL('response'),
+            response_start = resp_start_time,
+            response_end = resp_end_time,
+            notes = if (is.null(resp_vals$response_notes)) NA else resp_vals$response_notes,
+            id = input$edit_response
+          )
+          
+          # Execute and write to HIPPA log
+          result <- dbExecute(app_data$CON, response_safe_sql)
+          HippaLog(
+            response_safe_sql |> as.character(),
+            session
+          )
+          
+          # Append result to write_resuls
+          write_results <- c(write_results,
+                             CheckWriteResult(
+                               result,
+                               context = 'editing a response',
+                               showMessage = FALSE
+                             )
+          )
+          
+          # Delete old firefighter response, apparatus response, and firefighter apparatus
+          dbExecute(
+            app_data$CON,
+            glue("DELETE FROM firefighter_response WHERE response_id = {input$edit_response}")
+          )
+          
+          dbExecute(
+            app_data$CON,
+            glue("DELETE FROM apparatus_response WHERE response_id = {input$edit_response}")
+          )
+          
+          dbExecute(
+            app_data$CON,
+            glue("DELETE FROM firefighter_apparatus WHERE response_id = {input$edit_response}")
+          )
+          
+          if(!is.null(resp$firefighter)) {
+            # Add new firefighter response, apparatus response, and firefighter apparatus
+            # Write to firefighter_response
+            # No interpolation needed here, just a loop to build the statement
+            firefighter_response_statement <- paste0("INSERT INTO firefighter_response
+                                                     (response_id, firefighter_id, time_adjustment) VALUES "
+            )
+            
+            time_adjustments <- stats::setNames(
+              lapply(resp_vals$firefighter, function(ff) {
+                # sanitize exactly the same way as before
+                sanitized <- ff  |> 
+                  tolower() |> 
+                  stringr::str_replace_all(" ", "_")
+                
+                # grab the numeric input value
+                input[[ paste0("time_adj_", sanitized) ]]
+              }),
+              resp_vals$firefighter
+            )
+            
+            # loop and append each tuple
+            for (ff in names(time_adjustments)) {
+              ff_id   <- StringToId(app_data$Firefighter, full_name, ff)
+              adj_val <- time_adjustments[[ff]]
+              
+              firefighter_response_statement <- paste0(
+                firefighter_response_statement,
+                "('", input$edit_response, "',",
+                ff_id, ",",
+                adj_val, "),"
+              )
+            }
+            
+            # Replace the last comma with a semi-colon
+            firefighter_response_statement <- sub(",([^,]*)$", ";\\1", firefighter_response_statement)
+          
+          }
+          
+          if(!is.null(resp_vals$apparatus)) {
+          
+            # Write to firefighter_apparatus
+            # No interpolation needed here, just a loop to build the statement
+            firefighter_apparatus_statement <- paste0("INSERT INTO firefighter_apparatus
+                                                     (response_id, firefighter_id, apparatus_id) VALUES "
+            )
+            
+            for(app in resp_vals$apparatus) {
+              ffs <- assignments[[app]]
+              app_id <- StringToId(app_data$Apparatus, apparatus_name, app)
+              
+              # Loop through each firefighter in the apparatus
+              for(ff in ffs) {
+                # Get the firefighter id
+                ff_id <- StringToId(app_data$Firefighter, full_name, ff)
+                
+                # Append the statement
+                firefighter_apparatus_statement <- paste0(firefighter_apparatus_statement, "('",
+                                                                   input$edit_response, "',",
+                                                                   ff_id, ",",
+                                                                   app_id, "),"
+                )
+              }
+              
+            }
+            
+            # Replace the last comma with a semi-colon
+            firefighter_apparatus_statement <- sub(",([^,]*)$", ";\\1", firefighter_apparatus_statement)
+            
+            # Write to apparatus_response
+            # No interpolation needed here, just a loop to build the statement
+            apparatus_response_statement <- paste0("INSERT INTO apparatus_response
+                                                     (response_id, apparatus_id) VALUES "
+            )
+            
+            for(app in resp_vals$apparatus) {
+              apparatus_response_statement <- paste0(apparatus_response_statement, "('",
+                                                                   input$edit_response, "',",
+                                                                   StringToId(
+                                                                     app_data$Apparatus,
+                                                                     apparatus_name,
+                                                                     app
+                                                                   ), "),"
+              )
+            }
+            
+            # Replace the last comma with a semi-colon
+            apparatus_response_statement <- sub(",([^,]*)$", ";\\1", apparatus_response_statement)
+            
+            # Execute the statements
+            result <- dbExecute(app_data$CON, firefighter_response_statement)
+            HippaLog(
+              firefighter_response_statement |> as.character(),
+              session
+            )
+            write_results <- c(write_results,
+                               CheckWriteResult(
+                                 result,
+                                 context = 'editing a firefighter response',
+                                 showMessage = FALSE
+                               )
+            )
+            
+            result <- dbExecute(app_data$CON, firefighter_apparatus_statement)
+            HippaLog(
+              firefighter_apparatus_statement |> as.character(),
+              session
+            )
+            write_results <- c(write_results,
+                               CheckWriteResult(
+                                 result,
+                                 context = 'editing a firefighter apparatus',
+                                 showMessage = FALSE
+                               )
+            )
+            
+            result <- dbExecute(app_data$CON, apparatus_response_statement)
+            HippaLog(
+              apparatus_response_statement |> as.character(),
+              session
+            )
+            
+            write_results <- c(write_results,
+                               CheckWriteResult(
+                                 result,
+                                 context = 'editing an apparatus response',
+                                 showMessage = FALSE
+                               )
+            )
+  
+            }
+        }
+        
+        local_functions$resetCachedValues(incident_details, response_details, edit, additional)
+        
+        UpdateReactives(rdfs)
 
         removeModal()
-        # 
-        shinyalert(
-          title = "Success",
-          text = "Incident saved",
-          type = "success"
-        )
         
+        if(length(write_results) > 0) {
+          # Check if any of the writes failed
+          if(any(write_results == FALSE)) {
+            shinyalert(
+              title = "Error",
+              text = "There was an error saving the incident",
+              type = "error"
+            )
+            return()
+          } else {
+            shinyalert(
+              title = "Success",
+              text = "Incident saved",
+              type = "success"
+            )
+          }
+        } else if (length(write_results) == 0) {
+          # If no writes were attempted, show a warning
+          shinyalert(
+            title = "Warning",
+            text = "No changes were made to the incident",
+            type = "warning"
+          )
+          return()
+        }
         
-        ###### Incident Statement Prepration
-        # incident_statment_prep <- paste0("INSERT INTO ", SQL(Sys.getenv('INCIDENT_TABLE')), " VALUES ('", input$incident_id, "', '",
-        #                                  UTC_dispatch_time_date, "', '",
-        #                                  UTC_end_time_date, "', '",
-        #                                  input$address, "', '",
-        #                                  input$dispatch_reason, "', ",
-        #                                  if_else("EMS" %in% input$units, 1, 0), ", ",
-        #                                  if_else("Fire" %in% input$units, 1, 0), ", ",
-        #                                  if_else("Wildland" %in% input$units, 1, 0), ", '",
-        #                                  input$area, "', ",
-        #                                  if_else(input$canceled, 1, 0), ", ",
-        #                                  if_else(input$dropped, 1, 0), ", '",
-        #                                  input$call_notes, "', ",
-        #                                  "0);")
-        # 
-        # incident_statment <- incident_statment_prep
-        
-        # Interpolate the values into the SQL command safely
-        # incident_statment <- sqlInterpolate(
-        #   app_data$CON,
-        #   incident_statment_prep,
-        #   incident_table = SQL(Sys.getenv("INCIDENT_TABLE")),
-        #   incident_id = input$incident_id,
-        #   dispatch_time = UTC_dispatch_time_date,
-        #   end_time = UTC_end_time_date,
-        #   address = input$address,
-        #   dispatch_reason = input$dispatch_reason,
-        #   ems = if_else("EMS" %in% input$units, 1, 0),
-        #   fire = if_else("Fire" %in% input$units, 1, 0),
-        #   wildland = if_else("Wildland" %in% input$units, 1, 0),
-        #   area = input$area,
-        #   canceled = if_else(input$canceled, 1, 0),
-        #   dropped = if_else(input$dropped, 1, 0),
-        #   call_notes = input$call_notes
-        # )
-        
-        ###### Firefighter incident statement preparation ######
-        # No interpolation needed here, just a loop to build the statement
-        # firefighter_incident_statement <- paste0("INSERT INTO ", 
-        #            Sys.getenv("FF_INC_TABLE"), 
-        #            " (incident_id, firefighter_id) VALUES "
-        #     )
-        # 
-        # 
-        # for(ff in input$firefighter) {
-        #   firefighter_incident_statement <- paste0(firefighter_incident_statement, "('",
-        #                                                      input$incident_id, "',",
-        #                                                      app_data$firefighter_mapping[[ff]], "),"
-        #                                                      )
-        # }
-        # 
-        # 
-        # # Replace the last comma with a semi-colon
-        # firefighter_incident_statement <- sub(",([^,]*)$", ";\\1", firefighter_incident_statement)
-        # 
-        # 
-        # ###### Apparatus incident statement preparation ######
-        # # No interpolation needed here, just a loop to build the statement
-        # apparatus_incident_statement <- paste0("INSERT INTO ", 
-        #                                          Sys.getenv("APP_INC_TABLE"), 
-        #                                          " (incident_id, apparatus_id) VALUES "
-        # )
-        # 
-        # for(app in input$apparatus) {
-        #   apparatus_incident_statement <- paste0(apparatus_incident_statement, "('",
-        #                                                      input$incident_id, "',",
-        #                                                      app_data$apparatus_mapping[[app]], "),"
-        #   )
-        # }
-        # 
-        # # Replace the last comma with a semi-colon
-        # apparatus_incident_statement <- sub(",([^,]*)$", ";\\1", apparatus_incident_statement)
-        # 
-        # ###### Firefighter Apparatus statement preparation ######
-        # # No interpolation needed here, just a loop to build the statement
-        # firefighter_apparatus_statement <- paste0("INSERT INTO ", 
-        #                                          Sys.getenv("FF_APP_TABLE"), 
-        #                                          " (incident_id, firefighter_id, apparatus_id) VALUES "
-        # )
-        # 
-        # for(ff in input$firefighter) {
-        #   app <- input[[paste0(ff, "_apparatus")]]
-        #   
-        #   
-        #   firefighter_apparatus_statement <- paste0(firefighter_apparatus_statement, "('",
-        #                                                      input$incident_id, "',",
-        #                                                      app_data$firefighter_mapping[[ff]], ",",
-        #                                                      app_data$apparatus_mapping[[app]], "),"
-        #   )
-        #   
-        # }
-        # 
-        # # Replace the last comma with a semi-colon
-        # firefighter_apparatus_statement <- sub(",([^,]*)$", ";\\1", firefighter_apparatus_statement)
-        
-        #####
-        
-        # Print the statements
-        # print('Incident statement to be exectuted.')
-        # print(incident_statment)
-        # print('Firefighter Incident statement to be exectuted.')
-        # print(firefighter_incident_statement)
-        # print('Apparatus Incident statement to be exectuted.')
-        # print(apparatus_incident_statement)
-        # print('Firefighter Apparatus statement to be exectuted.')
-        # print(firefighter_apparatus_statement)
-        
-        # Execute the statements
-        #   incident_write_result <- DBI::dbExecute(app_data$CON,
-        #                                  incident_statment)
-        #   ff_inc_write_result <- DBI::dbExecute(app_data$CON,
-        #                                  firefighter_incident_statement)
-        #   app_inc_write_result <- DBI::dbExecute(app_data$CON,
-        #                                  apparatus_incident_statement)
-        #   ff_app_write_result <- DBI::dbExecute(app_data$CON,
-        #                                  firefighter_apparatus_statement)
-        #   
-        #   # Check if the write was successful
-        #   if(all(exists('incident_write_result'), exists('ff_inc_write_result'), exists('app_inc_write_result'), exists('ff_app_write_result'))) {
-        #     shinyalert(
-        #       title = "Success",
-        #       text = "Incident saved",
-        #       type = "success"
-        #     )
-        #   } else {
-        #     shinyalert(
-        #       title = "Error",
-        #       text = "Tables not saved properly. Please contact your application administrator.",
-        #       type = "error"
-        #     )
-        #   }
-        # }) |> 
-        #   bindEvent(input$mod_5_submit, ignoreNULL = T)
-        
+        shinycssloaders::hidePageSpinner()
         
         
       }) |> 
         bindEvent(input$submit, ignoreNULL = T)
-      
-      
-      
       
 
     }

@@ -2,6 +2,7 @@ box::use(
   dplyr[filter, ...],
   odbc[...],
   shiny[...],
+  logger[...],
   lubridate[with_tz],
 )
 
@@ -14,18 +15,29 @@ TZ <- Sys.getenv("LOCAL_TZ")
 
 
 cat("Loading app_data.R\n", file = stderr())
-cat("Attempting conncet to database\n", file = stderr())
-cat("DB_HOST: ", Sys.getenv("DB_HOST"), "\n", file = stderr())
-
+cat("Attempting to connect to database\n", file = stderr())
 
 
 #' @export
-CON <- dbConnect(RMariaDB::MariaDB(),
-                 dbname = "crabapple",
-                 host = Sys.getenv("DB_HOST"),
-                 port = 3306,
-                 user = "admin",
-                 password = Sys.getenv("DB_PASSWORD"))
+CON <- tryCatch({
+  dbConnect(RMariaDB::MariaDB(),
+            dbname = "crabapple",
+            host = Sys.getenv("DB_HOST"),
+            port = 3306,
+            user = "admin",
+            password = Sys.getenv("DB_PASSWORD"))
+}, error = function(e) {
+  log_error(glue::glue("Database connection failed: {e$message}"),
+            namespace = "global")
+  NULL  # fallback to NULL if connection fails
+})
+
+if(is.null(CON)) {
+  log_error("Database connection is NULL. Exiting.")
+  stop("Database connection failed. Exiting.")
+} else {
+  log_info("Database connection established successfully.", namespace = "global")
+}
 
 #' @export
 Firefighter <- dbGetQuery(CON,"SELECT * FROM firefighter")

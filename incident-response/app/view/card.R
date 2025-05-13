@@ -26,8 +26,6 @@ Server <- function(id, rdfs) {
       ns <- session$ns
       
       output$incident_cards <- renderUI({
-        # browser()
-        # updateReactiveValue()
         Incidents <- rdfs$incident |> 
           filter(is_locked == 0) |> 
           arrange(desc(incident_start))
@@ -56,7 +54,6 @@ Server <- function(id, rdfs) {
                 div(
                   span(class = "incident-id", incident$cad_identifier),
                   span(class = "incident-meta", paste(
-                    format(incident$incident_start, "%m-%d-%Y", usetz = F),
                     IdToString(app_data$Dispatch_Code, dispatch_code, incident$dispatch_id),
                     sep = " | "
                   ))
@@ -96,9 +93,11 @@ Server <- function(id, rdfs) {
                   div(class = "incident-header",
                       div(
                         span(class = "incident-meta",
-                             paste(format(response$response_start, "%H:%M:%S"),
-                                   format(response$response_end, "%H:%M:%S"),
-                                   sep = " - "))
+                             paste(
+                               format(response$response_start, "%m-%d-%Y", usetz = F), " | ",
+                               format(response$response_start, "%H:%M"), " - ",
+                               format(response$response_end, "%H:%M")
+                            ))
                       ),
                       tags$button(
                         HTML('Edit'),

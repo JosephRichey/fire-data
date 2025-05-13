@@ -15,7 +15,6 @@ box::use(
 box::use(
   app/logic/app_data,
   app/modal/modal,
-  # app/logic/functions,
 )
 
 

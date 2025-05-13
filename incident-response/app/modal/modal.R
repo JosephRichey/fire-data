@@ -282,6 +282,7 @@ note <- function(ns, response_details, length) {
     # Conditional numeric inputs for each firefighter
     conditionalPanel(
       condition = sprintf("input['%s'] == true", ns("time_adjust_needed")),
+      h5('+/- Minutes'),
       # Use do.call to properly pass each column to fluidRow
       do.call(
         fluidRow,
@@ -297,6 +298,11 @@ note <- function(ns, response_details, length) {
               inputId = ns(id),
               label = ff,
               value = 0,
+              step = GetSetting(
+                "incident",
+                group = "incident_response",
+                key = "time_adjust_step"
+              ),
               max = GetSetting(
                 "incident",
                 group = "incident_response",

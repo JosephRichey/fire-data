@@ -499,7 +499,8 @@ CheckWriteResult <- function(result,
                              successMessage = "Write successful.",
                              context = NULL,
                              expectedMin = 1,
-                             expectedMax = 1) {
+                             expectedMax = 1,
+                             showMessage = TRUE) {
   if (!is.numeric(result) || is.na(result) || result < expectedMin ||
       result > expectedMax) {
     log_error(glue::glue(
@@ -515,18 +516,22 @@ CheckWriteResult <- function(result,
       type = "error",
       closeOnClickOutside = TRUE
     )
+    return(FALSE)
   } else {
-    shinyalert(
-      title = "Success",
-      text = successMessage,
-      type = "success",
-      closeOnClickOutside = TRUE
-    )
+    if(showMessage) {
+      shinyalert(
+        title = "Success",
+        text = successMessage,
+        type = "success",
+        closeOnClickOutside = TRUE
+      )
+    }
     
     log_success(glue::glue(
       "Database write successful {context}. ",
       "Result: {result}"
     ), namespace = "CheckWriteResult")
+    return(TRUE)
   }
 }
 
