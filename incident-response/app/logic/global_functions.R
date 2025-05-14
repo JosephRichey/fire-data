@@ -498,7 +498,7 @@ GenerateThreshold <- function(date, leadTime, leadTimeUnit, expireCalc = FALSE) 
 CheckWriteResult <- function(result,
                              successMessage = "Write successful.",
                              context = NULL,
-                             expectedMin = 1,
+                             expectedMin = 0,
                              expectedMax = 1,
                              showMessage = TRUE) {
   if (!is.numeric(result) || is.na(result) || result < expectedMin ||
@@ -551,6 +551,20 @@ HippaLog <- function(user_action, session) {
   # Execute the command
   dbExecute(app_data$CON, safe_sql)
   
+}
+
+#' @export
+LogGlue <- function(msg, ns, level = "TRACE") {
+  
+  switch(
+    level,
+    "TRACE" = log_trace(glue::glue(msg), namespace = ns),
+    "DEBUG" = log_debug(glue::glue(msg), namespace = ns),
+    "INFO"  = log_info(glue::glue(msg), namespace = ns),
+    "WARN"  = log_warn(glue::glue(msg), namespace = ns),
+    "ERROR" = log_error(glue::glue(msg), namespace = ns),
+    "FATAL" = log_fatal(glue::glue(msg), namespace = ns)
+  )
 }
 
 

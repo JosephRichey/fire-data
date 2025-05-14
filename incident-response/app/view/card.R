@@ -122,7 +122,8 @@ Server <- function(id, rdfs) {
           )
         })  
       }) |> 
-        bindEvent(rdfs$incident, ignoreNULL = F, ignoreInit = F)
+        bindEvent(rdfs$incident, rdfs$response, rdfs$firefighter_response, 
+                  ignoreNULL = F, ignoreInit = F)
     }
   )
   

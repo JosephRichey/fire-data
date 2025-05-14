@@ -77,7 +77,7 @@ log_appender(
 
   
 # 2. (Optional) set the logging threshold (DEBUG, INFO, WARN, ERROR, FATAL)
-log_threshold(INFO)
+log_threshold(TRACE)
 
 # 3. Generate some log messages
 log_info("Connection to AWS from {log_group} {log_stream}", namespace = 'logging')

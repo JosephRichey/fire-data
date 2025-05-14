@@ -71,9 +71,7 @@ key_time <- function(ns, incident_details, edit) {
                            key = "input_seconds")
     ),
     footer = tagList(
-      modalButton(
-        'Cancel'
-      ),
+      actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
       actionButton(
         inputId = ns("to_address_unit"),
         label = "Next",
@@ -173,6 +171,7 @@ select_ff_aparatus <- function(ns, response_details, additional) {
       label = "Apparatus:",
       choices = app_data$Apparatus |> 
         filter(is_active == 1) |> 
+        filter(apparatus_name != 'Standby') |> 
         pull(apparatus_name),
       selected = coalesce(response_details$apparatus, ""),
       multiple = TRUE
@@ -199,7 +198,6 @@ select_ff_aparatus <- function(ns, response_details, additional) {
 }
 
 key_time_additional <- function(ns, response_details, rdfs) {
-  # browser()
   
   # In cases when a call ends between 00:00 and 00:59, 
   # the time is set to 23:59 the previous day.
@@ -254,7 +252,7 @@ key_time_additional <- function(ns, response_details, rdfs) {
                            key = "input_seconds")
     ),
     footer = tagList(
-      modalButton('Cancel'),
+      actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
       actionButton(
         inputId = ns("to_apparatus_ff"),
         label = "Next",
@@ -324,7 +322,7 @@ note <- function(ns, response_details, length) {
       if (length != 0 && GetSetting(
         "incident",
         group = "incident_response",
-        key = "firefighter_apparatus_assignment"
+        key = "track_apparatus_assignments"
       )) {
         actionButton(ns("to_assignment"), "Back", class = "btn btn-light")
       } else {

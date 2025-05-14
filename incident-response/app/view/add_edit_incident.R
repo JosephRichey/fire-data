@@ -26,6 +26,7 @@ box::use(
                              HippaLog,
                              UpdateReactives],
   app/logic/logging,
+  ./modal_handlers[...],
 )
 
 
@@ -93,7 +94,7 @@ Server <- function(id, rdfs) {
       walk(incident_fields, ~ bindEvent(
         observe({
           incident_details[[.x]] <- input[[.x]]
-          log_info(
+          log_trace(
             glue('Caching {paste(input[[.x]], collapse = ", ")} to {.x}'),
             namespace = 'cache incident details'
           )
@@ -104,7 +105,7 @@ Server <- function(id, rdfs) {
       walk(response_fields, ~ bindEvent(
         observe({
           response_details[[.x]] <- input[[.x]]
-          log_info(
+          log_trace(
             glue('Caching {paste(input[[.x]], collapse = ", ")} to {.x}'),
             namespace = 'cache response details'
           )
@@ -141,7 +142,7 @@ Server <- function(id, rdfs) {
         
         response_details$ff_app_lists <- purrr::set_names(input$ff_app_lists, clean_names)
         
-        log_info(
+        log_trace(
           glue('Cached ff_app_lists: {paste(response_details$ff_app_lists, collapse = ", ")}'),
           namespace = 'observe input$ff_app_lists'
         )
@@ -150,175 +151,38 @@ Server <- function(id, rdfs) {
       ##########################################################################
       #                    Modal Navigation  
       ##########################################################################
+      # These handlers deal with all validation and navigation between modals.
+      # They are located in app/view/modal_handlers.R
       
-      ###### Key Time Modal
-      observe({
-        log_info(
-          glue('Showing incident key time modal in {if_else(edit(), "edit", "add")} mode.'),
-          namespace = 'observe input$add_incident'
-          )
-        showModal(modal$key_time(ns, incident_details, edit()))
-      }) |>
-        bindEvent(input$add_incident, ignoreNULL = TRUE, ignoreInit = TRUE)
+      observeAddIncident(input, ns, incident_details, edit)
+      observeToAddressUnit(input, ns, rdfs, incident_details, edit)
+      observeToApparatusFf(input, ns, response_details, edit, additional)
+      observeToAssignment(input, ns, response_details, edit, additional)
+      observeToNote(input, ns, response_details, edit, additional)
       
-      ##### Address unit modal
-      # Validate first modal and show second modal
-      observe({
-        # Skip checking for duplicate cad ids if editing
-        if(!edit()) {
-          log_info(
-            glue('Checking for duplicate cad id {input$cad_identifier}'),
-            namespace = 'observe input$to_address_unit'
-          )
-          # Does the CAD ID already exist?
-          if(input$cad_identifier %in% rdfs$incident$cad_identifier) {
-            shinyalert(
-              title = "Error",
-              text = "Incident ID already exists",
-              type = "error"
-            )
-            return()
-          }
-        } else {
-          # Special check when editing an incident
-          already_used_cad_ids <- rdfs$incident |>
-            filter(cad_identifier != incident_details$edit_cad_identifier) |> 
-            pull(cad_identifier)
-          
-          if(input$cad_identifier %in% already_used_cad_ids) {
-            shinyalert(
-              title = "Error",
-              text = "Incident ID already exists",
-              type = "error"
-            )
-            return()
-          }
-        }
-        
-        log_info(
-          glue("Editing incident {input$edit_incident}", 
-               namespace = 'observe input$to_address_unit')
-        )
-        
-        # Does the CAD ID match the regex?
-        log_info(
-          glue('Checking cad id {input$cad_identifier} against regex'),
-          namespace = 'observe input$to_address_unit'
-        )
-        log_info(
-          glue('Regex: {GetSetting("incident", key = "incident_cad_regex")}'),
-          namespace = 'observe input$to_address_unit'
-        )
-        log_info(
-          glue('Input: {input$cad_identifier}'),
-          namespace = 'observe input$to_address_unit'
-        )
-        if(!grepl(
-          GetSetting('incident',
-                     key = 'incident_cad_regex'), 
-          input$cad_identifier)
-          ) {
-          shinyalert(
-            title = "Error",
-            text = paste("Please enter an id that matches the following criteria:\n",
-                         GetSetting('incident',
-                                    key = 'cad_failure_message')),
-            type = "error"
-          )
-          return()
-        }
-        log_info(
-          glue('Checking if dispatch time {input$incident_start_time} is before end time {input$incident_end_time}'),
-          namespace = 'observe input$to_address_unit'
-        )
-        # Are times in order?
-        start_time <- BuildDateTime(
-          time = input$incident_start_time,
-          date = input$incident_start_date,
-          input = 'local',
-          return_type = 'local'
-        )
-        
-        end_time <- BuildDateTime(
-          time = input$incident_end_time,
-          date = input$incident_end_date,
-          input = 'local',
-          return_type = 'local'
-        )
-        log_info(
-          glue('Start time: {start_time}'),
-          namespace = 'observe input$to_address_unit'
-        )
-        log_info(
-          glue('End time: {end_time}'),
-          namespace = 'observe input$to_address_unit'
-        )
-        
-        if(end_time <= start_time) {
-          shinyalert(
-            title = "Error",
-            text = "Dispatch time must be before end time",
-            type = "error"
-          )
-          return()
-        }
-        
-        # All validations passed. Show second modal.
-        removeModal()
-        log_info(
-          glue('Showing address unit modal in {if_else(edit(), "edit", "add")} mode'),
-          namespace = 'observe input$to_address_unit'
-        )
-        showModal(modal$address_unit(ns, incident_details, edit()))
-        
-      }) |>
-        bindEvent(
-          input$to_address_unit, 
-          ignoreNULL = TRUE, 
-          ignoreInit = TRUE
-        )
       
-      ###### Firefighter Apparatus Modal
-      observe({
-
-        log_info(
-          glue('Showing firefighter apparatus modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
-          namespace = 'observe input$to_apparatus_ff'
-        )
-        removeModal()
-        showModal(
-          modal$select_ff_aparatus(
-            ns, 
-            response_details, 
-            additional())
-        )
-
-      }) |>
-        bindEvent(
-          input$to_apparatus_ff, 
-          ignoreNULL = TRUE, 
-          ignoreInit = TRUE
-        )
       
       
       ##########################################################################
       #                     Assignment Widget
       ##########################################################################
+      # This function builds the buckets appropriately
+      # using cached inputs and data from the database.
       generate_firefighter_apparatus <- function() {
         req(input$firefighter)
-        log_info("Begin generating firefighter apparatus list widget", 
-                 namespace = "generate_firefighter_apparatus")
-
+        log_trace("Begin generating firefighter apparatus list widget", 
+                  namespace = "generate_firefighter_apparatus")
+        
         # Determine current assignments
         assignments <- if (!is.null(isolate(response_details$ff_app_lists))) {
           # If a cached list exists, use it
-          log_info("Using cached bucket list input", 
-                   namespace = "generate_firefighter_apparatus")
+          log_trace("Using cached bucket list input", 
+                    namespace = "generate_firefighter_apparatus")
           isolate(response_details$ff_app_lists)
         } else if (!is.null(isolate(response_details$response_id))) {
           # If a response ID exists, use it to get the current assignments
-          log_info("Using existing response DB data", 
-                   namespace = "generate_firefighter_apparatus")
+          log_trace("Using existing response DB data", 
+                    namespace = "generate_firefighter_apparatus")
           
           rdfs$firefighter_apparatus |>
             filter(response_id == isolate(response_details$response_id)) |>
@@ -332,11 +196,11 @@ Server <- function(id, rdfs) {
             summarise(assigned = list(full_name), .groups = "drop") |>
             tibble::deframe()
         } else {
-          log_info("No cached list or response ID found", 
-                   namespace = "generate_firefighter_apparatus")
+          log_trace("No cached list or response ID found", 
+                    namespace = "generate_firefighter_apparatus")
           list()  # no assignment yet
         }
-
+        
         # Track current firefighter IDs in use
         assigned_ffs <- unlist(assignments, use.names = FALSE) |> 
           # Only use firefighters that are in the input list
@@ -394,90 +258,12 @@ Server <- function(id, rdfs) {
         ))
       }
       
-      
       # Render dynamic bucket list inside modal
       output$firefighter_apparatus_list <- renderUI({
         generate_firefighter_apparatus()
       }) |> 
         bindEvent(input$to_assignment)
-      
-      observe({
-        # If the user has not selected any firefighters or apparatus, skip to notes modal
-        if(length(input$apparatus) == 0 & 
-           length(input$firefighter) == 0) {
-          response_details$apparatus <- NULL
-          response_details$firefighter <- NULL
-          log_info(
-            glue('Skipping to notes modal.'),
-            namespace = 'observe input$to_assignment'
-          )
-          showModal(modal$note(ns, response_details, length = length(input$firefighter) + 
-                                 length(input$apparatus)))
-          return()
-        }
 
-        # If the appaaratus assignemnt model is toggled off, skip to notes modal
-        if(!GetSetting(domain = 'incident',
-                      key = 'firefighter_apparatus_assignment')) {
-          # Can toggle if they track this.
-          showModal(modal$note(ns, response_details, length = length(input$firefighter) + 
-                                 length(input$apparatus)))
-          return()
-        }
-        
-        removeModal()
-        log_info(
-          glue('Showing Assign Firefighters to Apparatus modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
-          namespace = 'observe input$to_assignment'
-        )
-
-        showModal(modalDialog(
-          title = "Assign Firefighters to Apparatus",
-          uiOutput(ns("firefighter_apparatus_list")),
-          footer = tagList(
-            actionButton(ns("to_apparatus_ff"), "Back", class = "btn btn-light"),
-            actionButton(ns("cancel_modal"), "Cancel", class = "btn btn-warning"),
-            actionButton(ns("to_note"), "Next", class = "btn btn-primary")
-          ), size = 'l'
-        ))
-
-      }) |>
-        bindEvent(input$to_assignment, ignoreNULL = TRUE, ignoreInit = TRUE)
-      
-      ##########################################################################
-      #              End Assignment Widget 
-      #             Back to modals
-      ##########################################################################
-      
-      ##### Notes and time mod modal
-      observe({
-        # Check if stanby is allowed and conditions met
-        if(!GetSetting(domain = 'incident', 
-           key = 'standby_allowed')) {
-          log_info(
-            "standby is not an allowed status. Checking if there are any firefighters in standby.",
-            namespace = 'observe input$to_note'
-          )
-          
-          if(length(response_details$ff_app_lists$Standby) > 0) {
-            shinyalert(
-              title = "Error",
-              text = "Standby is not an allowed status. Please assign all firefighters to an apparatus.",
-              type = "error"
-            )
-            return()
-          }
-        }
-        
-        log_info(
-          glue('Showing note modal in {if_else(edit(), "edit", "add")} {if_else(additional(), "response", "incident")} mode'),
-          namespace = 'observe input$to_note'
-        )
-        showModal(modal$note(ns, response_details, length = length(input$firefighter) + 
-                              length(input$apparatus)))
-
-      }) |>
-        bindEvent(input$to_note, ignoreNULL = TRUE, ignoreInit = TRUE)
       
       ##########################################################################
       #                 Launch Edit Incident
@@ -510,11 +296,11 @@ Server <- function(id, rdfs) {
         incident_details$canceled <- Incident_Edit$canceled == 1
         incident_details$dropped <- Incident_Edit$dropped == 1
         
-        log_info(
+        log_trace(
           glue('Editing incident {input$edit_incident}'),
           namespace = 'observe input$edit_incident'
         )
-        log_info(
+        log_trace(
           glue('incident_details: {paste(incident_details, collapse = ", ")}'),
           namespace = 'observe input$edit_incident'
         )
@@ -534,7 +320,7 @@ Server <- function(id, rdfs) {
       observe({
         additional(TRUE)
         # Load respons_details vector
-        browser()
+
         
         response_details$incident_id <- input$add_response
         
@@ -550,7 +336,7 @@ Server <- function(id, rdfs) {
         
         
         
-        log_info(glue('Adding additional response to incident {input$add_response}'), 
+        log_trace(glue('Adding additional response to incident {input$add_response}'), 
                  namespace = 'observe input$add_response')
         showModal(modal$key_time_additional(ns, response_details, rdfs))
         
@@ -564,7 +350,7 @@ Server <- function(id, rdfs) {
       #                          Edit response
       ##########################################################################
       observe({
-
+        # browser()
         req(input$edit_response)
         edit(TRUE)
         
@@ -608,14 +394,18 @@ Server <- function(id, rdfs) {
         response_details$response_notes <- response$notes |> 
           as.character()
         
-        log_info(glue('Editing response id {input$edit_response}'), 
+        log_trace(glue('Editing response id {input$edit_response}'), 
                  namespace = 'observe input$edit_response')
         
-        log_info(
+        log_trace(
           glue('response_details: {paste(response_details, collapse = ", ")}'),
           namespace = 'observe input$edit_response'
         )
+        
+        print(input$edit_response)
+        print(input$add_additional_response)
 
+        
         showModal(modal$key_time_additional(ns, response_details, rdfs))
       }) |> 
         bindEvent(input$edit_response, input$add_additional_response,
@@ -628,12 +418,18 @@ Server <- function(id, rdfs) {
       observeEvent(input$cancel_modal, {
         removeModal()
         
-        log_info(
+        log_trace(
           glue('Resetting values'),
           namespace = 'observe input$cancel_modal'
         )
         local_functions$resetCachedValues(incident_details, response_details,
                                           edit, additional)
+        
+
+        
+        
+        # browser()
+        updateSelectInput(session, "edit_response", selected = NULL)
         
       })
       
@@ -711,7 +507,7 @@ Server <- function(id, rdfs) {
         #1 - Adding a new incident
         if(!edit() & !additional()) {
 
-          log_info(
+          log_trace(
             glue('Preparing statement for adding new incident'),
             namespace = 'observe input$submit'
           )
@@ -742,7 +538,7 @@ Server <- function(id, rdfs) {
           # Execute and write to HIPPA log
           result <- dbExecute(app_data$CON, incident_safe_sql)
           
-          log_info("Identifying id for incident we just added")
+          log_trace("Identifying id for incident we just added")
           inc_vals$incident_id <- dbGetQuery(app_data$CON, "SELECT LAST_INSERT_ID()") |>
             pull(`LAST_INSERT_ID()`) |> as.numeric()
           
@@ -762,7 +558,7 @@ Server <- function(id, rdfs) {
           
           
           
-          log_info(
+          log_trace(
             glue::glue("Preparing statement for incident_unit"),
             namespace = "Submit"
           )
@@ -792,7 +588,7 @@ Server <- function(id, rdfs) {
         # 2 - Editing an existing incident
         if(edit() & is.null(resp_vals$incident_id)) {
 
-          log_info(
+          log_trace(
             glue('Preparing statement for editing incident'),
             namespace = 'observe input$submit'
           )
@@ -845,7 +641,7 @@ Server <- function(id, rdfs) {
           )
           
           
-          log_info(
+          log_trace(
             glue::glue("Preparing statement for incident_unit"),
             namespace = "Submit"
           )
@@ -892,7 +688,7 @@ Server <- function(id, rdfs) {
           notes, is_deleted, deleted_by) VALUES
           (?incident_id, ?response_start, ?response_end,
           ?notes, NULL, NULL)"
-          browser()
+
           response_safe_sql <- sqlInterpolate(
             app_data$CON,
             response_sql_statement,
@@ -1050,7 +846,7 @@ Server <- function(id, rdfs) {
         # 4 - Editing an existing response
         if (edit() & !is.null(resp_vals$incident_id)) {
 
-          log_info(
+          log_trace(
             glue('Preparing statement for editing response'),
             namespace = 'observe input$submit'
           )
@@ -1070,9 +866,11 @@ Server <- function(id, rdfs) {
             response_table = SQL('response'),
             response_start = resp_start_time,
             response_end = resp_end_time,
-            notes = if (is.null(resp_vals$response_notes)) NA else resp_vals$response_notes,
+            notes = if (is.null(resp_vals$response_notes)) NA else 'resp_vals$response_notes',
             id = input$edit_response
           )
+          
+
           
           # Execute and write to HIPPA log
           result <- dbExecute(app_data$CON, response_safe_sql)
@@ -1106,7 +904,7 @@ Server <- function(id, rdfs) {
             glue("DELETE FROM firefighter_apparatus WHERE response_id = {input$edit_response}")
           )
           
-          if(!is.null(resp$firefighter)) {
+          if(!is.null(resp_vals$firefighter)) {
             # Add new firefighter response, apparatus response, and firefighter apparatus
             # Write to firefighter_response
             # No interpolation needed here, just a loop to build the statement
@@ -1204,6 +1002,7 @@ Server <- function(id, rdfs) {
             write_results <- c(write_results,
                                CheckWriteResult(
                                  result,
+                                 expectedMax = length(resp_vals$firefighter),
                                  context = 'editing a firefighter response',
                                  showMessage = FALSE
                                )
@@ -1217,6 +1016,7 @@ Server <- function(id, rdfs) {
             write_results <- c(write_results,
                                CheckWriteResult(
                                  result,
+                                 expectedMax = length(resp_vals$firefighter),
                                  context = 'editing a firefighter apparatus',
                                  showMessage = FALSE
                                )
@@ -1231,6 +1031,7 @@ Server <- function(id, rdfs) {
             write_results <- c(write_results,
                                CheckWriteResult(
                                  result,
+                                 expectedMax = length(resp_vals$firefighter),
                                  context = 'editing an apparatus response',
                                  showMessage = FALSE
                                )
@@ -1244,6 +1045,8 @@ Server <- function(id, rdfs) {
         UpdateReactives(rdfs)
 
         removeModal()
+        
+        shinycssloaders::hidePageSpinner()
         
         if(length(write_results) > 0) {
           # Check if any of the writes failed
@@ -1271,7 +1074,6 @@ Server <- function(id, rdfs) {
           return()
         }
         
-        shinycssloaders::hidePageSpinner()
         
         
       }) |> 
