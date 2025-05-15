@@ -18,3 +18,14 @@ globalThis.add_response = function(ns, id) {
   console.log("Setting input with id: " + fullInputId);   
   Shiny.setInputValue(fullInputId, id, {priority: "event"}); 
 };
+
+Shiny.addCustomMessageHandler("jsCode", function(message) {
+  eval(message.code);
+});
+
+
+window.enableScroll = function () {
+  console.log("Enabling scroll");
+  document.body.style.overflow = 'auto';
+  document.body.style.paddingRight = '17px';
+};

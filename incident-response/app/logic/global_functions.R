@@ -11,6 +11,8 @@ box::use(
   shinyalert[...],
 )
 
+log_trace("Loading global_functions.R", namespace = "global_functions")
+
 box::use(
   ./logging,
   ./app_data,
@@ -19,7 +21,7 @@ box::use(
 
 
 #' @export
-ParseRelativeDate <- function(relativeString, type = c("start", "end"), refDate = app_data$local_date) {
+ParseRelativeDate <- function(relativeString, type = c("start", "end"), refDate = app_data$Current_Local_Date) {
   type <- match.arg(type)
   today <- refDate
   
@@ -222,6 +224,11 @@ BuildDateTime <- function(time,
                           return_type = c('UTC', 'local')) {
   input <- match.arg(input)
   return_type <- match.arg(return_type)
+  
+  log_trace(
+    glue("Building datetime from date: {date} and time: {time}"),
+    namespace = "BuildDateTime"
+  )
   
   tz_local <- GetSetting("global", key = "ltz")
   
@@ -536,9 +543,9 @@ CheckWriteResult <- function(result,
 }
 
 #' @export
-HippaLog <- function(user_action, session) {
-  # browser()
-  sql <- "Insert into hippa_log (username, date_time, user_action) values (?, ?, ?)"
+HipaaLog <- function(user_action, session) {
+
+  sql <- "Insert into hipaa_log (username, date_time, user_action) values (?, ?, ?)"
   # Safely interpolate values
   safe_sql <- sqlInterpolate(
     app_data$CON,
@@ -553,18 +560,4 @@ HippaLog <- function(user_action, session) {
   
 }
 
-#' @export
-LogGlue <- function(msg, ns, level = "TRACE") {
-  
-  switch(
-    level,
-    "TRACE" = log_trace(glue::glue(msg), namespace = ns),
-    "DEBUG" = log_debug(glue::glue(msg), namespace = ns),
-    "INFO"  = log_info(glue::glue(msg), namespace = ns),
-    "WARN"  = log_warn(glue::glue(msg), namespace = ns),
-    "ERROR" = log_error(glue::glue(msg), namespace = ns),
-    "FATAL" = log_fatal(glue::glue(msg), namespace = ns)
-  )
-}
-
-
+log_trace("Loading global_functions.R complete", namespace = "global_functions")

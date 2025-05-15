@@ -4,12 +4,16 @@ box::use(
   dplyr[...],
   shinyTime[timeInput],
   bslib[...],
+  logger[...],
 )
+
+log_trace("Loading modal.R", namespace = "modal")
 
 box::use(
   ../logic/app_data,
   ../logic/global_functions[GetSetting,
-                            BuildNamedVector],
+                            BuildNamedVector,
+                            StringToId],
 )
 
 key_time <- function(ns, incident_details, edit) {
@@ -163,7 +167,7 @@ address_unit <- function(ns, incident_details, edit) {
 }
  
 
-select_ff_aparatus <- function(ns, response_details, additional) {
+select_ff_aparatus <- function(ns, response_details, additional, edit) {
   # browser()
   modalDialog(
     selectInput(
@@ -186,8 +190,8 @@ select_ff_aparatus <- function(ns, response_details, additional) {
       multiple = TRUE
     ),
     footer = tagList(
-      if(additional) {
-        actionButton(ns("add_additional_response"), "Back", class = "btn btn-light")
+      if(additional | edit) {
+        actionButton(ns("to_key_time_additional"), "Back", class = "btn btn-light")
       } else {
         actionButton(ns("to_address_unit"), "Back", class = "btn btn-light")
       },
@@ -263,7 +267,28 @@ key_time_additional <- function(ns, response_details, rdfs) {
 }
 
 
-note <- function(ns, response_details, length) {
+note <- function(ns, response_details, length, rdfs) {
+  
+
+  # browser()
+  # Check if there are existing values for time adjustment
+  # in the cache or database
+  existing_time_adjustments <- FALSE
+  if(!is.null(response_details$response_id)) {
+    df <- rdfs$firefighter_response |> 
+      filter(response_id == response_details$response_id) |> 
+      filter(time_adjustment != 0)
+    
+    if(nrow(df) > 0) {
+      existing_time_adjustments <- TRUE 
+    }
+    
+  } else if(!is.null(response_details$time_adjustments)) {
+    # Check if any of the time adjustments are not 0
+    existing_time_adjustments <- any(
+      unlist(response_details$time_adjustments) != 0
+    )
+  }
 
   modalDialog(
     textAreaInput(
@@ -275,7 +300,7 @@ note <- function(ns, response_details, length) {
     checkboxInput(
       inputId = ns("time_adjust_needed"),
       label = "Do time adjustments need to be made?",
-      value = FALSE
+      value = existing_time_adjustments
     ),
     # Conditional numeric inputs for each firefighter
     conditionalPanel(
@@ -290,12 +315,29 @@ note <- function(ns, response_details, length) {
             "time_adj_",
             ff |> tolower() |> stringr::str_replace_all(" ", "_")
           )
+          
+          # Check if there is an existing value for time adjustment
+          ff_time_adj <- NULL
+          if(!is.null(response_details$response_id)) {
+            ff_time_adj <- rdfs$firefighter_response |> 
+              filter(firefighter_id == StringToId(app_data$Firefighter,
+                                                  full_name,
+                                                  ff)) |> 
+              filter(response_id == response_details$response_id) |> 
+              pull(time_adjustment)
+          }
+          
+          
           column(
-            width = 6,
+            width = 5,
             numericInput(
               inputId = ns(id),
               label = ff,
-              value = 0,
+              value = coalesce(
+                # Take the first of cache, database, or 0.
+                response_details$time_adjustments[[ff]],
+                ff_time_adj, 
+                0),
               step = GetSetting(
                 "incident",
                 group = "incident_response",
@@ -333,5 +375,7 @@ note <- function(ns, response_details, length) {
     )
   )
 }
+
+log_trace("Loading modal.R complete", namespace = "modal")
 
 

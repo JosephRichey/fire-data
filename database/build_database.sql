@@ -18,7 +18,7 @@ DROP TABLE IF EXISTS firefighter_response;
 DROP TABLE IF EXISTS apparatus_response;
 DROP TABLE IF EXISTS firefighter_apparatus;
 DROP TABLE IF EXISTS chain_of_command;
-DROP TABLE IF EXISTS hippa_log;
+DROP TABLE IF EXISTS hipaa_log;
 DROP TABLE IF EXISTS firefighter;
 DROP TABLE IF EXISTS apparatus;
 DROP TABLE IF EXISTS incident_unit;
@@ -118,7 +118,7 @@ CREATE TABLE setting (
     value_type VARCHAR(255)
 );
 
-CREATE TABLE hippa_log (
+CREATE TABLE hipaa_log (
 	id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(255),
     date_time datetime,

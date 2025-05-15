@@ -8,7 +8,6 @@ box::use(
 box::use(
   view/incident_response,
   view/card,
-  view/add_edit_incident,
   logic/app_data,
   logic/global_functions,
   logic/logging,
@@ -19,6 +18,7 @@ box::use(
 #' @export
 ui <- function(id) {
   ns <- NS(id)
+  
   page_fluid(
     div(class = "app-header",
         img(src = 'static/logo.png',
@@ -83,7 +83,7 @@ server <- function(id) {
     
     ##### Module Servers #####
     card$Server('incident_response', rdfs)
-    add_edit_incident$Server('incident_response', rdfs)
+    incident_response$Server('incident_response', rdfs)
     # incident_response$ModalServer('incident_response')
     
     session$onSessionEnded(function() {

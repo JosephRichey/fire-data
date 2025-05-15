@@ -10,14 +10,10 @@ box::use(
   ./logging,
 )
 
-#' @export
-TZ <- Sys.getenv("LOCAL_TZ")
+log_trace("Loading app_data.R", namespace = "app_data")
 
 
-cat("Loading app_data.R\n", file = stderr())
-cat("Attempting to connect to database\n", file = stderr())
-
-
+log_trace("Attempting to connect to database", namespace = "app_data")
 #' @export
 CON <- tryCatch({
   dbConnect(RMariaDB::MariaDB(),
@@ -28,16 +24,19 @@ CON <- tryCatch({
             password = Sys.getenv("DB_PASSWORD"))
 }, error = function(e) {
   log_error(glue::glue("Database connection failed: {e$message}"),
-            namespace = "global")
+            namespace = "app_data")
   NULL  # fallback to NULL if connection fails
 })
 
 if(is.null(CON)) {
-  log_error("Database connection is NULL. Exiting.")
+  log_error("Database connection is NULL. Exiting.",
+            namespace = "app_data")
   stop("Database connection failed. Exiting.")
 } else {
-  log_info("Database connection established successfully.", namespace = "global")
+  log_success("Database connection established successfully.", namespace = "app_data")
 }
+
+log_trace("Loading static tables", namespace = "app_data")
 
 #' @export
 Firefighter <- dbGetQuery(CON,"SELECT * FROM firefighter")
@@ -57,9 +56,17 @@ Setting <- dbGetQuery(CON, "SELECT * FROM setting")
 #' @export
 Dispatch_Code <- dbGetQuery(CON, "SELECT * FROM dispatch_code")
 
+tz <- dbGetQuery(
+  CON, 
+  "SELECT * FROM setting
+  WHERE domain = 'global' AND 
+    setting_key = 'ltz'") |>
+    pull(setting_value)
 
 #' @export
 Current_Local_Date <- Sys.time() |> 
-  with_tz(Sys.getenv('LOCAL_TZ')) |> 
-  as.Date(tz = Sys.getenv('LOCAL_TZ'))
+    with_tz(tz) |> 
+    as.Date(tz = tz)
+
   
+log_trace("Loading app_data.R complete", namespace = "app_data")

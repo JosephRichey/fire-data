@@ -9,54 +9,69 @@ log_stream <- "incident_response"
 
 # Define a custom appender that logs to CloudWatch Logs
 appender_cloudwatch <- function(log_group, log_stream) {
+  
+  force(log_stream)
+  force(log_group)
 
   # 1. Initialize CloudWatch Logs client
   cwlogs <- cloudwatchlogs()
-
-  # 2. Attempt to create the log group and log stream (if they don't exist).
-  #    Wrap in `try()` to ignore errors if already exists:
-  try(cwlogs$create_log_group(logGroupName = log_group), silent = TRUE)
-  try(cwlogs$create_log_stream(
-    logGroupName  = log_group,
-    logStreamName = log_stream
-  ), silent = TRUE)
-
-  # 3. Get the current sequence token (needed to append new events)
+  
+  # 2. Ensure log stream exists
   streams_info <- cwlogs$describe_log_streams(
-    logGroupName        = log_group,
+    logGroupName = log_group,
     logStreamNamePrefix = log_stream
-  )
-  seq_token <- streams_info$logStreams[[1]]$uploadSequenceToken
+  )$logStreams
+  
+  # Check if the log stream already exists
+  stream_names <- vapply(streams_info, function(x) x$logStreamName, character(1))
+  
+  if (!(log_stream %in% stream_names)) {
+    cwlogs$create_log_stream(
+      logGroupName  = log_group,
+      logStreamName = log_stream
+    )
+  }
+  
+  # 3. Get the current uploadSequenceToken (may not exist for brand-new streams)
+  streams_info <- cwlogs$describe_log_streams(
+    logGroupName = log_group,
+    logStreamNamePrefix = log_stream
+  )$logStreams
+  
+  # Pull the correct stream object (in case multiple returned)
+  stream_entry <- Filter(function(x) x$logStreamName == log_stream, streams_info)[[1]]
+  
+  # Optional chaining if no token yet (newly created stream)
+  seq_token <- stream_entry$uploadSequenceToken %||% NULL
 
   # 4. Return the function that 'logger' will call for each log
-  #    Must use the exact signature: function(level, msg, namespace, .logcall, .topcall, .topenv)
-  function(msg, level, namespace = NA_character_,
-           .logcall = NA, .topcall = NA, .topenv = NA) {
-
-    # CloudWatch expects timestamps as the number of milliseconds since epoch (type: 64-bit integer)
-    timestamp_ms <- as.numeric(Sys.time()) * 1000  # numeric avoids 32-bit overflow
-
-    # If msg is not a character, convert it (just in case)
-    if (!is.character(msg)) {
-      msg <- as.character(msg)
-    }
-
-    # Send the log event
-    result <- cwlogs$put_log_events(
-      logGroupName  = log_group,
-      logStreamName = log_stream,
-      logEvents     = list(
-        list(
-          timestamp = timestamp_ms,  # keep as numeric (paws will handle conversion)
-          message   = msg
-        )
-      ),
-      sequenceToken = seq_token
-    )
-
-    # Update the token for subsequent logs
-    seq_token <<- result$nextSequenceToken
-  }
+  structure(
+    function(msg, level, namespace = NA_character_,
+             .logcall = NA, .topcall = NA, .topenv = NA) {
+      
+      timestamp_ms <- as.numeric(Sys.time()) * 1000
+      
+      if (!is.character(msg)) {
+        msg <- as.character(msg)
+      }
+      
+      result <- cwlogs$put_log_events(
+        logGroupName  = log_group,
+        logStreamName = log_stream,
+        logEvents     = list(
+          list(
+            timestamp = timestamp_ms,
+            message   = msg
+          )
+        ),
+        sequenceToken = seq_token
+      )
+      
+      seq_token <<- result$nextSequenceToken
+    },
+    class = "appender"
+  )
+  
 }
 
 # --- USAGE EXAMPLE ---
@@ -67,12 +82,14 @@ log_layout(
 
 
 # 1. Configure the logger to use our custom CloudWatch appender and console appender
-if (interactive()) {
+if (TRUE) { #FIXME FOr some reason, the log appender isn't working.
   log_appender(appender_stdout)
 } else {
 log_appender(
   appender_cloudwatch(log_group, log_stream)
 )
+  print(class(appender_cloudwatch(log_group, log_stream)))
+  
 }
 
   

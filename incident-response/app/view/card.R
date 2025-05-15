@@ -1,13 +1,16 @@
 box::use(
   shiny[...],
   bslib[...],
-  dplyr[...]
+  dplyr[...],
+  logger[...],
 )
+
+log_trace("Loading card.R", namespace = "card")
 
 box::use(
   ../logic/global_functions[GetSetting,
                             IdToString,
-                            HippaLog],
+                            HipaaLog],
   ../logic/app_data,
 )
 
@@ -30,7 +33,7 @@ Server <- function(id, rdfs) {
           filter(is_locked == 0) |> 
           arrange(desc(incident_start))
         
-        HippaLog(
+        HipaaLog(
           glue::glue(
             "Incidents viewed: {paste(
               Incidents$id,
@@ -126,5 +129,6 @@ Server <- function(id, rdfs) {
                   ignoreNULL = F, ignoreInit = F)
     }
   )
-  
 }
+
+log_trace("Loading card.R complete", namespace = "card")
