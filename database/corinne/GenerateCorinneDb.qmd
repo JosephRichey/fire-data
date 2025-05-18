@@ -30,7 +30,7 @@ TEST <- dbConnect(RMariaDB::MariaDB(),
                 password = Sys.getenv("DB_PASSWORD"))
 
 
-sql_script <- readLines("build_database.sql") |> paste(collapse = "\n")
+sql_script <- readLines("build_demo_database.sql") |> paste(collapse = "\n")
 
 sql_statements <- unlist(strsplit(sql_script, ";")) |> trimws()
 
