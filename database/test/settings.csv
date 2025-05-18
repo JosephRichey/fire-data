@@ -4,7 +4,7 @@ id,domain,setting_group,setting_key,setting_value,value_type
 3,global,time,date_format,%m-%d-%Y,string
 4,global,time,date_time_format,%m-%d-%Y %H:%M:%S,string
 5,global,format,sidebar_open,TRUE,boolean
-6,global,id,fire_department_name,Crabapple Cove Fire Department,string
+6,global,id,fire_department_name,Test Fire Department,string
 7,global,config,safe_delete,FALSE,boolean
 8,incident,incident_response,input_seconds,FALSE,boolean
 9,incident,incident_response,	,TRUE,boolean

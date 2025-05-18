@@ -201,6 +201,9 @@ CREATE TABLE test.firefighter_apparatus (
 
 Instructions: Create a SQL query to build a table that answers the firefighter's question.
 
+Do not use the apparatus incident table unless absolutely necessary. Improper joins on this table
+can result in unexpected fanning out results.
+
 Do not use the CREATE, DELETE, or DROP, or change the data in any way.
 Only use the SELECT statement to query the data. Perform joins as necessary.
 

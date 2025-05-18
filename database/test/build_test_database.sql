@@ -1,6 +1,6 @@
 # Create and set database for specific department.
-#CREATE DATABASE crabapple;
-USE crabapple;
+CREATE DATABASE crabapple;
+USE test;
 
 DROP TABLE IF EXISTS firefighter_contact;
 DROP TABLE IF EXISTS firefighter_status_history;

@@ -97,6 +97,7 @@ Server <- function(id, rdfs) {
       ObserveAssignmentList(input, response_details)
       
       observe({
+        # browser()
         
         # Check if the adjustment section was enabled
         # If it isn't, set all inputs to 0.
@@ -195,8 +196,18 @@ Server <- function(id, rdfs) {
         # browser()
         inc_vals <- CoalesceReactiveWithInput(reactiveValuesToList(incident_details), input, inc_keys)
         resp_vals <- CoalesceReactiveWithInput(reactiveValuesToList(response_details), input, resp_keys)
+  
+          #FIXME Make consistent logic here and abstract into function. Be really clear on data flow.
+        assignments <- resp_vals$ff_app_lists
         
-        assignments <- response_details$ff_app_lists
+        clean_names <- names(assignments) |>
+          stringr::str_remove("app-incident_response-") |>
+          stringr::str_remove("apparatus_list_") |>
+          stringr::str_remove("_list") |>
+          stringr::str_replace_all("_", " ") |>
+          stringr::str_to_title()
+        
+        assignments <- purrr::set_names(assignments, clean_names)
         
         ##### Build Times #####
         inc_start_time <- BuildDateTime(
@@ -291,7 +302,7 @@ Server <- function(id, rdfs) {
         
         # 4 - Editing an existing response
         if (edit() & !is.null(resp_vals$incident_id)) {
-          
+          # browser()
           write_results <- EditResponse(
             session = session,
             resp_start_time = resp_start_time,
@@ -303,7 +314,7 @@ Server <- function(id, rdfs) {
           )
         }
 
-        resetCachedValues(incident_details, response_details, edit, additional)
+        resetCachedValues(incident_details, response_details, edit, additional, session)
 
         UpdateReactives(rdfs)
         

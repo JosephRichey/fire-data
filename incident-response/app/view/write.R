@@ -204,6 +204,8 @@ hWriteFirefighterApparatus <- function(resp_vals, input, remove_old, write_resul
   firefighter_apparatus_statement <- paste0("INSERT INTO firefighter_apparatus
                                                    (response_id, firefighter_id, apparatus_id) VALUES "
   )
+  
+  # browser()
 
   if(remove_old) {
     dbExecute(
@@ -219,7 +221,7 @@ hWriteFirefighterApparatus <- function(resp_vals, input, remove_old, write_resul
   
   if(!is.null(resp_vals$firefighter)) {
     # loop and append each tuple
-    for (app in c('Standby', resp_vals$apparatus)) {
+    for (app in unique(c('Standby', resp_vals$apparatus))) {
       ffs <- assignments[[app]]
       app_id <- StringToId(app_data$Apparatus, apparatus_name, app)
       

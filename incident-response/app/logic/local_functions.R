@@ -10,11 +10,13 @@ log_trace("Loading local_functions.R", namespace = "local_functions")
 
 box::use(
   ./app_data,
+  ../modal/modal,
 )
 
 #' @export
 resetCachedValues <- function(incident_list, response_list,
-                              edit_state, additional) {
+                              edit_state, additional, session, input) {
+
   for (i in names(incident_list)) { 
     log_trace(paste('resetting', i, "\n"), namespace = "resetCachedValues")
     incident_list[[i]] <- NULL 
@@ -27,6 +29,9 @@ resetCachedValues <- function(incident_list, response_list,
   
   edit_state(FALSE)
   additional(FALSE)
+  
+  session$sendCustomMessage(type = "jsCode", list(code = "window.enableScroll();"))
+  
   
   log_info("Reset cached values", 
            namespace = "resetCachedValues")

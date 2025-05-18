@@ -13,6 +13,7 @@ log_trace("Loading modal_handlers.R", namespace = "modal_handlers")
 #' @export
 ObserveAddIncident <- function(input, ns, incident_details, edit) {
   observe({
+
     log_trace(
           glue('Showing incident key time modal in {dplyr::if_else(edit(), "edit", "add")} mode.'),
           namespace = 'observe input$add_incident'
@@ -76,17 +77,15 @@ ObserveToAddressUnit <- function(input, ns, rdfs, incident_details, edit) {
     
     
     # Does the CAD ID match the regex?
+    # browser()
     log_trace(
       glue('Checking cad id {input$cad_identifier} against regex'),
       namespace = 'observe input$to_address_unit'
     )
-    log_trace(
-      glue('Regex: {GetSetting("incident", key = "incident_cad_regex")}'),
-      namespace = 'observe input$to_address_unit'
-    )
     if(!grepl(
-      GetSetting('incident',
-                 key = 'incident_cad_regex'), 
+      # Use stringi to reparse the regex field properly
+      GetSetting("incident", key = "incident_cad_regex") |>
+        stringi::stri_replace_all_fixed("\\\\", "\\"),
       input$cad_identifier)
     ) {
       shinyalert(
@@ -131,7 +130,7 @@ ObserveToAddressUnit <- function(input, ns, rdfs, incident_details, edit) {
       namespace = 'observe input$to_address_unit'
     )
     
-    if(end_time <= start_time) {
+    if(end_time < start_time) {
       shinyalert(
         title = "Error",
         text = "Dispatch time must be before end time",

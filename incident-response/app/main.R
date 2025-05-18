@@ -23,7 +23,7 @@ ui <- function(id) {
     div(class = "app-header",
         img(src = 'static/logo.png',
             style = 'width: 40px; margin-right: 10px'),
-        span(Sys.getenv('FD'))),
+        span(global_functions$GetSetting('global', 'fire_department_name'))),
     br(),
     h3("Incident Response"),
     theme = bs_theme(version = 5,
@@ -89,6 +89,18 @@ server <- function(id) {
     session$onSessionEnded(function() {
       DBI::dbDisconnect(app_data$CON)
       print('DB Disconnected')
+    })
+    
+    # Keep DB connection live
+    observe({
+      #FIXME This needs to be set so the shiny session can still time out,
+      # but the DB connection is still kept alive
+      invalidateLater(180000)  # Ping every 3 minutes
+      cat('Pinging database...\n', file = stderr())
+      tryCatch(
+        dbGetQuery(app_data$CON, "SELECT 1"),
+        error = function(e) message("Connection ping failed: ", e$message)
+      )
     })
     
     # Catch any unhandled errors

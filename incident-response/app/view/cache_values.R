@@ -98,7 +98,7 @@ ObserveCancelModel <- function(input, incident_details, response_details, edit, 
       namespace = 'observe input$cancel_modal'
     )
     local_functions$resetCachedValues(incident_details, response_details,
-                                      edit, additional)
+                                      edit, additional, session, input)
     session$sendCustomMessage(type = "jsCode", list(code = "window.enableScroll();"))
     
     

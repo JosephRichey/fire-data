@@ -315,7 +315,7 @@ note <- function(ns, response_details, length, rdfs) {
             "time_adj_",
             ff |> tolower() |> stringr::str_replace_all(" ", "_")
           )
-          
+
           # Check if there is an existing value for time adjustment
           ff_time_adj <- NULL
           if(!is.null(response_details$response_id)) {

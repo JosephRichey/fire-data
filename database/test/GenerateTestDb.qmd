@@ -23,14 +23,14 @@ library(stringr)
 
 # Drop and Create Tables
 TEST <- dbConnect(RMariaDB::MariaDB(),
-                dbname = "crabapple",
+                dbname = "test",
                 host = Sys.getenv("DB_HOST"),
                 port = 3306,
                 user = "admin",
                 password = Sys.getenv("DB_PASSWORD"))
 
 
-sql_script <- readLines("build_demo_database.sql") |> paste(collapse = "\n")
+sql_script <- readLines("test/build_test_database.sql") |> paste(collapse = "\n")
 
 sql_statements <- unlist(strsplit(sql_script, ";")) |> trimws()
 
@@ -113,7 +113,7 @@ firefighter <- data.frame(
     "1989-02-17", "1986-05-16", "2004-06-11", "1985-10-11", "2011-07-22",
     "2001-12-19", "2010-08-13", "1985-07-28", "1999-03-31", "1946-12-20", "1985-07-03"
   ),
-  trainer = sample(0:1, 11, replace = TRUE, prob = c(0.2, 0.8)),
+  trainer = c(1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1),
   officer = c(0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1),
   is_active = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1),
   company_id = c(2, 3, 1, 2, 2, 3, 1, 3, 2, 2, 3),
@@ -160,9 +160,9 @@ db_insert("firefighter_contact", firefighter_contact)
 ## Populate `firefighter_status_history`
 ```{r firefighter_status_history}
 firefighter_status_history <- data.frame(
-  firefighter_id = sample(1:9, 2, replace = FALSE),
-  inactive_start_date = sapply(1:2, function(x) generate_date(-730, 180)),
-  inactive_end_date = sapply(1:2, function(x) generate_date(-365, 180))
+  firefighter_id = c(3,4),
+  inactive_start_date = c("2023-01-28", "2023-03-23"),
+  inactive_end_date = c("2024-03-13", "2024-05-09")
 )
 
 
@@ -195,9 +195,19 @@ db_insert("certification_type", certification_type)
 ```{r certification}
 certification <- data.frame(
   id = 1:25,
-  type_id = sample(1:6, 25, replace = TRUE),
-  firefighter_id = sample(1:11, 25, replace = TRUE),
-  expiration_date = sapply(1:25, function(x) generate_date(180, 365, FALSE))
+  type_id = c(2, 2, 1, 4, 6, 4, 2, 4, 1, 1, 1, 2, 1, 2, 5, 1, 6, 3, 3, 3, 5, 6, 3, 1, 6),
+  firefighter_id = c(11, 6, 1, 5, 9, 5, 10, 6, 5, 10, 2, 4, 11, 10, 7, 3, 8, 11, 1, 1, 5, 1, 9, 11, 5),
+
+  expiration_date = c(
+    "2025-07-06", "2024-12-29", "2026-06-13", 
+    "2025-12-10", "2026-05-03", "2026-03-16",
+    "2025-04-10", "2025-04-19", "2026-10-22",
+    "2025-12-16", "2025-02-08", "2025-06-27",
+    "2026-05-26", "2025-06-27", "2025-11-25", 
+    "2025-10-25", "2025-05-10", "2025-10-31",
+    "2025-05-31", "2025-01-20", "2025-09-16",
+    "2025-01-02", "2026-08-11", "2025-10-14",
+    "2025-05-25")
 )
 
 db_insert("certification", certification)
@@ -295,18 +305,15 @@ db_insert("equipment", equipment)
 
 equipment_log <- data.frame(
   id = 1:10,
-  checked_by_id = sample(1:11, 10, replace = TRUE),
-  equipment_id = sample(1:8, 10, replace = TRUE),
-  check_date_time = sapply(1:10, function(x) 
-    ymd_hms(
-      paste(
-        generate_date(-7, 0),
-        paste(sample(0:23, 1, TRUE)),
-        paste(sample(0:59, 2, TRUE), collapse = ":")
-        )
-      )
-    )
-  ) |> 
+  checked_by_id = c(7, 7, 7, 10, 2, 3, 3, 8, 2, 4),
+  equipment_id = c(8, 1, 7, 8, 6, 7, 4, 4, 1, 3),
+  check_date_time = c(
+    "2023-01-01 12:00:00", "2023-01-02 12:00:00", "2023-01-03 12:00:00",
+    "2023-01-04 12:00:00", "2023-01-05 12:00:00", "2023-01-06 12:00:00",
+    "2023-01-07 12:00:00", "2023-01-08 12:00:00", "2023-01-09 12:00:00",
+    "2023-01-10 12:00:00"
+  )
+  )|> 
   mutate(
     check_date_time = as.POSIXct(check_date_time) |> format(usets = FALSE)
   )
@@ -345,7 +352,13 @@ training_classification <- data.frame(
 
 training <- data.frame(
   id = 1:50,
-  classification_id = sample(1:7, 50, replace = TRUE),
+  classification_id = c(6, 3, 3, 7, 2, 2, 4,
+                        5, 6, 6, 6, 2, 1, 5, 
+                        3, 4, 1, 7, 4, 2, 2, 
+                        5, 2, 4, 5, 5, 2, 3, 
+                        3, 3, 6, 7, 4, 4, 1, 
+                        3, 6, 1, 2, 1, 3, 7,
+                        5, 4, 1, 5, 3, 4, 6, 2),
   training_description = sapply(1:05, function(x) lorem::ipsum_words(n = 6)),
   start_time = sapply(1:50, function(x) 
     ymd_hms(
