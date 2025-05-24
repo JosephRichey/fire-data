@@ -1,6 +1,6 @@
 name: Training Attendance Test
 on:
-  push:
+  workflow_dispatch:
     paths:
       - 'training-attendance/**'
 

@@ -1,0 +1,59 @@
+id,domain,setting_group,setting_key,setting_value,value_type
+1,global,id,password,123,string
+2,global,time,ltz,America/Denver,string
+3,global,time,date_format,%m-%d-%Y,string
+4,global,time,date_time_format,%m-%d-%Y %H:%M:%S,string
+5,global,format,sidebar_open,TRUE,boolean
+6,global,id,fire_department_name,Test Fire Department,string
+7,global,config,safe_delete,FALSE,boolean
+8,incident,incident_response,input_seconds,FALSE,boolean
+9,incident,incident_response,	,TRUE,boolean
+10,incident,incident_response,canceled,TRUE,boolean
+11,incident,incident_response,dropped,TRUE,boolean
+12,incident,incident_response,address,FALSE,boolean
+13,incident,incident_response,incident_cad_regex,\d{5},string
+14,incident,incident_response,cad_failure_message,Must be five digits,string
+15,incident,incident_config,locked_time_period,24,numeric
+16,incident,incident_tab,start_date_filter,M-1,relative_date
+17,incident,incident_tab,end_date_filter,D+0,relative_date
+18,incident,incident_tab,sort_col,Dispatch Time,string
+19,incident,incident_tab,sort_order,End Time,string
+20,incident,incident_tab,default_length,10,numeric
+21,incident,incident_tab,hide_reviewed,TRUE,boolean
+22,incident,incident_tab,hide_finalized,TRUE,boolean
+23,training,training_tab,start_date_filter,M-1,relative_date
+24,training,training_tab,end_date_filter,W+1,relative_date
+25,training,training_tab,sort_col,Date,string
+26,training,training_tab,sort_order,desc,string
+27,training,training_tab,default_length,10,numeric
+28,training,training_tab,default_start_time,18:00:00,string
+29,training,training_tab,default_end_time,20:00:00,string
+30,training,training_tab,default_date_offset,0,numeric
+31,training,training_attendance,early_check_in,15,numeric
+32,training,training_attendance,late_check_out,30,numeric
+33,training,training_tab,display_cols_order,"Category, Topic, Description, Trainer, Date, Start Time, End Time",string
+34,training,training_config,training_edit_restriction,30,numeric
+35,training,training_config,excused_enabled,TRUE,boolean
+36,equipment,equipment_checks_tab,show_due,TRUE,boolean
+37,equipment,equipment_checks_tab,show_approaching,TRUE,boolean
+38,equipment,equipment_checks_tab,show_normal,FALSE,boolean
+39,equipment,equipment_checks_tab,show_snooze,FALSE,boolean
+40,equipment,equipment_expiration_tab,show_due,TRUE,boolean
+41,equipment,equipment_expiration_tab,show_approaching,TRUE,boolean
+42,equipment,equipment_expiration_tab,show_normal,FALSE,boolean
+43,report,ind_training_tab,start_date_filter,M-1,relative_date
+44,report,ind_training_tab,end_date_filter,W+1,relative_date
+45,report,dep_training_tab,start_date_filter,M-1,relative_date
+46,report,dep_training_tab,end_date_filter,W+1,relative_date
+47,report,training_tab,custom_reports,Report 1,string
+48,report,incident_tab,start_date_filter,M-1,relative_date
+49,report,incident_tab,end_date_filter,W+1,relative_date
+50,report,incident_tab,custom_reports,Report 1,string
+51,report,equipment_tab,custom_reports,Report 1,string
+52,report,personnel_tab,custom_reports,Report 1,string
+53,report,ai_reports,verify_report,TRUE,boolean
+54,incident,incident_response,standby_allowed,TRUE,boolean
+55,incident,incident_response,track_apparatus_assignments,TRUE,boolean
+56,incident,incident_response,time_adjust_max,120,numeric
+57,incident,incident_response,time_adjust_min,-120,numeric
+58,incident,incident_response,time_adjust_step,15,numeric

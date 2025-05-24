@@ -4,33 +4,64 @@ box::use(
   dplyr[...],
   lubridate[...],
   hms[as_hms],
+  logger[...]
 )
+
+log_info("Running app_data.R", namespace = "app_data.R")
 
 #' @export
 CON <- dbConnect(RMySQL::MySQL(),
-                dbname = "cfddb",
+                dbname = "crabapple",
                 host = Sys.getenv("DB_HOST"),
                 port = 3306,
                 user = "admin",
                 password = Sys.getenv("DB_PASSWORD"))
 
-#' @export
-Training <- dbGetQuery(CON,
-                       paste0("SELECT * FROM ", Sys.getenv("TRAINING_TABLE"))) |>
-  mutate(training_start_time = as.POSIXct(training_start_time, format = "%Y-%m-%d %H:%M:%OS"),
-         training_end_time = as.POSIXct(training_end_time, format = "%Y-%m-%d %H:%M:%OS"))
+log_info("Connected to database", namespace = "app_data.R")
+
 
 #' @export
-Firefighter <- dbGetQuery(CON,
-                     paste0("SELECT * FROM ", Sys.getenv("FIREFIGHTER_TABLE"))) |>
-  mutate(firefighter_start_date = as.Date(firefighter_start_date),
-         firefighter_deactive_date = as.Date(firefighter_deactive_date))
+Setting <- dbGetQuery(CON, "SELECT * FROM setting")
+
+init_ltz <- Setting |>
+  filter(setting_key == "ltz") |>
+  pull(setting_value)
+
+log_info(glue::glue("Extracted local timezone: {init_ltz}"), namespace = "app_data.R")
 
 #' @export
-Attendance <- dbGetQuery(CON,
-                         paste0("SELECT * FROM ", Sys.getenv("ATTENDANCE_TABLE"))) |>
-  mutate(check_in = as.POSIXct(check_in),
-         check_out = as.POSIXct(check_out))
+local_date <- Sys.time() |>
+  with_tz(tz = init_ltz) |>
+  as_date(tz = init_ltz)
+
+log_info(glue::glue("Extracted local date: {local_date}"), namespace = "app_data.R")
+
+
+##### Training #####
+#' @export
+Training_Classifcaion <- dbGetQuery(CON, "SELECT * FROM training_classification") |>
+  mutate(training_category = if_else(
+    is_active == 1,
+    training_category,
+    paste("*", training_category)
+  )
+  )
+
 
 #' @export
-Local_Date <- as.Date(Sys.time() |> with_tz(tzone = Sys.getenv('LOCAL_TZ')), tz = Sys.getenv('LOCAL_TZ'))
+training_category_filter <- Training_Classifcaion |>
+  filter(!is.na(training_category)) |>
+  pull(training_category) |>
+  unique()
+
+#' @export
+training_category_active <- Training_Classifcaion |>
+  filter(is_active == 1) |>
+  pull(training_category) |>
+  unique()
+
+
+
+log_info("app_data.R loaded", namespace = "app_data.R")
+
+

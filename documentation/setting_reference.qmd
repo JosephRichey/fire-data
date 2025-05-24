@@ -1,0 +1,30 @@
+---
+title: "Setting Reference"
+format: html
+---
+
+## Global
+
+## Incident
+
+| Setting Group | Setting Key | Setting Value | Notes |
+|----|----|----|----|
+| `dispatch_code` | String to designate what type of dispatch (Fire, EMS, etc.) | Code reported by dispatch | You can add as many different types of codes as you want. All dispatch types (Fire, EMS, etc.) must be included in the dispatch category key. |
+| NA | `dispatch_category` | All dispatch types (Fire, EMS, etc.) |  |
+|  |  |  |  |
+
+### dispatch_code
+
+### Dispatch Code
+
+## Training
+
+training page, start_date_filter and end_date_filter. Can set relative date defaults. The format is {units}{+/-}{number}. For example, D-7 would be seven days ago, and M+3 would be 3 months in the future.
+
+Valid entries include:
+
+-   \[DWMY\]: Day, Week, Month, Year
+
+-   \[+/-\]: Forward or backward
+
+-   Any number

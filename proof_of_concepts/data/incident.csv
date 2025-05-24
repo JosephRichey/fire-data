@@ -1,0 +1,11 @@
+incident_id,incident_dispatch_time,incident_end_time,incident_address,incident_dispatch_reason,incident_ems_units,incident_fire_units,incident_wildland_units,incident_area,incident_canceled,incident_dropped,incident_notes,incident_finalized
+1,1/15/2025 0:34,1/15/2025 1:35,123 Maple Avenue,Head Injury,1,0,0,Municipality,1,0,,0
+10,1/16/2025 9:00,1/16/2025 13:00,707 Birch Road,Structure Fire,1,1,1,Primary Area,0,0,,0
+2,1/1/2025 0:34,1/1/2025 1:35,456 Oak Street,Fractured Bone,1,0,0,Primary Area,0,1,,0
+3,1/2/2025 0:34,1/2/2025 1:36,789 Pine Road,Burn Injury,1,0,0,Municipality,0,0,,0
+4,1/3/2025 0:34,1/3/2025 1:37,101 Birch Lane,Respiratory Issue,1,0,0,Primary Area,0,0,,1
+5,1/4/2025 0:34,1/4/2025 1:38,202 Cedar Court,Grass Fire,0,1,1,Outside Aid,0,0,,1
+6,1/5/2025 0:34,1/5/2025 1:39,303 Elm Street,Stroke,1,0,0,Primary Area,0,0,,0
+7,1/6/2025 0:34,1/6/2025 1:40,404 Maple Drive,Seizure,1,0,0,Municipality,0,0,,0
+8,1/7/2025 0:34,1/7/2025 1:41,505 Oak Avenue,Grass Fire,1,0,1,Mutual Aid,0,0,,0
+9,1/8/2025 0:34,1/8/2025 1:42,606 Pine Lane,Drug Overdose,0,1,0,Municipality,0,0,,0

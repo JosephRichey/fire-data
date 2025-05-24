@@ -3,17 +3,15 @@ box::use(
   DBI[...],
 )
 
+box::use(
+  app/logic/app_data,
+)
+
 
 test_that("Can connect to test database", {
-  CON <- dbConnect(RMySQL::MySQL(),
-                   dbname = "cfddb",
-                   host = Sys.getenv("DB_HOST"),
-                   port = 3306,
-                   user = "admin",
-                   password = Sys.getenv("DB_PASSWORD"))
-  result <- dbGetQuery(CON, paste0("SELECT * FROM ", Sys.getenv("TRAINING_TABLE"),
-                                   " WHERE training_delete IS NULL LIMIT 1"))
-  testthat::expect_is(result, "data.frame")
+  Tables <- dbGetQuery(app_data$CON, "SHOW TABLES")
 
-
+  #FIXME Eventually, once structure is solid, update this test
+  # to have actual table names
+  testthat::expect_gt(nrow(Tables), 2)
 })

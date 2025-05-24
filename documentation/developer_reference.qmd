@@ -1,0 +1,776 @@
+---
+title: "Developer Reference"
+format: html
+---
+
+## Database
+The database is designed to be a MySQL database hosted on AWS. A breakdown of th tables follows:
+
+### Base Tables
+These tables are used throughout the app. They are cross functional with the main four areas (training, incident, equipment, personnel) of the platform.
+
+A note on naming- is_deleted is used when something should be deleted, but is retained for audit (think things like trainings). is_active is used for things that can change over time (dispatch codes and firefighters). is_deleted is always a date so there's a record of when it was deleted, and is_active is a boolean.
+
+
+___
+
+#### Firefighter
+**Purpose:**
+Stores the core personnel records for all firefighters within the department. Contains status (active/inactive), role, and other essential information.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for each firefighter.
+
+full_name (VARCHAR(511)) – The firefighter’s full name.
+
+start_date (DATE) – The official start (hire) date.
+
+trainer (BOOLEAN) – Indicates whether this firefighter can lead trainings.
+
+officer (BOOLEAN) – Indicates whether this firefighter holds an officer rank.
+
+is_active (BOOLEAN) – True if actively employed/engaged, false if deactivated or inactive.
+
+company_id (INT, FK → company(id)) – Links the firefighter to a specific crew/company.
+
+firefighter_role (VARCHAR(255)) – Descriptive role or title (e.g., Firefighter, Captain, etc.).
+
+**Deletion:**
+
+In practice, firefighters are not deleted but toggled inactive (active_status = false).
+
+The FK to company uses ON DELETE SET NULL, so if a company is removed, the company_id here becomes NULL. They will be orphaned from a company.
+
+Similarly, in chain of command, if a firefighter is removed, the FK to firefighter_id uses ON DELETE SET NULL. They will be orphaned in the chain of command.
+
+**Joins:**
+
+firefighter ↔ company on company_id (one company can have many firefighters).
+
+Referenced by many tables via firefighter_id (e.g., chain_of_command, firefighter_contact, attendance, etc.).
+
+___
+
+#### Apparatus
+**Purpose:**
+Represents a piece of firefighting apparatus (e.g., Engine 1, Ladder Truck). Tracks which vehicles/resources are active and available.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for each apparatus.
+
+apparatus_name (VARCHAR(255)) – Official or commonly used name/label.
+
+is_active (DATE) – Date after which the apparatus is not in use or otherwise not available for new assignments.
+
+**Deletion:**
+
+Typically not deleted if used historically. Instead, the apparatus_expire field indicates it is no longer active.
+List is managed in the settings tab.
+
+**Joins:**
+
+Referenced in tables such as equipment (equipment can be assigned to an apparatus), apparatus_response, and firefighter_apparatus.
+
+#### Setting
+
+**Purpose:**
+Stores configurable keys and values for various features or behaviors within the platform (system‐wide or departmental settings).The value type allows the value to be parsed correctly. Note, all keys that have the same name have to have the same type. When parsing multiple values(like dispatch codes), the value type is set to the first record.
+See [Setting Reference](setting_reference.qmd) for more details.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier.
+
+domain (VARCHAR(255)) – The domain or area of the setting (e.g., “training,” “incident”).
+
+setting_group (VARCHAR(255)) – Broad group of the setting.
+
+setting_key (VARCHAR(255)) – Sub‐key or a more specific setting name.
+
+setting_value (VARCHAR(255)) – The stored value.
+
+value_type (VARCHAR(255)) – Type of value (e.g., “string,” “int,” “boolean”).
+
+**Deletion:**
+
+You might delete old or unused settings (not recommended). No special constraints beyond the primary key.
+
+**Joins:**
+
+Not usually joined to other tables. Accessed by the application to retrieve configuration.
+
+___
+
+### Training Tables
+These tables are used to track training sessions, attendance, and related details.
+
+___
+
+#### Training Classification
+**Purpose:**
+Hierarchy of training classifications
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for the training classification.
+
+training_category (VARCHAR(255)) – Category of training (e.g., “Fire,” “EMS”).
+
+training_type (VARCHAR(255)) – Category or type of training (e.g., “Fire Behavior,” “Rescue Ops”). Can be null.
+
+is_active (DATE) – If this training classification is no longer used.
+
+**Deletion:**
+
+Typically not deleted if historical records (attendance) reference it. Instead, might mark expired or keep for audit.
+
+**Joins:**
+
+training ↔ attendance on id → training_id (one training has many attendance records).
+
+training ↔ firefighter on trainer → firefighter(id).
+
+___
+
+#### Training
+**Purpose:**
+Defines a training session/event with a topic, time range, and related details.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for the training event.
+
+training_id - (INT, FK → training_classification(id)) – The classification of the training.
+
+training_description (VARCHAR(1000)) – More detailed information about the training.
+
+start_time (DATETIME) – Date/time the training is scheduled to begin.
+
+end_time (DATETIME) – Date/time the training is scheduled to end.
+
+credit_hours (FLOAT/DECIMAL) – Number of credited hours awarded. Defaults to the difference between start_time and end_time.
+
+trainer (INT, FK → firefighter(id)) – The firefighter responsible for leading or coordinating the training.
+
+is_deleted (DATE) – Date this training was deleted and no longer included in any reporting.
+
+**Deletion:**
+
+Typically not deleted if historical records (attendance) reference it. Instead, might mark expired or keep for audit.
+
+**Joins:**
+
+training ↔ attendance on id → training_id (one training has many attendance records).
+
+training ↔ firefighter on trainer → firefighter(id).
+
+___
+
+#### Attendance
+
+**Purpose:**
+Tracks which firefighters attended each training session, plus check‐in/check‐out times.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique attendance record identifier.
+
+firefighter_id (INT, FK → firefighter(id)) – Id of Who attended.
+
+training_id (INT, FK → training(id)) – Which training session.
+
+check_in (DATETIME) – Actual check‐in time.(UTC)
+
+check_out (DATETIME) – Actual check‐out time.(UTC)
+
+auto_checkout (BOOLEAN) – Indicates if the system automatically handled check‐out.
+
+credit (BOOLEAN) – Whether the firefighter receives credit for attending. This is assigned via stored proc in the database.
+
+excused (BOOLEAN) – If the firefighter was excused from attending.
+
+**Deletion:**
+
+Typically only removed if the attendance was invalid or created by mistake. Usually retained for record keeping.
+
+**Joins:**
+
+attendance ↔ firefighter (many attendance records per firefighter).
+
+attendance ↔ training (many attendance records per training).
+
+___
+
+### Incident Tables
+These tables are used to track incidents, responses, and related details.
+
+___
+
+#### Dispatch Code
+**Purpose:**
+Defines valid dispatch codes.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for the code.
+
+dispatch_type (VARCHAR(255)) – The type of dispatch code (e.g., “Fire,” “EMS”).
+
+dispatch_code (VARCHAR(255)) – The actual dispatch code.
+
+is_active (BOOLEAN) – If this dispatch code is no longer used.
+
+**Deletion:**
+
+Typically not deleted; instead, it’s marked as inactive. This allows for historical reference.
+
+**Joins:**
+
+dispatch_code ↔ incident (many incidents can reference the same dispatch code).
+___
+
+#### Incident
+
+**Purpose:**
+Top‐level record representing a call or event to which the department responds (fire, EMS, etc.).
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier.
+
+cad_identifier (VARCHAR(255)) – The identifier from the dispatch system.
+
+incident_start (DATETIME) – When the incident began.
+
+incident_end (DATETIME) – When the incident concluded or was cleared.
+
+address (VARCHAR(255)) – Location of the incident.
+
+dispatch_id (INT) – Official code from the dispatch system.
+
+area (VARCHAR(255)) – Specific category (mutual aid, primary area, municipality, etc.).
+
+canceled (BOOLEAN) – True if the incident was canceled.
+
+dropped (BOOLEAN) – True if the incident was dropped.
+
+finalized (BOOLEAN) – True if the incident is closed and all records are finalized.
+
+incident_expire (DATE) – Mark to exclude from reporting.
+
+**Deletion:**
+
+Usually never deleted; kept indefinitely for auditing. Instead, you will see incident_expire.
+
+**Joins:**
+
+incident ↔ response (one incident can have many responses).
+
+incident ↔ incident_unit (tracks which type of response was needed).
+
+incident ↔ dispatch_code (many incidents can reference the same dispatch code).
+
+___
+
+#### Response
+
+**Purpose:**
+Represents an actual response instance tied to an incident (e.g., engine 1 responded). Typically, most incidents will only have one response (a response can have multiple firefighters, apparatus, etc.) An example of a mulit-response incident would be a wildland fire where one crew responded for the first 12 hours, and a second crew took over for the next 12 hours.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for each response.
+
+incident_id (INT, FK → incident(id), ON DELETE RESTRICT, ON UPDATE CASCADE) – Which incident this response belongs to.
+
+response_start (DATETIME) – When that response effort began.
+
+response_end (DATETIME) – When that response ended.
+
+notes (TEXT) – Field notes, relevant info about the response.
+
+is_deleted (DATE) – Exclude from reporting.
+
+**Deletion:**
+
+Generally retained for incident history. Expire to exclude. ON DELETE RESTRICT ensures the incident cannot be deleted if responses exist.
+
+**Joins:**
+
+response ↔ incident on incident_id.
+
+response ↔ firefighter_response, apparatus_response, firefighter_apparatus.
+
+___
+
+#### Unit
+**Purpose:**
+Stores types of units or categories (e.g., Fire, EMS, Wildland, etc.). Departments can customize.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier.
+
+unit_type (VARCHAR(255)) – Name/category (e.g., “Fire”, “EMS”, etc.).
+
+is_active (BOOLEAN) – If this unit type is no longer used.
+
+**Deletion:**
+
+Typically not removed; if not active, it should not be used for new incidents.
+
+**Joins:**
+
+unit ↔ incident_unit (many incidents can reference each unit type).
+
+___
+
+#### Incident Unit
+
+**Purpose:**
+Links an incident to the type of unit (e.g., Fire, EMS, Rescue) that responded.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier.
+
+incident_id (INT, FK → incident(id)) – The incident.
+
+unit_type_id (INT, FK → unit(id)) – The type of unit that responded.
+
+**Deletion:**
+
+Typically retained for historical reference. ON DELETE RESTRICT means you cannot remove an incident or unit if references exist here.
+
+**Joins:**
+
+incident_unit ↔ incident.
+
+incident_unit ↔ unit (one incident can have several types of units needed).
+
+_This application tracks unit type response separately from apparatus because, in many volunteer departments, apparatus are often used simply to transport personnel. In these cases, it's important to record the type of response unit (e.g., EMS, fire, rescue) independently from the specific vehicle used._
+
+___
+
+#### Firefighter Response
+
+**Purpose:**
+Associates individual firefighters with a particular response to track who participated and any time adjustments.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique record for each firefighter/response combination.
+
+response_id (INT, FK → response(id)) – Which response they participated in.
+
+firefighter_id (INT, FK → firefighter(id)) – The firefighter involved.
+
+time_adjustment (FLOAT/DECIMAL) – Additional time or offset for reporting hours.
+
+**Deletion:**
+
+No option for deletion. Edits will overwrite old records.
+
+**Joins:**
+
+firefighter_response ↔ firefighter.
+
+firefighter_response ↔ response.
+
+___
+
+#### Apparatus Response
+
+**Purpose:**
+Tracks which apparatus were assigned to a specific response.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier.
+
+response_id (INT, FK → response(id)) – The response record.
+
+apparatus_id (INT, FK → apparatus(id)) – The apparatus involved.
+
+**Deletion:**
+
+No option for deletion. Edits will overwrite old records.
+
+**Joins:**
+
+apparatus_response ↔ response.
+
+apparatus_response ↔ apparatus.
+
+___
+
+#### Firefighter Apparatus
+
+**Purpose:**
+Specifically ties a firefighter to an apparatus for the duration of a response (e.g., who was riding on or responsible for which vehicle).
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier.
+
+response_id (INT, FK → response(id)) – Which response.
+
+firefighter_id (INT, FK → firefighter(id)) – The firefighter.
+
+apparatus_id (INT, FK → apparatus(id)) – The apparatus.
+
+**Deletion:**
+
+No option for deletion. Edits will overwrite old records.
+
+**Joins:**
+
+firefighter_apparatus ↔ response.
+
+firefighter_apparatus ↔ firefighter.
+
+firefighter_apparatus ↔ apparatus.
+
+___
+
+### Equipment Tables
+These tables are used to track equipment, checks, and compliance.
+
+___
+
+#### Equipment Type
+
+**Purpose:**
+Defines the category of equipment, plus checking and expiration intervals (e.g., SCBA, Monitor, Defibrillator).
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for the type.
+
+equipment_type (VARCHAR(255)) – Descriptive name (e.g., “SCBA Battery”).
+
+check_lead_time, check_lead_time_unit (INT, VARCHAR) – How far in advance of a check you want a warning and the time unit (days, weeks, etc.).
+
+check_time, check_time_unit (INT, VARCHAR) – Frequency of required checks.
+
+expire_lead_time, expire_lead_time_unit (INT, VARCHAR) – How far in advance of expiration you want a warning.
+
+expire_time, expire_time_unit (INT, VARCHAR) – How long until the equipment of this type typically expires.
+
+is_active (BOOLEAN) – If this equipment type is no longer used.
+
+**Deletion:**
+
+Generally not physically removed once used in equipment; expired types remain in the system for historical data.
+
+**Joins:**
+
+equipment_type ↔ equipment.
+
+___
+
+#### Equipment
+
+**Purpose:**
+An instance of a specific piece of equipment belonging to a type and assigned either to a firefighter or apparatus.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for each piece of equipment.
+
+equipment_name (VARCHAR(255)) – Human‐readable name/label.
+
+equipment_type_id (INT, FK → equipment_type(id)) – What type it is.
+
+firefighter_id (INT, FK → firefighter(id)) – If the equipment is assigned to a firefighter.
+
+apparatus_id (INT, FK → apparatus(id)) – If the equipment is assigned to an apparatus.
+
+next_check_date (DATE) – When the next required check is due.
+
+expiration_date (DATE) – When this item expires.
+
+snooze_expires (DATE) – If the check was “snoozed,” when that snooze period ends.
+
+is_deleted (DATE) – Date this equipment no longer shows up in reporting.
+
+**Deletion:**
+
+Typically retained for safety/audit; once “deleted,” either have to replace and renew equipment, or, delete the equipment (through setting a date in the is_deleted column).
+
+**Joins:**
+
+equipment ↔ equipment_type.
+
+Potentially joined to firefighter or apparatus to show ownership/assignment.
+
+equipment_log references specific equipment checks.
+
+___
+
+#### Equipment Log
+
+**Purpose:**
+Logs each check performed on a piece of equipment, capturing who did it and when.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for each log entry.
+
+checked_by_id (INT, FK → firefighter(id)) – The firefighter who performed the check.
+
+equipment_id (INT, FK → equipment(id)) – The item being checked.
+
+check_date_time (DATETIME) – When the check occurred.
+
+**Deletion:**
+
+Typically never deleted unless a check entry was made in error, as it’s important for audit/compliance.
+
+**Joins:**
+
+equipment_log ↔ equipment.
+
+equipment_log ↔ firefighter (who did the check).
+
+___
+
+#### Equipment Check Compliance
+
+**Purpose:**
+Snapshots overall equipment‐check compliance, typically a percentage representing how many items are up‐to‐date on required checks.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for each snapshot record.
+
+compliance_date (DATE) – The date when compliance was calculated.
+
+check_compliance (FLOAT/DECIMAL) – The percentage of equipment that is not overdue for checks (0–100, or a fraction).
+
+expire_compliance (FLOAT/DECIMAL) – The percentage of equipment that is not expired (0–100, or a fraction).
+
+overall_compliance (FLOAT/DECIMAL) – The overall compliance percentage (0–100, or a fraction).
+
+**Deletion:**
+
+Generally retained for historical trend analysis.
+
+**Joins:**
+
+Usually stands alone, referenced by reporting features rather than a direct join to other tables.
+
+___
+
+### Personnel Tables
+These tables are used to track personnel, certifications, and related details.
+___
+
+#### Company
+
+**Purpose:**
+Identifies which crew/company (e.g., “A‐Shift,” “Engine 3 Crew”) a firefighter belongs to.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for the company.
+
+company_name (VARCHAR(255)) – Descriptive name of the crew/company.
+
+**Deletion:**
+
+Can be removed, but if referenced by a firefighter (company_id), that field is set to NULL.
+
+**Joins:**
+
+company ↔ firefighter (one‐to‐many).
+
+___
+
+#### Certification Type
+
+**Purpose:**
+Defines different possible certifications, along with renewal and lead‐time requirements.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique ID for the certification type.
+
+certification_name (VARCHAR(255)) – Name (e.g., “EMT‐Basic,” "Firefighter 1”).
+
+lead_time, lead_time_unit (INT, VARCHAR) – Advance notice needed before initial certification expiration.
+
+renew_time, renew_time_unit (INT, VARCHAR) – How often recertification is required.
+
+is_active (boolean) – If this certification type is no longer used.
+
+**Deletion:**
+
+Typically not deleted but marked inactive, to maintain references in certification.
+
+**Joins:**
+
+certification_type ↔ certification.
+
+___
+
+#### Certification
+
+**Purpose:**
+An actual certification instance held by a particular firefighter.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for the certification record.
+
+type_id (INT, FK → certification_type(id)) – Which certification type.
+
+firefighter_id (INT, FK → firefighter(id)) – Who holds the certification.
+
+expiration_date (DATE) – When the certification for this individual expires.
+
+is_deleted (DATE) – Date this certification was deleted and no longer included in any reporting.
+
+**Deletion:**
+
+Can be deleted or renewed. No historical records are kept.
+
+**Joins:**
+
+certification ↔ certification_type.
+
+certification ↔ firefighter.
+
+___
+
+#### Firefighter Status History
+
+**Purpose:**
+Captures active/inactive date ranges for each firefighter to calculate total tenure or track leaves/retirements.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier for each status record.
+
+firefighter_id (INT, FK → firefighter(id)) – Linked firefighter.
+
+inactive_start_date (DATE) – Start of an inactive period.
+
+inactive_end_date (DATE) – End of that inactive period (NULL if still inactive).
+
+**Deletion:**
+
+Typically not deleted; it’s a timeline record of a firefighter’s employment status.
+
+**Joins:**
+
+firefighter_status_history ↔ firefighter.
+
+___
+
+#### Chain of Command
+
+**Purpose:**
+Defines the supervisory relationships: who reports to whom.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique record.
+
+firefighter_id (INT, FK → firefighter(id)) – The subordinate.
+
+supervisor_id (INT, FK → firefighter(id)) – The supervisor.
+
+**Deletion:**
+
+If a supervisor is deleted (rare), references here become NULL if ON DELETE SET NULL.
+
+Typically, changes are made by altering references or adding new rows.
+
+**Joins:**
+
+chain_of_command ↔ firefighter (both subordinate and supervisor are in the same table).
+
+___
+
+#### Firefighter Contact
+
+**Purpose:**
+Stores contact details (address, phone, email) for each firefighter.
+
+**Column Definitions:**
+
+id (INT, PK) – Unique identifier.
+
+firefighter_id (INT, FK → firefighter(id)) – Linked firefighter.
+
+street_address_1, street_address_2 (VARCHAR(255)) – Mailing address lines.
+
+city (VARCHAR(255)) – City.
+
+state (CHAR(2)) – State/province (assuming US 2‐letter codes).
+
+zip_code (VARCHAR(10)) – ZIP/Postal code.
+
+phone_number (VARCHAR(15)) – Primary contact number.
+
+email_address (VARCHAR(255)) – Primary email.
+
+**Deletion:**
+
+Possibly removed if the contact is outdated or if the firefighter is removed. Usually just updated.
+
+**Joins:**
+
+firefighter_contact ↔ firefighter (one‐to‐one or one‐to‐many if you allow multiple contacts per firefighter).
+
+## Time
+Time has been a challenge in this application. The following is a summary of the structure of how it's handled.
+
+### Storage and Manipulation
+
+1. Datetime is always in UTC in the database in a datetime format.
+```
+format(dt,"%Y-%m-%d %H:%M:%S", tz = "UTC", usetz = FALSE)
+```
+Use the format function when storing to ensure the correct format. Almost every time, the query is built and then executed rather than relying on dbAppend.
+
+2. Anytime data is in memory in R, convert to local time zone in a POSIXct object
+```
+as.POSIXct(dt, tz = "UTC") |> with_tz("America/Denver")
+```
+3. When displaying value, convert to local time zone in a character string. This can either be a date, time, or datetime depending on the context.
+```
+format(dt, "%Y-%m-%d %H:%M:%S", tz = "America/Denver", usetz = FALSE)
+```
+4. Dates are always stored in the database in a character string (no timezone, convert to local before storing)
+```
+format(dt, tz = 'America/Denver', "%Y-%m-%d", usetz = FALSE)
+```
+Dates retrieved from the database are converted to POSIXct obejcts when brought into memory. Tz doesn't matter, because there is no time element if it's just storing a date. Otherwise, see datetime guidelines.
+```
+as.Date(dt)
+```
+5. Utility Functions
+Three helper functions in app/logic/functions.R simplify time handling across the app:
+
+FormatLocal() – Formats a POSIXct object as a local string (date, time, or datetime). This is assuming you're going from R memory (POSIC local time zone) to a string (local time zone).
+
+ConvertToLocalPosix() – Converts a UTC datetime string into local POSIXct and formats as a string. This is mainly for going from the database to R.
+
+BuildDateTime() – Constructs a datetime from date + time input and returns a UTC or local POSIXct. Generally, it is used to build a UTC value that is stored in the database. The general flow of the applications has the database updated, and then reactives are invalidated and reloaded. This is the opposite of the other two functions, which are used to convert from the database to R memory.
+
+These ensure consistent formatting, conversion, and safety.
+
+### Flow
+The flow of time in the application is as follows:
+1. User inputs a date and time in local time (e.g., 2023-10-01 12:00:00).
+2. The application converts this to a UTC datetime string for storage in the database.
+3. The database stores this as a UTC date/datetime.
+4. When retrieving data (either on initial load or on a refresh), the application converts the UTC datetime string back to a POSIX local time zone for stroage.
+5. The application then formats the local time zone datetime for display to the user. This can be configured in the settings. See [Setting Reference](setting_reference.qmd) for more details.
+
+
+

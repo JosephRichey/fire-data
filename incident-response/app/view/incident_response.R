@@ -7,400 +7,357 @@ box::use(
   dplyr[...],
   shinyalert[...],
   DBI[...],
+  purrr[...],
+  sortable[...],
+  htmlwidgets[...],
+  logger[...],
+  glue[...],
 )
+
+log_trace("Loading incident_response.R", namespace = "incident_response")
 
 box::use(
   app/logic/app_data,
+  app/modal/modal,
+  app/logic/local_functions[...],
+  app/logic/global_functions[GetSetting,
+                             BuildDateTime,
+                             CheckWriteResult,
+                             StringToId,
+                             IdToString,
+                             HipaaLog,
+                             UpdateReactives],
+  app/logic/logging,
+  ./modal_handlers[...],
+  ./cache_values[...],
+  ./edit[...],
+  ./write[...],
 )
 
 UI <- function(id) {
   ns <- NS(id)
   tagList(
-    actionButton(ns("add_incident"), "Add Incident"),
+    actionButton(
+      ns("add_incident"), 
+      "Add Incident", 
+      class = "btn btn-primary")
   )
+}
+
+
+Server <- function(id, rdfs) {
+  moduleServer(
+    id,
+    function(input, output, session) {
+      
+      ns <- session$ns
+      ##########################################################################
+      #             Reactives to save until write or reset
+      ##########################################################################
+      
+      edit <- reactiveVal(FALSE)
+      
+      additional <- reactiveVal(FALSE)
+      
+      incident_details <- reactiveValues(
+        cad_identifier = NULL,
+        # This field is used to cache what the cad id
+        # is before the user edits it.
+        # This allows us to still prevent duplicates.
+        edit_cad_identifier = NULL,
+        incident_start_date = NULL,
+        incident_start_time = NULL,
+        incident_end_date = NULL,
+        incident_end_time = NULL,
+        address = NULL,
+        area = NULL,
+        dispatch_reason = NULL,
+        units = NULL,
+        canceled = NULL,
+        dropped = NULL
+      )
+      
+      response_details <- reactiveValues(
+        incident_id = NULL,
+        response_id = NULL,
+        response_start_date = NULL,
+        response_start_time = NULL,
+        response_end_date = NULL,
+        response_end_time = NULL,
+        response_notes = NULL,
+        apparatus = NULL,
+        firefighter = NULL,
+        ff_app_assignemnt = NULL
+      )
+      ##########################################################################
+      #              Cache Data Automatically When Modified
+      ##########################################################################
+      # These handlers cache the values of the inputs. See app/view/cache_values.R
+      CacheToList(input, incident_details, response_details)
+      ObserveAssignmentList(input, response_details)
+      
+      observe({
+        # browser()
+        
+        # Check if the adjustment section was enabled
+        # If it isn't, set all inputs to 0.
+        if (!isTruthy(input$time_adjust_needed)) {
+          # browser()
+            lapply(response_details$firefighter, function(ff) {
+              id <- paste0("time_adj_", tolower(ff) |> stringr::str_replace_all(" ", "_"))
+              updateNumericInput(session, id, value = 0)
+            })
+          return()
+        }
+        
+        # Iterate over each firefighter
+        adjustment_list <- stats::setNames(
+          lapply(response_details$firefighter, function(ff) {
+            id <- paste0("time_adj_", tolower(ff) |> stringr::str_replace_all(" ", "_"))
+            input[[id]]
+          }),
+          response_details$firefighter
+        )
+        
+        response_details$time_adjustments <- adjustment_list
+        
+        log_trace(
+          glue::glue("Cached time adjustments: {toString(adjustment_list)}"),
+          namespace = "cache response details"
+        )
+      }) |> 
+        bindEvent(input$time_adjust_needed, 
+                  input$submit, 
+                  input$to_assignment, 
+                  input$to_apparatus_ff, 
+                  ignoreInit = TRUE)
+      
+      
+      ##########################################################################
+      #                    Modal Navigation  
+      ##########################################################################
+      # These handlers deal with all validation and navigation between modals.
+      # They are located in app/view/modal_handlers.R
+      
+      ObserveAddIncident(input, ns, incident_details, edit)
+      ObserveToAddressUnit(input, ns, rdfs, incident_details, edit)
+      ObserveToApparatusFf(input, ns, response_details, edit, additional)
+      ObserveToAssignment(input, ns, response_details, edit, additional, rdfs)
+      ObserveToNote(input, ns, response_details, edit, additional, rdfs)
+      ObserveToKeyTimeAdditional(input, ns, response_details, edit, additional, rdfs)
+      ObserveCancelModel(input, incident_details, response_details, edit, additional, session)
+      
+      ##########################################################################
+      #                     Assignment Widget
+      ##########################################################################
+      # Render dynamic bucket list inside modal
+      output$firefighter_apparatus_list <- renderUI({
+        generate_firefighter_apparatus(input, ns, response_details, rdfs)
+      }) |> 
+        bindEvent(input$to_assignment)
+
+      
+      ##########################################################################
+      #                Observers Watching for Edits or Additional Response
+      ##########################################################################
+      ObserveEditIncident(input, ns, incident_details, rdfs, edit)
+      ObserveEditResponse(input, ns, response_details, rdfs, edit)
+      ObserveAddResponse(input, ns, response_details, rdfs, additional)
+      
+      ##########################################################################
+      #             Submit
+      ##########################################################################
+      observe({
+        # Load values to pass to write functions
+        
+
+        removeModal()
+        session$sendCustomMessage(type = "jsCode", list(code = "window.enableScroll();"))
+        
+        shinycssloaders::showPageSpinner(
+          type = 6,
+          color = "#87292b"
+        )
+
+        ## Pull Values into local variables
+        # Coaleace the reactives with inputs
+        # If an input doesn't change between multiple entries, the reactive won't 
+        # catch it.
+        inc_keys <- c(
+          "cad_identifier", "incident_start_date", "incident_start_time",
+          "incident_end_date", "incident_end_time", "address",
+          "dispatch_reason", "area", "canceled", "dropped", "units"
+        )
+        resp_keys <- c(
+          "incident_id", "response_id",
+          "response_start_date", "response_start_time", "response_end_date",
+          "response_end_time", "response_notes", "firefighter", "apparatus", "ff_app_lists"
+        )
+        
+        # browser()
+        inc_vals <- CoalesceReactiveWithInput(reactiveValuesToList(incident_details), input, inc_keys)
+        resp_vals <- CoalesceReactiveWithInput(reactiveValuesToList(response_details), input, resp_keys)
   
-}
-
-Output <- function(id) {
-  ns <- NS(id)
-  tagList(
-    uiOutput(ns('incident_cards'))
-  )
-}
-
-ModalsServer <- function(id) {
-  moduleServer(
-    id,
-    function(input, output, session) {
-      
-      ns <- session$ns
-      
-      # First modal - Incident ID and Dispatch Time/Date
-      observe({
+          #FIXME Make consistent logic here and abstract into function. Be really clear on data flow.
+        assignments <- resp_vals$ff_app_lists
         
-        modal <- modalDialog(
-          textInput(ns("incident_id"), "Incident ID:", ""),
-          dateInput(ns("dispatch_date"), "Dispatch Date:"),
-          timeInput(ns("dispatch_time"), "Dispatch Time:", value = as.ITime(Sys.time() |> with_tz(Sys.getenv('LOCAL_TZ'))-3600), seconds = F),
-          dateInput(ns("end_date"), "End Date:"),
-          timeInput(ns("end_time"), "End Time:", value = as.ITime(Sys.time() |> with_tz(Sys.getenv('LOCAL_TZ'))), seconds = F),
-          footer = tagList(
-            actionButton(ns('cancel_mod_1'), 'Cancel'),
-            actionButton(ns("mod_1_next"), "Next")
-          )
-        )
+        clean_names <- names(assignments) |>
+          stringr::str_remove("app-incident_response-") |>
+          stringr::str_remove("apparatus_list_") |>
+          stringr::str_remove("_list") |>
+          stringr::str_replace_all("_", " ") |>
+          stringr::str_to_title()
         
-        # Show modal
-        showModal(modal)
-      }) |> 
-        bindEvent(input$add_incident, ignoreNULL = T)
-      
-      # Second modal - Incident Address, units, Response Area
-      observe({
-        removeModal()
-        modal <- modalDialog(
-          textInput(ns('address'), 'Address:', ""),
-          selectInput(ns('area'), 'Response Area', c('Municipality', 'Primary Area', 'Mutual Aid', 'Outside Aid')),
-          selectInput(ns("dispatch_reason"), "Dispatch Reason:", app_data$Dispatch_Codes),
-          checkboxGroupInput(ns('units'), 'Units', c('EMS', 'Fire', 'Wildland')),
-          checkboxInput(ns('canceled'), 'Canceled before arrival'),
-          checkboxInput(ns('dropped'), 'Dropped call'),
-          footer = tagList(
-            actionButton(ns('cancel_mod_2'), 'Cancel'),
-            actionButton(ns("mod_2_next"), "Next")
-          )
-        )
-        
-        showModal(modal)
-      }) |> 
-        bindEvent(input$mod_1_next, ignoreNULL = T)
-      
-      # Third modal - Apparatus and Firefighter selection
-      observe({
-        removeModal()
-        modal <- modalDialog(
-          selectInput(ns('apparatus'), 
-                      'Apparatus:', 
-                      choices = c(app_data$Apparatus |> pull(apparatus_name)),
-                      multiple = TRUE
-                      ),
-          selectInput(ns('firefighter'),
-                      'Firefighter',
-                      choices = c(app_data$Firefighter |> pull(firefighter_full_name)),
-                      multiple = TRUE
-          ),
-          footer = tagList(
-            actionButton(ns('cancel_mod_3'), 'Cancel'),
-            actionButton(ns("mod_3_next"), "Next")
-          )
-        )
-        
-        showModal(modal)
-      }) |> 
-        bindEvent(input$mod_2_next, ignoreNULL = T)
-      
-      # Fourth modal - assign personal to apparatus
-      observe({
-        removeModal()
-        # browser()
-        
-        firefighter <- input$firefighter
-        apparatus <- input$apparatus
-        
-        select_inputs <- lapply(firefighter, function(i) {
-          div(class = 'firefighter_div',
-              bslib::layout_columns(
-              shiny::strong(i),
-              col_widths = c(12)),
-              bslib::layout_columns(
-              selectInput(paste0(ns(i), '_apparatus'),
-                          'Apparatus:',
-                          choices = apparatus),
-                          width = '200px'
-              ),
-              col_widths = c(12)
-              
-              
-          )
-        })
-        
-        modal <- modalDialog(
-          tagList(select_inputs),
-          
-          footer = tagList(
-            actionButton(ns("cancel_mod_4"), "Cancel"),
-            actionButton(ns("mod_4_next"), "Next")
-          )
-        )
-        
-        showModal(modal)
-      }) |> 
-        bindEvent(input$mod_3_next, ignoreNULL = T)
-      
-      # Fifth modal - Notes and submit
-      observe({
-        removeModal()
-        
-        modal <- modalDialog(
-          textInput(ns("call_notes"), "Notes:", ""),
-          
-          footer = tagList(
-            actionButton(ns("cancel_mod_5"), "Cancel"),
-            actionButton(ns("mod_5_submit"), "Submit Incident")
-          )
-        )
-        
-        showModal(modal)
-      }) |> 
-        bindEvent(input$mod_4_next, ignoreNULL = T)
-      
-      
-      
-      ###### Close Modals on cancel, display warning #####
-      # FIXME Can't get this to work dynamically, so I've got it separated out for now
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
-        )
-      }) |> 
-        bindEvent(input$cancel_mod_1, ignoreNULL = T, ignoreInit = T)
-      
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
-        )
-      }) |> 
-        bindEvent(input$cancel_mod_2, ignoreNULL = T, ignoreInit = T)
-      
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
-        )
-      }) |> 
-        bindEvent(input$cancel_mod_3, ignoreNULL = T, ignoreInit = T)
-      
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
-        )
-      }) |> 
-        bindEvent(input$cancel_mod_4, ignoreNULL = T, ignoreInit = T)
-      
-      observe({
-        removeModal()
-        shinyalert(
-          title = "Warning",
-          text = "Incident not saved",
-          type = "warning"
-        )
-      }) |> 
-        bindEvent(input$cancel_mod_5, ignoreNULL = T, ignoreInit = T)
-      ####################################################
-      
-    }
-  )
-}
-
-DBWriteServer <- function(id) {
-  moduleServer(
-    id,
-    function(input, output, session) {
-      
-      ns <- session$ns
-      
-      observe({
-        removeModal()
-        # browser()
-        
-        UTC_dispatch_time_date <- (input$dispatch_time +.01) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
-        UTC_end_time_date <- (input$end_time +.01) |> force_tz(Sys.getenv('LOCAL_TZ')) |> with_tz()
-        
-        ###### Incident Statement Prepration
-        incident_statment_prep <- "INSERT INTO ?incident_table VALUES (?incident_id, ?dispatch_time, ?end_time, ?address, ?dispatch_reason, ?ems, ?fire, ?wildland, ?area, ?canceled, ?dropped, ?call_notes, 0);"
-        
-        # Interpolate the values into the SQL command safely
-        incident_statment <- sqlInterpolate(
-          app_data$CON,
-          incident_statment_prep,
-          incident_table = SQL(Sys.getenv("INCIDENT_TABLE")),
-          incident_id = input$incident_id,
-          dispatch_time = UTC_dispatch_time_date,
-          end_time = UTC_end_time_date,
-          address = input$address,
-          dispatch_reason = input$dispatch_reason,
-          ems = if_else("EMS" %in% input$units, 1, 0),
-          fire = if_else("Fire" %in% input$units, 1, 0),
-          wildland = if_else("Wildland" %in% input$units, 1, 0),
-          area = input$area,
-          canceled = if_else(input$canceled, 1, 0),
-          dropped = if_else(input$dropped, 1, 0),
-          call_notes = input$call_notes
-        )
-        
-        ###### Firefighter incident statement preparation ######
-        # No interpolation needed here, just a loop to build the statement
-        firefighter_incident_statement <- paste0("INSERT INTO ", 
-                   Sys.getenv("FF_INC_TABLE"), 
-                   " (incident_id, firefighter_id) VALUES "
-            )
-        
-        
-        for(ff in input$firefighter) {
-          firefighter_incident_statement <- paste0(firefighter_incident_statement, "('",
-                                                             input$incident_id, "',",
-                                                             app_data$firefighter_mapping[[ff]], "),"
-                                                             )
-        }
-      
-        
-        # Replace the last comma with a semi-colon
-        firefighter_incident_statement <- sub(",([^,]*)$", ";\\1", firefighter_incident_statement)
-        
-        
-        ###### Apparatus incident statement preparation ######
-        # No interpolation needed here, just a loop to build the statement
-        apparatus_incident_statement <- paste0("INSERT INTO ", 
-                                                 Sys.getenv("APP_INC_TABLE"), 
-                                                 " (incident_id, apparatus_id) VALUES "
-        )
-        
-        for(app in input$apparatus) {
-          apparatus_incident_statement <- paste0(apparatus_incident_statement, "('",
-                                                             input$incident_id, "',",
-                                                             app_data$apparatus_mapping[[app]], "),"
-          )
+        if(!is.null(assignments)) {
+          assignments <- purrr::set_names(assignments, clean_names)
         }
         
-        # Replace the last comma with a semi-colon
-        apparatus_incident_statement <- sub(",([^,]*)$", ";\\1", apparatus_incident_statement)
         
-        ###### Firefighter Apparatus statement preparation ######
-        # No interpolation needed here, just a loop to build the statement
-        firefighter_apparatus_statement <- paste0("INSERT INTO ", 
-                                                 Sys.getenv("FF_APP_TABLE"), 
-                                                 " (incident_id, firefighter_id, apparatus_id) VALUES "
-        )
+        ##### Build Times #####
+        inc_start_time <- BuildDateTime(
+          time = inc_vals$incident_start_time,
+          date = inc_vals$incident_start_date,
+          input = 'local',
+          return_type = 'UTC'
+        ) |> 
+          format("%Y-%m-%d %H:%M:%S")
         
-        for(ff in input$firefighter) {
-          app <- input[[paste0(ff, "_apparatus")]]
-          
-          
-          firefighter_apparatus_statement <- paste0(firefighter_apparatus_statement, "('",
-                                                             input$incident_id, "',",
-                                                             app_data$firefighter_mapping[[ff]], ",",
-                                                             app_data$apparatus_mapping[[app]], "),"
-          )
-          
-        }
+        inc_end_time <- BuildDateTime(
+          time = inc_vals$incident_end_time,
+          date = inc_vals$incident_end_date,
+          input = 'local',
+          return_type = 'UTC'
+        ) |> 
+          format("%Y-%m-%d %H:%M:%S")
         
-        # Replace the last comma with a semi-colon
-        firefighter_apparatus_statement <- sub(",([^,]*)$", ";\\1", firefighter_apparatus_statement)
+        resp_start_time <- BuildDateTime(
+          time = resp_vals$response_start_time,
+          date = resp_vals$response_start_date,
+          input = 'local',
+          return_type = 'UTC'
+        ) |> 
+          format("%Y-%m-%d %H:%M:%S")
+        
+        resp_end_time <- BuildDateTime(
+          time = resp_vals$response_end_time,
+          date = resp_vals$response_end_date,
+          input = 'local',
+          return_type = 'UTC'
+        ) |> 
+          format("%Y-%m-%d %H:%M:%S")
         
         #####
         
-        # Print the statements
-        print('Incident statement to be exectuted.')
-        print(incident_statment)
-        print('Firefighter Incident statement to be exectuted.')
-        print(firefighter_incident_statement)
-        print('Apparatus Incident statement to be exectuted.')
-        print(apparatus_incident_statement)
-        print('Firefighter Apparatus statement to be exectuted.')
-        print(firefighter_apparatus_statement)
+        write_results <- c()
         
-        # Execute the statements
-        incident_write_result <- DBI::dbExecute(app_data$CON,
-                                       incident_statment)
-        ff_inc_write_result <- DBI::dbExecute(app_data$CON,
-                                       firefighter_incident_statement)
-        app_inc_write_result <- DBI::dbExecute(app_data$CON,
-                                       apparatus_incident_statement)
-        ff_app_write_result <- DBI::dbExecute(app_data$CON,
-                                       firefighter_apparatus_statement)
+        ##### Write to Incident Table ####
+        # There are four possible scenarios for writing to the database
+        #1 - Adding a new incident (which also adds a response)
+        #2 - Editing an existing incident
+        #3 - Adding a new response to an existing incident
+        #4 - Editing an existing response
         
-        # Check if the write was successful
-        if(all(exists('incident_write_result'), exists('ff_inc_write_result'), exists('app_inc_write_result'), exists('ff_app_write_result'))) {
-          shinyalert(
-            title = "Success",
-            text = "Incident saved",
-            type = "success"
+        
+        #1 - Adding a new incident
+        if(!edit() & !additional()) {
+          return <- WriteIncident(
+            session = session,
+            write_results = write_results,
+            inc_vals = inc_vals,
+            inc_start_time = inc_start_time,
+            inc_end_time = inc_end_time
           )
-        } else {
-          shinyalert(
-            title = "Error",
-            text = "Tables not saved properly. Please contact your application administrator.",
-            type = "error"
+            
+          write_results <- c(return[[1]])
+          inc_vals$incident_id <- return[[2]]
+        }
+      
+        # 2 - Editing an existing incident
+        if(edit() & is.null(resp_vals$incident_id)) {
+          write_results <- EditIncident(
+            session = session,
+            write_results = write_results,
+            inc_vals = inc_vals,
+            inc_start_time = inc_start_time,
+            inc_end_time = inc_end_time,
+            input = input
+          )
+          
+        }
+        
+        # 3 - Adding a new response (to an existing incident or a new incident)
+        if(
+          (!edit() & !additional() & length(resp_vals$firefighter) > 0) | # For new incidents, where there is a response (there are firefighters assigned)
+          (!edit() & additional()) # For adding additional incidents
+        ) {
+
+          write_results <- AddResponse(
+            session = session,
+            resp_start_time = if(is_empty(resp_start_time)) inc_start_time else resp_start_time,
+            resp_end_time = if(is_empty(resp_end_time)) inc_end_time else resp_end_time,
+            write_results = write_results,
+            inc_vals = inc_vals,
+            resp_vals = resp_vals,
+            input,
+            assignments = assignments
+          )
+
+        } 
+        
+        # 4 - Editing an existing response
+        if (edit() & !is.null(resp_vals$incident_id)) {
+          # browser()
+          write_results <- EditResponse(
+            session = session,
+            resp_start_time = resp_start_time,
+            resp_end_time = resp_end_time,
+            write_results = write_results,
+            resp_vals = resp_vals,
+            input,
+            assignments = assignments
           )
         }
-      }) |> 
-        bindEvent(input$mod_5_submit, ignoreNULL = T)
-    }
-  )
-}
 
-CardServer <- function(id) {
-  moduleServer(
-    id,
-    function(input, output, session) {
-      
-      R_Incident <- reactiveVal(app_data$Incident)
-      
-      R_Firefighter_Incident <- reactiveVal(app_data$Firefighter_Incident)
-      
-      ns <- session$ns
-      
-      updateReactiveValue <- function() {
-        R_Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE"))))
-        R_Firefighter_Incident(DBI::dbGetQuery(app_data$CON, paste0("SELECT * FROM ", Sys.getenv("FF_INC_TABLE"))))
-      }
-      
-      
-      ns <- session$ns
-      
-      output$incident_cards <- renderUI({
-        updateReactiveValue()
+        resetCachedValues(incident_details, response_details, edit, additional, session)
+
+        UpdateReactives(rdfs)
         
-        Incidents <- R_Incident()
+        shinycssloaders::hidePageSpinner()
         
-        Firefighter_Incident <- R_Firefighter_Incident()
-        
-        Incidents <- Incidents[Incidents$incident_end_time >= Sys.time() - 48*3600, ] |> 
-          arrange(desc(incident_end_time))
-        
-        lapply(seq_len(nrow(Incidents)), function(i) {
-          incident <- Incidents[i, ]
-          
-          firefighters <- Firefighter_Incident[Firefighter_Incident$incident_id == incident$incident_id, ] |> 
-            pull(firefighter_id) 
-          
-          names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters]
-          
-          card(
-            card_header(paste(incident$incident_dispatch_time |> with_tz(Sys.getenv('LOCAL_TZ')) |> as.Date(), 
-                              incident$incident_dispatch_reason)),
-            p(paste(names(app_data$firefighter_mapping)[app_data$firefighter_mapping %in% firefighters], collapse = ", "))
+        if(length(write_results) > 0) {
+          # Check if any of the writes failed
+          if(any(write_results == FALSE)) {
+            shinyalert(
+              title = "Error",
+              text = "There was an error saving the incident",
+              type = "error"
+            )
+            return()
+          } else {
+            shinyalert(
+              title = "Success",
+              text = "Incident saved",
+              type = "success"
+            )
+          }
+        } else if (length(write_results) == 0) {
+          # If no writes were attempted, show a warning
+          shinyalert(
+            title = "Warning",
+            text = "No changes were made to the incident",
+            type = "warning"
           )
-        })
+          return()
+        }
+
+        session$sendCustomMessage(type = "jsCode", list(code = "window.enableScroll();"))
+        
       }) |> 
-        bindEvent(input$mod_5_submit, ignoreNULL = F, ignoreInit = F)
+        bindEvent(input$submit, ignoreNULL = T)
       
-      
+
     }
   )
-  
 }
 
-
-
+log_trace("Loading incident_response.R complete", namespace = "incident_response")

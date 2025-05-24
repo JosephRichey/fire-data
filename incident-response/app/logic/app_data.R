@@ -2,91 +2,71 @@ box::use(
   dplyr[filter, ...],
   odbc[...],
   shiny[...],
+  logger[...],
+  lubridate[with_tz],
 )
 
-#' @export
-CON <- dbConnect(RMySQL::MySQL(),
-                 dbname = "cfddb",
-                 host = Sys.getenv("DB_HOST"),
-                 port = 3306,
-                 user = "admin",
-                 password = Sys.getenv("DB_PASSWORD"))
-
-#' @export
-Firefighter <- dbGetQuery(CON,
-                          paste0("SELECT * FROM ", Sys.getenv("FIREFIGHTER_TABLE"),
-                                 " WHERE firefighter_deactive_date IS NULL"))
-
-#' @export
-Apparatus <- dbGetQuery(CON,
-                        paste0("SELECT * FROM ", Sys.getenv("APPARATUS_TABLE")))
-
-#' @export
-Incident <- dbGetQuery(CON,
-                       paste0("SELECT * FROM ", Sys.getenv("INCIDENT_TABLE")))
-
-#' @export
-Firefighter_Incident <- dbGetQuery(CON,
-                                paste0("SELECT * FROM ", Sys.getenv("FF_INC_TABLE")))
-
-
-#' @export
-Dispatch_Codes <- list(
-  Medical = list(
-    "Abdominal Pain/Problems",
-    "Allergies / Envenomations",
-    "Animal Bites / Attacks",
-    "Assault / Sexual Assault / Stun Gun",
-    "Back Pain",
-    "Breathing Problems",
-    "Burns / Explosions",
-    "Carbon Monoxide / Inhalation / HAZMAT / CBRN",
-    "Cardiac or Respiratory Arrest / Death",
-    "Chest Pain",
-    "Choking",
-    "Convulsions / Seizures",
-    "Diabetic Problems",
-    "Drowning / Diving / SCUBA Accident",
-    "Electrocution / Lightning",
-    "Eye Problems / Injuries",
-    "Falls",
-    "Headache",
-    "Heart Problems / A.I.C.D.",
-    "Heat / Cold Exposure",
-    "Hemorrhage / Lacerations",
-    "Inaccessible Incident / Entrapments",
-    "Overdose / Poisoning (Ingestion)",
-    "Pregnancy / Childbirth / Miscarriage",
-    "Psychiatric / Suicide Attempt",
-    "Sick Person",
-    "Stab / Gunshot / Penetrating Trauma",
-    "Stroke (CVA) / Transient Ischemic Attack (TIA)",
-    "Traffic / Transportation Incidents",
-    "Traumatic Injuries",
-    "Unconscious / Fainting (Near)",
-    "Unknown Problem",
-    "Inter-Facility Transfer / Palliative Care",
-    "Automatic Crash Notification (A.C.N.)",
-    "Pandemic / Epidemic / Outbreak (Surveillance or Triage)"
-  ),
-  Fire = list(
-    "CO Alarm",
-    "Fire Alarm",
-    "Garage Fire",
-    "Grass Fire",
-    "HAZMAT",
-    "Illegal Burn",
-    "Motor Vehicle Accident (Injuries)",
-    "Motor Vehicle Accident (No Injuries)",
-    "Smoke Investigation",
-    "Structure Fire",
-    "Vehicle Fire"
-  )
+box::use(
+  ./logging,
 )
 
-# Creating mapping vectors to get Ids
+log_trace("Loading app_data.R", namespace = "app_data")
+
+
+log_trace("Attempting to connect to database", namespace = "app_data")
 #' @export
-apparatus_mapping <- stats::setNames(Apparatus$apparatus_id, Apparatus$apparatus_name)
+CON <- tryCatch({
+  dbConnect(RMariaDB::MariaDB(),
+            dbname = "crabapple",
+            host = Sys.getenv("DB_HOST"),
+            port = 3306,
+            user = "admin",
+            password = Sys.getenv("DB_PASSWORD"))
+}, error = function(e) {
+  log_error(glue::glue("Database connection failed: {e$message}"),
+            namespace = "app_data")
+  NULL  # fallback to NULL if connection fails
+})
+
+if(is.null(CON)) {
+  log_error("Database connection is NULL. Exiting.",
+            namespace = "app_data")
+  stop("Database connection failed. Exiting.")
+} else {
+  log_success("Database connection established successfully.", namespace = "app_data")
+}
+
+log_trace("Loading static tables", namespace = "app_data")
 
 #' @export
-firefighter_mapping <- stats::setNames(Firefighter$firefighter_id, Firefighter$firefighter_full_name)
+Firefighter <- dbGetQuery(CON,"SELECT * FROM firefighter")
+
+#' @export
+Apparatus <- dbGetQuery(CON, "SELECT * FROM apparatus")
+
+#' @export
+Unit <- dbGetQuery(CON, "SELECT * FROM unit")
+
+#' @export
+Area <- dbGetQuery(CON, "SELECT * FROM area")
+
+#' @export
+Setting <- dbGetQuery(CON, "SELECT * FROM setting")
+
+#' @export
+Dispatch_Code <- dbGetQuery(CON, "SELECT * FROM dispatch_code")
+
+tz <- dbGetQuery(
+  CON, 
+  "SELECT * FROM setting
+  WHERE domain = 'global' AND 
+    setting_key = 'ltz'") |>
+    pull(setting_value)
+
+#' @export
+Current_Local_Date <- Sys.time() |> 
+    with_tz(tz) |> 
+    as.Date(tz = tz)
+
+  
+log_trace("Loading app_data.R complete", namespace = "app_data")

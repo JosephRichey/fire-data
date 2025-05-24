@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.4.1",
+    "Version": "4.4.2",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -9,13 +9,6 @@
     ]
   },
   "Packages": {
-    "BH": {
-      "Package": "BH",
-      "Version": "1.84.0-0",
-      "Source": "Repository",
-      "Repository": "RSPM",
-      "Hash": "a8235afbcd6316e6e91433ea47661013"
-    },
     "DBI": {
       "Package": "DBI",
       "Version": "1.2.3",
@@ -142,18 +135,6 @@
       ],
       "Hash": "5ea2700d21e038ace58269ecdbeb9ec0"
     },
-    "anytime": {
-      "Package": "anytime",
-      "Version": "0.3.9",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "BH",
-        "R",
-        "Rcpp"
-      ],
-      "Hash": "74a64813f17b492da9c6afda6b128e3d"
-    },
     "askpass": {
       "Package": "askpass",
       "Version": "1.2.0",
@@ -261,7 +242,7 @@
     },
     "bslib": {
       "Package": "bslib",
-      "Version": "0.7.0",
+      "Version": "0.9.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
@@ -279,7 +260,7 @@
         "rlang",
         "sass"
       ],
-      "Hash": "8644cc53f43828f19133548195d7e59e"
+      "Hash": "70a6489cc254171fb9b4a7f130f44dca"
     },
     "cachem": {
       "Package": "cachem",
@@ -404,14 +385,14 @@
     },
     "data.table": {
       "Package": "data.table",
-      "Version": "1.15.4",
+      "Version": "1.17.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "R",
         "methods"
       ],
-      "Hash": "8ee9ac56ef633d0c7cab8b2ca87d683e"
+      "Hash": "d06cd1a942bb17b607df7d57048d6840"
     },
     "desc": {
       "Package": "desc",
@@ -724,7 +705,7 @@
     },
     "lubridate": {
       "Package": "lubridate",
-      "Version": "1.9.3",
+      "Version": "1.9.4",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
@@ -733,7 +714,7 @@
         "methods",
         "timechange"
       ],
-      "Hash": "680ad542fbcf801442c83a6ac5a2126c"
+      "Hash": "be38bc740fc51783a78edb5a157e4104"
     },
     "magrittr": {
       "Package": "magrittr",
@@ -768,7 +749,7 @@
     },
     "odbc": {
       "Package": "odbc",
-      "Version": "1.5.0",
+      "Version": "1.6.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
@@ -783,7 +764,7 @@
         "methods",
         "rlang"
       ],
-      "Hash": "0609d24c52744c675f8578622c33d5fa"
+      "Hash": "b6136f8721b533e8b3fe0ce1e886b837"
     },
     "openssl": {
       "Package": "openssl",
@@ -1138,12 +1119,11 @@
     },
     "shinyWidgets": {
       "Package": "shinyWidgets",
-      "Version": "0.8.6",
+      "Version": "0.9.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "R",
-        "anytime",
         "bslib",
         "grDevices",
         "htmltools",
@@ -1152,7 +1132,7 @@
         "sass",
         "shiny"
       ],
-      "Hash": "bc918b6911c4e928e24a9928295de834"
+      "Hash": "2356d33ce915ad415b1fe9a476c99a7d"
     },
     "sourcetools": {
       "Package": "sourcetools",

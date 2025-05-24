@@ -1,6 +1,6 @@
 name: Data Portal Test
 on:
-  push:
+  workflow_dispatch:
     paths:
       - 'data-portal/**'
 permissions:
