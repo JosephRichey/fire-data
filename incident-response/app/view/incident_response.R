@@ -169,6 +169,7 @@ Server <- function(id, rdfs) {
       ##########################################################################
       observe({
         # Load values to pass to write functions
+        
 
         removeModal()
         session$sendCustomMessage(type = "jsCode", list(code = "window.enableScroll();"))
@@ -207,7 +208,10 @@ Server <- function(id, rdfs) {
           stringr::str_replace_all("_", " ") |>
           stringr::str_to_title()
         
-        assignments <- purrr::set_names(assignments, clean_names)
+        if(!is.null(assignments)) {
+          assignments <- purrr::set_names(assignments, clean_names)
+        }
+        
         
         ##### Build Times #####
         inc_start_time <- BuildDateTime(

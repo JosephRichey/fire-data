@@ -48,7 +48,7 @@ ui <- function(id) {
     card$Output(ns('incident_response')),
     
     br(),
-    helpText("v1.0.0-dev © CC BY-NC-SA 2024 Joseph Richey")
+    helpText("v1.0.0-beta © CC BY-NC-SA 2024 Joseph Richey")
   )
 }
 

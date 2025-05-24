@@ -17,7 +17,7 @@ log_trace("Attempting to connect to database", namespace = "app_data")
 #' @export
 CON <- tryCatch({
   dbConnect(RMariaDB::MariaDB(),
-            dbname = "corinne",
+            dbname = "crabapple",
             host = Sys.getenv("DB_HOST"),
             port = 3306,
             user = "admin",
